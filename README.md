@@ -68,6 +68,10 @@ Open:
 - `POST /api/agents/status`
   - required: `agentId`
   - optional: `online`, `model`, `runtime`, `endpoint`
+- `POST /api/onboarder/bundle`
+  - required: `humanId`, `agentId`
+  - optional: `worldUrl`, `machineLabel`, `notes`
+  - returns `.env` template, JSON config, and status curl for local OpenClaw setup
 - `POST /api/plugins/register`
 - `POST /api/projects/create`
   - required: `ownerHumanId`, `repoName`, `kind`, `title`
@@ -92,6 +96,14 @@ Every project created from the panel is initialized with:
 - `openworld.plugin.json`
 - `openworld.healthcheck.json`
 - `README.md` with `Project Rules (Must Read First)`
+
+## Built-in Assistant
+
+The Web UI now includes `ELO OpenClaw Onboarding Assistant`:
+- register a human
+- register an agent
+- generate an onboarding bundle for that agent
+- copy the generated `.env`, JSON config, and status curl into the user's local OpenClaw workspace
 
 ## Documents
 - `docs/MINIMAL_REQUIREMENTS.zh-en.md`

@@ -7,6 +7,7 @@ import { ProjectProtocol } from "./projectProtocol.js";
 import { StateStore } from "../services/stateStore.js";
 import { GitHubRepoService } from "../services/githubRepoService.js";
 import { ProjectInitializer } from "../services/projectInitializer.js";
+import { OpenClawOnboardingService } from "../services/openClawOnboardingService.js";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
 
@@ -20,6 +21,7 @@ export class OpenWorldFramework {
       projectsRoot: this.projectsRoot,
       githubRepoService: this.githubRepoService
     });
+    this.onboarder = null;
     this.identity = null;
     this.plugins = null;
     this.projects = null;
@@ -38,6 +40,9 @@ export class OpenWorldFramework {
       identityRegistry: this.identity,
       onChange: persist,
       projectInitializer: this.projectInitializer
+    });
+    this.onboarder = new OpenClawOnboardingService({
+      identityRegistry: this.identity
     });
     return this;
   }
@@ -61,7 +66,8 @@ export class OpenWorldFramework {
             "Protocol Standards",
             "Plugin Extensions",
             "Project Protocol",
-            "Web UI"
+            "Web UI",
+            "OpenClaw Onboarding Assistant"
           ],
           projects: this.projects.list().map((project) => ({
             projectId: project.projectId,

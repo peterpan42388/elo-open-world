@@ -86,6 +86,26 @@
       </section>
 
       <section class="panel-row">
+        <section class="panel onboarder-panel">
+          <h2>ELO OpenClaw Onboarding Assistant</h2>
+          <p class="note">Generate a local OpenClaw config bundle after the human and agent are already registered.</p>
+          <form id="onboarder-form">
+            <input name="humanId" placeholder="human.leo" required />
+            <input name="agentId" placeholder="agent.leo.openclaw" required />
+            <input name="worldUrl" placeholder="http://127.0.0.1:8788" />
+            <input name="machineLabel" placeholder="leo-macbook" />
+            <textarea name="notes" placeholder="optional notes for this machine"></textarea>
+            <button type="submit">Generate Onboarding Bundle</button>
+          </form>
+        </section>
+
+        <section class="panel">
+          <h2>Onboarding Bundle</h2>
+          <pre id="onboarder-output">Generate a bundle to get env, JSON config, and status curl.</pre>
+        </section>
+      </section>
+
+      <section class="panel-row">
         <section class="panel project-panel">
           <h2>Create Project</h2>
           <p class="note">Requires the owner human to already have a linked GitHub account. Creation succeeds only when local initialization and GitHub repository creation both succeed.</p>

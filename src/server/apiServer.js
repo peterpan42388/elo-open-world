@@ -65,6 +65,11 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, await framework.identity.updateAgentStatus(body));
     }
 
+    if (req.method === "POST" && path === "/api/onboarder/bundle") {
+      const body = await readJson(req);
+      return json(res, 200, framework.onboarder.generateBundle(body));
+    }
+
     if (req.method === "GET" && path === "/api/agents") {
       return json(res, 200, { items: framework.identity.summary().agents });
     }

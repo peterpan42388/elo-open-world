@@ -102,10 +102,22 @@ async function handleSubmit(event, path, successMessage) {
   }
 }
 
+async function handleOnboarderSubmit(event) {
+  event.preventDefault();
+  try {
+    const result = await request("/api/onboarder/bundle", "POST", formDataToObject(event.currentTarget));
+    $("onboarder-output").textContent = JSON.stringify(result, null, 2);
+    setStatus(`Onboarding bundle ready for ${result.identity.agentId}`, "ok");
+  } catch (error) {
+    setStatus(error.message, "error");
+  }
+}
+
 $("human-form").addEventListener("submit", (event) => handleSubmit(event, "/api/humans/register", (result) => `Human created: ${result.humanId}`));
 $("agent-form").addEventListener("submit", (event) => handleSubmit(event, "/api/agents/register", (result) => `Agent created: ${result.agentId}`));
 $("agent-status-form").addEventListener("submit", (event) => handleSubmit(event, "/api/agents/status", (result) => `Agent updated: ${result.agentId}`));
 $("plugin-form").addEventListener("submit", (event) => handleSubmit(event, "/api/plugins/register", (result) => `Plugin created: ${result.pluginId}`));
 $("project-form").addEventListener("submit", (event) => handleSubmit(event, "/api/projects/create", (result) => `Project created: ${result.projectId} -> ${result.repoFullName}`));
+$("onboarder-form").addEventListener("submit", handleOnboarderSubmit);
 
 refresh().catch((error) => setStatus(error.message, "error"));

@@ -140,3 +140,39 @@ test("project creation should fail without githubLogin", async () => {
     /must link githubLogin/
   );
 });
+
+test("onboarder bundle should generate env json and curl for registered agent", async () => {
+  const root = await mkdtemp(join(tmpdir(), "open-world-onboarder-"));
+  const github = new FakeGitHubRepoService();
+  const world = await new OpenWorldFramework({
+    stateFile: join(root, "state.json"),
+    projectsRoot: join(root, "projects"),
+    githubRepoService: github
+  }).init();
+
+  await world.identity.registerHuman({
+    humanId: "human.bundle",
+    email: "bundle@example.com",
+    githubLogin: "peterpan42388"
+  });
+
+  await world.identity.registerAgent({
+    agentId: "agent.bundle.openclaw",
+    humanId: "human.bundle",
+    model: "claude-3.7-sonnet",
+    online: true
+  });
+
+  const bundle = world.onboarder.generateBundle({
+    humanId: "human.bundle",
+    agentId: "agent.bundle.openclaw",
+    worldUrl: "http://127.0.0.1:8788",
+    machineLabel: "leo-mbp"
+  });
+
+  assert.equal(bundle.identity.humanId, "human.bundle");
+  assert.equal(bundle.identity.agentId, "agent.bundle.openclaw");
+  assert.match(bundle.files.env, /ELO_OPEN_WORLD_AGENT_ID=agent\.bundle\.openclaw/);
+  assert.match(bundle.files.json, /\"machineLabel\": \"leo-mbp\"/);
+  assert.match(bundle.files.curl, /api\/agents\/status/);
+});
