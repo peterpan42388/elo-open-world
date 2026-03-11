@@ -1,43 +1,62 @@
-function token(name, value, maxLen = 128) {
-  if (typeof value !== "string") throw new Error(`${name} must be a string`);
-  const v = value.trim();
-  if (!v) throw new Error(`${name} is required`);
-  if (v.length > maxLen) throw new Error(`${name} too long`);
-  if (!/^[A-Za-z0-9._:/@-]+$/.test(v)) throw new Error(`${name} contains invalid characters`);
-  return v;
-}
-
-function text(name, value, maxLen = 512) {
-  if (value === undefined || value === null) return "";
-  if (typeof value !== "string") throw new Error(`${name} must be a string`);
-  const v = value.trim();
-  if (v.length > maxLen) throw new Error(`${name} too long`);
-  return v;
-}
+import { asArray, now, slug, text, token, uid } from "../lib/validation.js";
 
 export class ProjectProtocol {
-  constructor() {
-    this.projects = new Map();
+  constructor({ projects = [], identityRegistry, onChange = async () => {}, projectInitializer } = {}) {
+    this.projects = new Map(projects.map((project) => [project.projectId, { ...project }]));
+    this.identityRegistry = identityRegistry;
+    this.onChange = onChange;
+    this.projectInitializer = projectInitializer;
   }
 
-  create({ projectId, ownerHumanId, kind, title, summary = "", pluginIds = [] }) {
-    const safeProjectId = token("projectId", projectId);
-    if (this.projects.has(safeProjectId)) throw new Error(`duplicate projectId: ${safeProjectId}`);
-    const project = {
-      projectId: safeProjectId,
-      ownerHumanId: token("ownerHumanId", ownerHumanId),
-      kind: token("kind", kind, 64),
-      title: text("title", title, 160) || safeProjectId,
+  async create({ ownerHumanId, kind, title, summary = "", pluginIds = [], repoName, memberAgentIds = [], visibility = "public" }) {
+    const safeOwnerHumanId = token("ownerHumanId", ownerHumanId);
+    const ownerHuman = this.identityRegistry.getHuman(safeOwnerHumanId);
+    if (!ownerHuman.githubLogin) throw new Error("owner human must link githubLogin before creating a project");
+
+    const safeRepoName = slug("repoName", repoName, 100);
+    const safeKind = token("kind", kind, 64);
+    const safePluginIds = asArray(pluginIds, "pluginId");
+    const safeMemberAgentIds = asArray(memberAgentIds, "agentId");
+    const memberAgents = safeMemberAgentIds.map((agentId) => this.identityRegistry.getAgent(agentId));
+
+    const projectId = uid("owp");
+    const initialized = await this.projectInitializer.initialize({
+      projectId,
+      repoName: safeRepoName,
+      title: text("title", title, 160) || safeRepoName,
       summary: text("summary", summary, 1000),
-      pluginIds: Array.isArray(pluginIds) ? pluginIds.map((x) => token("pluginId", String(x), 128)) : [],
-      state: "active",
-      createdAt: Date.now()
+      ownerHuman,
+      memberAgents,
+      pluginIds: safePluginIds,
+      visibility
+    });
+
+    const project = {
+      projectId,
+      ownerHumanId: safeOwnerHumanId,
+      ownerGithubLogin: ownerHuman.githubLogin,
+      kind: safeKind,
+      title: text("title", title, 160) || safeRepoName,
+      summary: text("summary", summary, 1000),
+      pluginIds: safePluginIds,
+      memberAgentIds: safeMemberAgentIds,
+      repoName: safeRepoName,
+      repoFullName: initialized.repoFullName,
+      repoUrl: initialized.repoUrl,
+      localPath: initialized.localPath,
+      state: "initialized",
+      createdAt: now()
     };
-    this.projects.set(safeProjectId, project);
+    this.projects.set(projectId, project);
+    await this.onChange();
     return project;
   }
 
   list() {
     return [...this.projects.values()].sort((a, b) => a.createdAt - b.createdAt);
+  }
+
+  snapshot() {
+    return { projects: this.list() };
   }
 }

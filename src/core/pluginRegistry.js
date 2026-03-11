@@ -1,26 +1,12 @@
-function token(name, value, maxLen = 128) {
-  if (typeof value !== "string") throw new Error(`${name} must be a string`);
-  const v = value.trim();
-  if (!v) throw new Error(`${name} is required`);
-  if (v.length > maxLen) throw new Error(`${name} too long`);
-  if (!/^[A-Za-z0-9._:/@-]+$/.test(v)) throw new Error(`${name} contains invalid characters`);
-  return v;
-}
-
-function text(name, value, maxLen = 512) {
-  if (value === undefined || value === null) return "";
-  if (typeof value !== "string") throw new Error(`${name} must be a string`);
-  const v = value.trim();
-  if (v.length > maxLen) throw new Error(`${name} too long`);
-  return v;
-}
+import { asArray, now, text, token } from "../lib/validation.js";
 
 export class PluginRegistry {
-  constructor() {
-    this.plugins = new Map();
+  constructor({ plugins = [], onChange = async () => {} } = {}) {
+    this.plugins = new Map(plugins.map((plugin) => [plugin.pluginId, { ...plugin }]));
+    this.onChange = onChange;
   }
 
-  register({ pluginId, ownerHumanId, kind, title, endpoint = "", description = "", capabilities = [] }) {
+  async register({ pluginId, ownerHumanId, kind, title, endpoint = "", description = "", capabilities = [] }) {
     const safePluginId = token("pluginId", pluginId);
     if (this.plugins.has(safePluginId)) throw new Error(`duplicate pluginId: ${safePluginId}`);
     const plugin = {
@@ -30,14 +16,21 @@ export class PluginRegistry {
       title: text("title", title, 160) || safePluginId,
       endpoint: text("endpoint", endpoint, 256),
       description: text("description", description, 1000),
-      capabilities: Array.isArray(capabilities) ? capabilities.map((x) => token("capability", String(x), 64)) : [],
-      createdAt: Date.now()
+      capabilities: asArray(capabilities, "capability", 64),
+      manifestStandard: "elo-open-world.plugin.v1",
+      healthcheckStandard: "elo-open-world.healthcheck.v1",
+      createdAt: now()
     };
     this.plugins.set(safePluginId, plugin);
+    await this.onChange();
     return plugin;
   }
 
   list() {
     return [...this.plugins.values()].sort((a, b) => a.createdAt - b.createdAt);
+  }
+
+  snapshot() {
+    return { plugins: this.list() };
   }
 }

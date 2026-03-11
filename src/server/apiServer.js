@@ -4,7 +4,6 @@ import { extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { OpenWorldFramework } from "../core/openWorld.js";
 
-const framework = new OpenWorldFramework();
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const WEB_ROOT = join(__dirname, "../../web");
 
@@ -36,6 +35,8 @@ async function serveStatic(pathname, res) {
   res.end(data);
 }
 
+const framework = await new OpenWorldFramework().init();
+
 const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url || "/", "http://127.0.0.1");
@@ -51,17 +52,26 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === "POST" && path === "/api/humans/register") {
       const body = await readJson(req);
-      return json(res, 200, framework.identity.registerHuman(body));
+      return json(res, 200, await framework.identity.registerHuman(body));
     }
 
     if (req.method === "POST" && path === "/api/agents/register") {
       const body = await readJson(req);
-      return json(res, 200, framework.identity.registerAgent(body));
+      return json(res, 200, await framework.identity.registerAgent(body));
+    }
+
+    if (req.method === "POST" && path === "/api/agents/status") {
+      const body = await readJson(req);
+      return json(res, 200, await framework.identity.updateAgentStatus(body));
+    }
+
+    if (req.method === "GET" && path === "/api/agents") {
+      return json(res, 200, { items: framework.identity.summary().agents });
     }
 
     if (req.method === "POST" && path === "/api/plugins/register") {
       const body = await readJson(req);
-      return json(res, 200, framework.plugins.register(body));
+      return json(res, 200, await framework.plugins.register(body));
     }
 
     if (req.method === "GET" && path === "/api/plugins") {
@@ -70,7 +80,7 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === "POST" && path === "/api/projects/create") {
       const body = await readJson(req);
-      return json(res, 200, framework.projects.create(body));
+      return json(res, 200, await framework.projects.create(body));
     }
 
     if (req.method === "GET" && path === "/api/projects") {

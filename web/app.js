@@ -6,22 +6,74 @@ async function request(path, method = "GET", body) {
     headers: body ? { "Content-Type": "application/json" } : {},
     body: body ? JSON.stringify(body) : undefined
   });
-  return res.json();
+  const payload = await res.json();
+  if (!res.ok || payload.error) throw new Error(payload.error || `request failed: ${res.status}`);
+  return payload;
+}
+
+function setStatus(message, kind = "ok") {
+  const line = $("status-line");
+  line.textContent = message;
+  line.dataset.kind = kind;
 }
 
 function renderSummary(summary) {
   const grid = $("summary-grid");
   const humans = summary.identity?.totals?.humans ?? 0;
   const agents = summary.identity?.totals?.agents ?? 0;
+  const onlineAgents = summary.identity?.totals?.onlineAgents ?? 0;
   const plugins = summary.plugins?.length ?? 0;
   const projects = summary.projects?.length ?? 0;
   grid.innerHTML = [
     ["Humans", humans],
     ["Agents", agents],
+    ["Online Agents", onlineAgents],
     ["Plugins", plugins],
     ["Projects", projects]
   ].map(([label, value]) => `<article class="metric"><div class="label">${label}</div><div class="value">${value}</div></article>`).join("");
   $("world-feed").textContent = JSON.stringify(summary, null, 2);
+  renderInfrastructure(summary);
+  renderAgents(summary.identity?.agents || []);
+}
+
+function renderInfrastructure(summary) {
+  const projects = summary.world?.infrastructure?.projects || [];
+  const root = $("infra-diagram");
+  const dynamicProjects = projects.length
+    ? projects.map((project) => `<div class="infra-node project"><strong>${project.title}</strong><span>${project.repoName}</span><span>${project.state}</span></div>`).join("")
+    : '<div class="infra-node project placeholder"><strong>No project yet</strong><span>Create elo-agent-onboarder here</span></div>';
+
+  root.innerHTML = `
+    <div class="infra-column">
+      <div class="infra-node core"><strong>Identity Layer</strong><span>Email Human + GitHub link + Agent initId</span></div>
+      <div class="infra-node core"><strong>Protocol Standards</strong><span>Shared project rules + elo-init + manifest + healthcheck</span></div>
+    </div>
+    <div class="infra-arrow">→</div>
+    <div class="infra-column">
+      <div class="infra-node plugin"><strong>Plugins</strong><span>ELO Protocol / Market / Social / Future integrations</span></div>
+      <div class="infra-node plugin"><strong>Current Focus</strong><span>ELO OpenClaw Onboarding Assistant</span></div>
+    </div>
+    <div class="infra-arrow">→</div>
+    <div class="infra-column">
+      ${dynamicProjects}
+    </div>
+  `;
+}
+
+function renderAgents(agents) {
+  const root = $("agents-list");
+  if (!agents.length) {
+    root.innerHTML = '<div class="empty">No agents registered yet.</div>';
+    return;
+  }
+  root.innerHTML = agents.map((agent) => `
+    <article class="agent-card">
+      <strong>${agent.agentId}</strong>
+      <span>${agent.label}</span>
+      <span>model: ${agent.model || "unknown"}</span>
+      <span>online: ${agent.online ? "yes" : "no"}</span>
+    </article>
+  `).join("");
 }
 
 async function refresh() {
@@ -34,35 +86,26 @@ function formDataToObject(form) {
   const obj = Object.fromEntries(fd.entries());
   if (obj.capabilities) obj.capabilities = obj.capabilities.split(",").map((x) => x.trim()).filter(Boolean);
   if (obj.pluginIds) obj.pluginIds = obj.pluginIds.split(",").map((x) => x.trim()).filter(Boolean);
+  if (obj.memberAgentIds) obj.memberAgentIds = obj.memberAgentIds.split(",").map((x) => x.trim()).filter(Boolean);
   return obj;
 }
 
-$("human-form").addEventListener("submit", async (event) => {
+async function handleSubmit(event, path, successMessage) {
   event.preventDefault();
-  await request("/api/humans/register", "POST", formDataToObject(event.currentTarget));
-  event.currentTarget.reset();
-  await refresh();
-});
+  try {
+    const result = await request(path, "POST", formDataToObject(event.currentTarget));
+    event.currentTarget.reset();
+    setStatus(successMessage(result), "ok");
+    await refresh();
+  } catch (error) {
+    setStatus(error.message, "error");
+  }
+}
 
-$("agent-form").addEventListener("submit", async (event) => {
-  event.preventDefault();
-  await request("/api/agents/register", "POST", formDataToObject(event.currentTarget));
-  event.currentTarget.reset();
-  await refresh();
-});
+$("human-form").addEventListener("submit", (event) => handleSubmit(event, "/api/humans/register", (result) => `Human created: ${result.humanId}`));
+$("agent-form").addEventListener("submit", (event) => handleSubmit(event, "/api/agents/register", (result) => `Agent created: ${result.agentId}`));
+$("agent-status-form").addEventListener("submit", (event) => handleSubmit(event, "/api/agents/status", (result) => `Agent updated: ${result.agentId}`));
+$("plugin-form").addEventListener("submit", (event) => handleSubmit(event, "/api/plugins/register", (result) => `Plugin created: ${result.pluginId}`));
+$("project-form").addEventListener("submit", (event) => handleSubmit(event, "/api/projects/create", (result) => `Project created: ${result.projectId} -> ${result.repoFullName}`));
 
-$("plugin-form").addEventListener("submit", async (event) => {
-  event.preventDefault();
-  await request("/api/plugins/register", "POST", formDataToObject(event.currentTarget));
-  event.currentTarget.reset();
-  await refresh();
-});
-
-$("project-form").addEventListener("submit", async (event) => {
-  event.preventDefault();
-  await request("/api/projects/create", "POST", formDataToObject(event.currentTarget));
-  event.currentTarget.reset();
-  await refresh();
-});
-
-refresh();
+refresh().catch((error) => setStatus(error.message, "error"));

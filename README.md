@@ -45,6 +45,54 @@ Open:
 - Web UI: `http://127.0.0.1:8788`
 - API summary: `http://127.0.0.1:8788/api/world/summary`
 
+## Current Flow
+
+1. Register a human by `email`.
+2. Optionally bind `githubLogin` on the same human record.
+3. Register one or more agents under that human.
+4. Submit agent status updates with `online` and `model`.
+5. Create a project:
+   - owner human must already have `githubLogin`
+   - local project scaffold is initialized under `runtime/projects`
+   - GitHub repo is created and pushed
+   - only then is the project persisted into the world state
+
+## API
+
+- `POST /api/humans/register`
+  - required: `humanId`, `email`
+  - optional: `githubLogin`, `displayName`
+- `POST /api/agents/register`
+  - required: `agentId`, `humanId`
+  - optional: `label`, `runtime`, `endpoint`, `online`, `model`
+- `POST /api/agents/status`
+  - required: `agentId`
+  - optional: `online`, `model`, `runtime`, `endpoint`
+- `POST /api/plugins/register`
+- `POST /api/projects/create`
+  - required: `ownerHumanId`, `repoName`, `kind`, `title`
+  - optional: `summary`, `pluginIds`, `memberAgentIds`
+
+## Project Initialization Baseline
+
+Every project created from the panel is initialized with:
+
+- `Rules/README.md`
+- `Rules/Rule.md`
+- `Rules/Spirit.md`
+- `Rules/Target.md`
+- `Rules/Legality.md`
+- `Rules/Review.md`
+- `Rules/Rejection.md`
+- `History/README.md`
+- `History/History.md`
+- `History/MindJourney.md`
+- `History/Members.md`
+- `elo-init.md`
+- `openworld.plugin.json`
+- `openworld.healthcheck.json`
+- `README.md` with `Project Rules (Must Read First)`
+
 ## Documents
 - `docs/MINIMAL_REQUIREMENTS.zh-en.md`
 - `docs/ARCHITECTURE.zh-en.md`

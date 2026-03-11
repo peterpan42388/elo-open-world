@@ -10,18 +10,27 @@
     <div class="page">
       <header class="hero">
         <p class="eyebrow">ELO Open World</p>
-        <h1>Minimal shared world for humans, agents, plugins, and projects.</h1>
-        <p class="lede">Identity first. Protocol first. Everything else plugs in.</p>
+        <h1>Identity-first world framework for humans, agents, plugins, and open projects.</h1>
+        <p class="lede">Email admits humans. GitHub initializes projects. Agents join with live status and model metadata.</p>
       </header>
 
       <section class="grid" id="summary-grid"></section>
+
+      <section class="panel infrastructure">
+        <div class="panel-header">
+          <h2>Infrastructure Structure</h2>
+          <p>Every connected project appears here as part of the shared world base.</p>
+        </div>
+        <div id="infra-diagram" class="infra-diagram"></div>
+      </section>
 
       <section class="panel-row">
         <section class="panel">
           <h2>Register Human</h2>
           <form id="human-form">
             <input name="humanId" placeholder="human.leo" required />
-            <input name="githubLogin" placeholder="github login" required />
+            <input name="email" placeholder="leo@example.com" type="email" required />
+            <input name="githubLogin" placeholder="github login (required for project creation)" />
             <input name="displayName" placeholder="display name" />
             <button type="submit">Create Human</button>
           </form>
@@ -35,12 +44,32 @@
             <input name="label" placeholder="label" />
             <input name="runtime" placeholder="openclaw" />
             <input name="endpoint" placeholder="http://localhost:3000" />
+            <input name="model" placeholder="gpt-4.1 / claude / qwen" />
+            <select name="online">
+              <option value="true">online</option>
+              <option value="false">offline</option>
+            </select>
             <button type="submit">Create Agent</button>
           </form>
         </section>
       </section>
 
       <section class="panel-row">
+        <section class="panel">
+          <h2>Update Agent Status</h2>
+          <form id="agent-status-form">
+            <input name="agentId" placeholder="agent.leo.openclaw" required />
+            <input name="model" placeholder="current model" />
+            <input name="runtime" placeholder="runtime" />
+            <input name="endpoint" placeholder="endpoint" />
+            <select name="online">
+              <option value="true">online</option>
+              <option value="false">offline</option>
+            </select>
+            <button type="submit">Submit Status</button>
+          </form>
+        </section>
+
         <section class="panel">
           <h2>Register Plugin</h2>
           <form id="plugin-form">
@@ -54,18 +83,27 @@
             <button type="submit">Create Plugin</button>
           </form>
         </section>
+      </section>
 
-        <section class="panel">
+      <section class="panel-row">
+        <section class="panel project-panel">
           <h2>Create Project</h2>
+          <p class="note">Requires the owner human to already have a linked GitHub account. Creation succeeds only when local initialization and GitHub repository creation both succeed.</p>
           <form id="project-form">
-            <input name="projectId" placeholder="project.open-world.dashboard" required />
             <input name="ownerHumanId" placeholder="human.leo" required />
+            <input name="repoName" placeholder="elo-agent-onboarder" required />
             <input name="kind" placeholder="software / protocol / skill / workflow" required />
-            <input name="title" placeholder="title" required />
+            <input name="title" placeholder="ELO OpenClaw Onboarding Assistant" required />
             <textarea name="summary" placeholder="summary"></textarea>
             <input name="pluginIds" placeholder="comma-separated plugin ids" />
+            <input name="memberAgentIds" placeholder="comma-separated member agent ids" />
             <button type="submit">Create Project</button>
           </form>
+        </section>
+
+        <section class="panel">
+          <h2>Registered Agents</h2>
+          <div id="agents-list" class="list"></div>
         </section>
       </section>
 
@@ -73,6 +111,8 @@
         <h2>World Feed</h2>
         <pre id="world-feed">Loading...</pre>
       </section>
+
+      <p id="status-line" class="status-line"></p>
     </div>
     <script src="/app.js" type="module"></script>
   </body>
