@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ELO Open World</title>
+    <link rel="stylesheet" href="/app.css" />
+  </head>
+  <body>
+    <div class="page">
+      <header class="hero">
+        <p class="eyebrow">ELO Open World</p>
+        <h1>Minimal shared world for humans, agents, plugins, and projects.</h1>
+        <p class="lede">Identity first. Protocol first. Everything else plugs in.</p>
+      </header>
+
+      <section class="grid" id="summary-grid"></section>
+
+      <section class="panel-row">
+        <section class="panel">
+          <h2>Register Human</h2>
+          <form id="human-form">
+            <input name="humanId" placeholder="human.leo" required />
+            <input name="githubLogin" placeholder="github login" required />
+            <input name="displayName" placeholder="display name" />
+            <button type="submit">Create Human</button>
+          </form>
+        </section>
+
+        <section class="panel">
+          <h2>Register Agent</h2>
+          <form id="agent-form">
+            <input name="agentId" placeholder="agent.leo.openclaw" required />
+            <input name="humanId" placeholder="human.leo" required />
+            <input name="label" placeholder="label" />
+            <input name="runtime" placeholder="openclaw" />
+            <input name="endpoint" placeholder="http://localhost:3000" />
+            <button type="submit">Create Agent</button>
+          </form>
+        </section>
+      </section>
+
+      <section class="panel-row">
+        <section class="panel">
+          <h2>Register Plugin</h2>
+          <form id="plugin-form">
+            <input name="pluginId" placeholder="plugin.elo-protocol" required />
+            <input name="ownerHumanId" placeholder="human.leo" required />
+            <input name="kind" placeholder="protocol / market / social" required />
+            <input name="title" placeholder="title" required />
+            <input name="endpoint" placeholder="endpoint" />
+            <textarea name="description" placeholder="description"></textarea>
+            <input name="capabilities" placeholder="comma-separated capabilities" />
+            <button type="submit">Create Plugin</button>
+          </form>
+        </section>
+
+        <section class="panel">
+          <h2>Create Project</h2>
+          <form id="project-form">
+            <input name="projectId" placeholder="project.open-world.dashboard" required />
+            <input name="ownerHumanId" placeholder="human.leo" required />
+            <input name="kind" placeholder="software / protocol / skill / workflow" required />
+            <input name="title" placeholder="title" required />
+            <textarea name="summary" placeholder="summary"></textarea>
+            <input name="pluginIds" placeholder="comma-separated plugin ids" />
+            <button type="submit">Create Project</button>
+          </form>
+        </section>
+      </section>
+
+      <section class="panel">
+        <h2>World Feed</h2>
+        <pre id="world-feed">Loading...</pre>
+      </section>
+    </div>
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>

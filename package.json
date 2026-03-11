@@ -1,0 +1,14 @@
+{
+  "name": "elo-open-world",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "description": "Minimal extensible framework for ELO Open World",
+  "scripts": {
+    "start": "node src/server/apiServer.js",
+    "dev": "node src/server/apiServer.js",
+    "test": "node --test",
+    "report": "node src/server/reportCli.js"
+  },
+  "license": "MIT"
+}
