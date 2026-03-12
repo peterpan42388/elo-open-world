@@ -863,7 +863,8 @@ function requirementStatusLabel(value) {
     drafted: "Drafted",
     accepted: "Accepted",
     rejected: "Rejected",
-    implemented: "Implemented"
+    implemented: "Implemented",
+    "rereview-requested": "Re-review Requested"
   }[normalized] || value;
 }
 
@@ -896,6 +897,7 @@ function renderRequirements(requirements) {
           <div class="detail-item"><span>Accepted By</span><strong>${item.acceptedByHumanId || "-"}</strong></div>
           <div class="detail-item"><span>Rejected By</span><strong>${item.rejectedByHumanId || "-"}</strong></div>
           <div class="detail-item"><span>Reviewed At</span><strong>${formatTimestamp(item.reviewedAt)}</strong></div>
+          <div class="detail-item"><span>Re-review Count</span><strong>${item.rereviewCount || 0}</strong></div>
           <div class="detail-item"><span>Status</span><strong>${requirementStatusLabel(item.status)}</strong></div>
           <div class="detail-item"><span>Linked Project</span><strong>${item.linkedProjectId || "Not linked"}</strong></div>
         </div>
@@ -913,6 +915,7 @@ function renderRequirements(requirements) {
         <div class="tag-row action-row">
           ${item.status !== "implemented" ? `<button type="button" class="topbar-button secondary requirement-status-button" data-requirement-id="${item.requirementId}" data-requirement-status="accepted">Accept</button>` : ""}
           ${item.status !== "implemented" ? `<button type="button" class="topbar-button ghost requirement-status-button" data-requirement-id="${item.requirementId}" data-requirement-status="rejected">Reject</button>` : ""}
+          ${["accepted", "rejected"].includes(String(item.status || "").toLowerCase()) && !item.linkedProjectId ? `<button type="button" class="topbar-button ghost requirement-status-button" data-requirement-id="${item.requirementId}" data-requirement-status="drafted">Request Re-review</button>` : ""}
           ${!item.linkedProjectId ? `<button type="button" class="topbar-button secondary use-requirement-button" data-requirement-use="${item.requirementId}">Use For Project</button>` : ""}
         </div>
       </div>

@@ -46,6 +46,7 @@ export class ProjectRequirementRegistry {
       acceptedByHumanId: "",
       rejectedByHumanId: "",
       reviewHistory: [],
+      rereviewCount: 0,
       status: "drafted",
       linkedProjectId: "",
       createdAt: now(),
@@ -90,6 +91,15 @@ export class ProjectRequirementRegistry {
         throw new Error("reviewerHumanId must match the assigned reviewer or requirement owner");
       }
     }
+    if (safeStatus === "drafted" && requirement.status !== "drafted") {
+      if (!safeReviewerHumanId) throw new Error("reviewerHumanId is required when requesting re-review");
+      this.identityRegistry.getHuman(safeReviewerHumanId);
+      const existingReviewer = requirement.reviewerHumanId || "";
+      const ownerHumanId = requirement.ownerHumanId || "";
+      if (existingReviewer && safeReviewerHumanId !== existingReviewer && safeReviewerHumanId !== ownerHumanId) {
+        throw new Error("reviewerHumanId must match the assigned reviewer or requirement owner");
+      }
+    }
     requirement.status = safeStatus;
     if (safeReviewerHumanId) requirement.reviewerHumanId = safeReviewerHumanId;
     if (reviewNote !== undefined) requirement.reviewNote = text("reviewNote", reviewNote, 2000);
@@ -114,6 +124,15 @@ export class ProjectRequirementRegistry {
         reviewerHumanId: safeReviewerHumanId,
         reviewNote: requirement.reviewNote,
         reviewedAt: requirement.reviewedAt
+      });
+    }
+    if (safeStatus === "drafted" && requirement.reviewHistory.length) {
+      requirement.rereviewCount += 1;
+      requirement.reviewHistory.push({
+        status: "rereview-requested",
+        reviewerHumanId: safeReviewerHumanId,
+        reviewNote: requirement.reviewNote,
+        reviewedAt: requirement.updatedAt
       });
     }
     await this.onChange();

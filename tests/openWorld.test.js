@@ -630,4 +630,14 @@ test("requirements should require a valid reviewer for accept or reject", async 
   assert.ok(accepted.reviewedAt > 0);
   assert.equal(accepted.reviewHistory.length, 1);
   assert.equal(accepted.reviewHistory[0].status, "accepted");
+
+  const rereview = await world.requirements.updateStatus({
+    requirementId: requirement.requirementId,
+    status: "drafted",
+    reviewerHumanId: "human.reviewer",
+    reviewNote: "Needs another pass."
+  });
+  assert.equal(rereview.status, "drafted");
+  assert.equal(rereview.rereviewCount, 1);
+  assert.equal(rereview.reviewHistory.at(-1).status, "rereview-requested");
 });
