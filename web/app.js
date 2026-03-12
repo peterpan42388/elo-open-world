@@ -242,6 +242,15 @@ function resetMemberRoleEditor(formId, value = "") {
   }
 }
 
+function syncMemberRolesFromCurrentAgents(formId) {
+  const form = $(formId);
+  if (!form?.memberAgentIds) return;
+  const agentIds = currentHumanAgents().map((agent) => agent.agentId);
+  form.memberAgentIds.value = agentIds.join(", ");
+  resetMemberRoleEditor(formId, agentIds.map((agentId) => `${agentId}:builder`).join("\n"));
+  syncMemberRoleTextarea(formId);
+}
+
 function renderTopbarActions() {
   const root = $("topbar-actions");
   if (!root) return;
@@ -801,6 +810,16 @@ function renderRequirements(requirements) {
           <div class="detail-item"><span>Linked Project</span><strong>${item.linkedProjectId || "Not linked"}</strong></div>
         </div>
         <p>Review Note: ${item.reviewNote || "Not provided."}</p>
+        <div class="nested-list">
+          ${(item.reviewHistory || []).length ? item.reviewHistory.map((entry) => `
+            <div class="nested-item">
+              <strong>${requirementStatusLabel(entry.status)}</strong>
+              <span>${entry.reviewerHumanId || "-"}</span>
+              <span>${formatTimestamp(entry.reviewedAt)}</span>
+              <span>${entry.reviewNote || "No note"}</span>
+            </div>
+          `).join("") : '<div class="empty">No review history yet.</div>'}
+        </div>
         <div class="tag-row action-row">
           ${item.status !== "implemented" ? `<button type="button" class="topbar-button secondary requirement-status-button" data-requirement-id="${item.requirementId}" data-requirement-status="accepted">Accept</button>` : ""}
           ${item.status !== "implemented" ? `<button type="button" class="topbar-button ghost requirement-status-button" data-requirement-id="${item.requirementId}" data-requirement-status="rejected">Reject</button>` : ""}
@@ -1306,6 +1325,13 @@ function renderAll() {
 
 document.querySelectorAll(".member-role-add-button").forEach((node) => {
   node.addEventListener("click", () => addMemberRoleRow(node.dataset.roleTarget));
+});
+
+document.querySelectorAll(".member-role-sync-button").forEach((node) => {
+  node.addEventListener("click", () => {
+    syncMemberRolesFromCurrentAgents(node.dataset.roleTarget);
+    setStatus("Member roles prefilled from your registered agents.", "ok");
+  });
 });
 
 $("human-form")?.addEventListener("submit", async (event) => {

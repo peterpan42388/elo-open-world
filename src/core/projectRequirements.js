@@ -45,6 +45,7 @@ export class ProjectRequirementRegistry {
       reviewNote: text("reviewNote", reviewNote, 2000),
       acceptedByHumanId: "",
       rejectedByHumanId: "",
+      reviewHistory: [],
       status: "drafted",
       linkedProjectId: "",
       createdAt: now(),
@@ -97,11 +98,23 @@ export class ProjectRequirementRegistry {
       requirement.acceptedByHumanId = safeReviewerHumanId;
       requirement.rejectedByHumanId = "";
       requirement.reviewedAt = requirement.updatedAt;
+      requirement.reviewHistory.push({
+        status: safeStatus,
+        reviewerHumanId: safeReviewerHumanId,
+        reviewNote: requirement.reviewNote,
+        reviewedAt: requirement.reviewedAt
+      });
     }
     if (safeStatus === "rejected") {
       requirement.rejectedByHumanId = safeReviewerHumanId;
       requirement.acceptedByHumanId = "";
       requirement.reviewedAt = requirement.updatedAt;
+      requirement.reviewHistory.push({
+        status: safeStatus,
+        reviewerHumanId: safeReviewerHumanId,
+        reviewNote: requirement.reviewNote,
+        reviewedAt: requirement.reviewedAt
+      });
     }
     await this.onChange();
     return { ...requirement };

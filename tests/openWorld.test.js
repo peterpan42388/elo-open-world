@@ -628,4 +628,6 @@ test("requirements should require a valid reviewer for accept or reject", async 
   assert.equal(accepted.acceptedByHumanId, "human.reviewer");
   assert.equal(accepted.rejectedByHumanId, "");
   assert.ok(accepted.reviewedAt > 0);
+  assert.equal(accepted.reviewHistory.length, 1);
+  assert.equal(accepted.reviewHistory[0].status, "accepted");
 });
