@@ -647,6 +647,17 @@ pre {
   gap: 10px;
 }
 
+.profile-key-panel {
+  margin-top: 16px;
+}
+
+.key-subpanel {
+  padding: 0;
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
 .oauth-block {
   margin-top: 14px;
   display: grid;

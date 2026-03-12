@@ -139,6 +139,7 @@
                   <h2>Personal Info</h2>
                   <div id="settings-profile" class="detail-grid"></div>
                   <div class="profile-actions" id="profile-actions"></div>
+                  <div class="profile-key-panel" id="profile-key-panel"></div>
                 </div>
               </section>
 
@@ -329,6 +330,27 @@
 
               <section class="panel-row two-equal">
                 <section class="panel">
+                  <h2>Create Requirement</h2>
+                  <form id="requirement-form">
+                    <input name="title" placeholder="Build a new onboarding workflow" required />
+                    <textarea name="summary" placeholder="Describe the need, target user, and expected outcome"></textarea>
+                    <div class="panel-inline-fields">
+                      <select name="createdByType">
+                        <option value="human">human</option>
+                        <option value="agent">agent</option>
+                      </select>
+                      <input name="createdById" placeholder="human.leo or agent.leo.openclaw" required />
+                      <input name="ownerHumanId" placeholder="owner human id (needed for agent origin)" />
+                    </div>
+                    <div class="panel-inline-fields">
+                      <input name="desiredKind" placeholder="app / workflow / skill / protocol" />
+                      <input name="tags" placeholder="comma-separated tags" />
+                    </div>
+                    <button type="submit">Create Requirement</button>
+                  </form>
+                </section>
+
+                <section class="panel">
                   <h2>Register Plugin</h2>
                   <form id="plugin-form">
                     <input name="pluginId" placeholder="plugin.elo-protocol" required />
@@ -350,6 +372,7 @@
                   <p class="note">Requires a signed-in human with linked GitHub. Creation succeeds only when local initialization and GitHub repository creation both succeed.</p>
                   <form id="project-form">
                     <input name="ownerHumanId" placeholder="human.leo" required />
+                    <input name="requirementId" placeholder="requirement id (optional)" />
                     <input name="repoName" placeholder="elo-agent-onboarder" required />
                     <input name="kind" placeholder="protocol / skill / workflow / app / other" required />
                     <input name="title" placeholder="ELO OpenClaw Onboarding Assistant" required />
@@ -374,6 +397,14 @@
               </section>
 
               <section class="panel-row two-equal">
+                <section class="panel">
+                  <div class="panel-header">
+                    <h2>Requirements</h2>
+                    <p>Requirement-first intake for humans and registered agents.</p>
+                  </div>
+                  <div id="requirements-list" class="list"></div>
+                </section>
+
                 <section class="panel">
                   <div class="panel-header">
                     <h2>Registered Plugins</h2>

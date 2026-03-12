@@ -18,6 +18,7 @@ const ONBOARDER_PRESET = {
 const state = {
   summary: null,
   sessionHumanId: loadSession(),
+  latestAuthKeyBundle: null,
   activeSettingsSection: SETTINGS_DEFAULT_SECTION,
   selectedGraphProjectId: "",
   buildFilters: {
@@ -232,6 +233,7 @@ function renderSummary(summary) {
   renderHomeGuides();
   renderInfrastructure(summary);
   renderProjectGraph(summary.projects || []);
+  renderRequirements(summary.requirements || []);
   renderPlugins(summary.plugins || []);
   renderProjects(summary.projects || []);
   renderMarketProjects(summary.projects || []);
@@ -418,11 +420,13 @@ function renderSettingsData() {
 
   const profile = $("settings-profile");
   const profileActions = $("profile-actions");
+  const profileKeyPanel = $("profile-key-panel");
   const agentsRoot = $("my-agents-list");
   const projectsRoot = $("my-projects-list");
   if (!human) {
     if (profile) profile.innerHTML = "";
     if (profileActions) profileActions.innerHTML = "";
+    if (profileKeyPanel) profileKeyPanel.innerHTML = "";
     if (agentsRoot) agentsRoot.innerHTML = "";
     if (projectsRoot) projectsRoot.innerHTML = "";
     return;
@@ -480,6 +484,85 @@ function renderSettingsData() {
         setStatus(error.message, "error");
       }
     });
+  }
+
+  if (profileKeyPanel) {
+    const authKey = human.agentAuthKey;
+    profileKeyPanel.innerHTML = `
+      <div class="panel key-subpanel">
+        <div class="panel-header">
+          <h3>Agent Auth Key</h3>
+          <p>Issue a human-scoped keypair so your agent can self-register with a signed request.</p>
+        </div>
+        <div class="detail-grid compact">
+          <div class="detail-item"><span>Key Status</span><strong>${authKey ? "Issued" : "Not issued"}</strong></div>
+          <div class="detail-item"><span>Fingerprint</span><strong>${authKey?.fingerprint || "Not available"}</strong></div>
+          <div class="detail-item"><span>Issued At</span><strong>${formatTimestamp(authKey?.issuedAt)}</strong></div>
+          <div class="detail-item"><span>Last Used</span><strong>${formatTimestamp(authKey?.lastUsedAt)}</strong></div>
+        </div>
+        <div class="action-row">
+          <button type="button" class="topbar-button secondary" id="issue-auth-key-button">Issue New Agent Auth Key</button>
+          ${state.latestAuthKeyBundle ? '<button type="button" class="topbar-button ghost" id="download-auth-key-button">Download PEM Bundle</button>' : ""}
+        </div>
+        <p class="note">Private key material is returned only once. Re-issuing rotates the active agent auth key.</p>
+        <pre id="auth-key-output">${state.latestAuthKeyBundle ? JSON.stringify({
+          keyId: state.latestAuthKeyBundle.keyId,
+          algorithm: state.latestAuthKeyBundle.algorithm,
+          fingerprint: state.latestAuthKeyBundle.fingerprint,
+          publicKeyPem: state.latestAuthKeyBundle.publicKeyPem,
+          privateKeyPem: state.latestAuthKeyBundle.privateKeyPem
+        }, null, 2) : "Issue a key to receive the one-time PEM bundle."}</pre>
+      </div>
+    `;
+
+    $("issue-auth-key-button")?.addEventListener("click", async () => {
+      try {
+        const issued = await request("/api/auth/keys/issue", "POST", { humanId: human.humanId });
+        state.latestAuthKeyBundle = issued;
+        setStatus(`Issued agent auth key for ${human.humanId}`, "ok");
+        await refresh();
+      } catch (error) {
+        setStatus(error.message, "error");
+      }
+    });
+
+    $("download-auth-key-button")?.addEventListener("click", () => {
+      if (!state.latestAuthKeyBundle) return;
+      const bundle = [
+        "# ELO Open World Agent Auth Bundle",
+        `humanId: ${human.humanId}`,
+        `keyId: ${state.latestAuthKeyBundle.keyId}`,
+        `fingerprint: ${state.latestAuthKeyBundle.fingerprint}`,
+        "",
+        state.latestAuthKeyBundle.privateKeyPem,
+        "",
+        state.latestAuthKeyBundle.publicKeyPem
+      ].join("\n");
+      const blob = new Blob([bundle], { type: "application/x-pem-file" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${human.humanId}.agent-auth.pem`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    });
+  }
+
+  const agentForm = $("agent-form");
+  const onboarderForm = $("onboarder-form");
+  const projectForm = $("project-form");
+  const requirementForm = $("requirement-form");
+  if (agentForm?.humanId) agentForm.humanId.value = human.humanId;
+  if (onboarderForm?.humanId) onboarderForm.humanId.value = human.humanId;
+  if (projectForm?.ownerHumanId) projectForm.ownerHumanId.value = human.humanId;
+  if (requirementForm?.createdByType && requirementForm?.createdById) {
+    if (!requirementForm.createdById.value) {
+      requirementForm.createdByType.value = "human";
+      requirementForm.createdById.value = human.humanId;
+    }
+    if (requirementForm.ownerHumanId) requirementForm.ownerHumanId.value = human.humanId;
   }
 
   const agents = currentHumanAgents();
@@ -563,6 +646,49 @@ function renderSettingsData() {
       `).join("");
     }
   }
+}
+
+function requirementStatusLabel(value) {
+  const normalized = String(value || "drafted").toLowerCase();
+  return {
+    drafted: "Drafted",
+    accepted: "Accepted",
+    rejected: "Rejected",
+    implemented: "Implemented"
+  }[normalized] || value;
+}
+
+function renderRequirements(requirements) {
+  const root = $("requirements-list");
+  if (!root) return;
+  if (!requirements.length) {
+    root.innerHTML = '<div class="empty">No requirements created yet.</div>';
+    return;
+  }
+  root.innerHTML = requirements.map((item) => `
+    <details class="expand-card">
+      <summary>
+        <div class="summary-row">
+          <strong>${item.title}</strong>
+          <div class="tag-row">
+            ${createBadge(requirementStatusLabel(item.status))}
+            ${createBadge(projectTypeLabel(item.desiredKind))}
+          </div>
+        </div>
+        <span>${item.requirementId}</span>
+      </summary>
+      <div class="expand-body">
+        <p>${item.summary || "No summary provided."}</p>
+        <div class="tag-row">${(item.tags || []).map((tag) => `<span class="subtle-tag">${tag}</span>`).join("")}</div>
+        <div class="detail-grid compact">
+          <div class="detail-item"><span>Created By</span><strong>${item.createdByType}: ${item.createdById}</strong></div>
+          <div class="detail-item"><span>Owner Human</span><strong>${item.ownerHumanId}</strong></div>
+          <div class="detail-item"><span>Status</span><strong>${requirementStatusLabel(item.status)}</strong></div>
+          <div class="detail-item"><span>Linked Project</span><strong>${item.linkedProjectId || "Not linked"}</strong></div>
+        </div>
+      </div>
+    </details>
+  `).join("");
 }
 
 function buildAgentMarkdownPrompt() {
@@ -934,6 +1060,7 @@ $("human-form")?.addEventListener("submit", async (event) => {
   await handleSubmit(event, "/api/humans/register", (result) => `Human created: ${result.humanId}`, "settings", (result) => saveSession(result.humanId));
 });
 $("agent-form")?.addEventListener("submit", (event) => handleSubmit(event, "/api/agents/register", (result) => `Agent created: ${result.agentId}`, "settings"));
+$("requirement-form")?.addEventListener("submit", (event) => handleSubmit(event, "/api/requirements/create", (result) => `Requirement created: ${result.requirementId}`, "build"));
 $("agent-status-form")?.addEventListener("submit", (event) => handleSubmit(event, "/api/agents/status", (result) => `Agent updated: ${result.agentId}`, "settings"));
 $("plugin-form")?.addEventListener("submit", (event) => handleSubmit(event, "/api/plugins/register", (result) => `Plugin created: ${result.pluginId}`, "build"));
 $("project-form")?.addEventListener("submit", (event) => handleSubmit(event, "/api/projects/create", (result) => `Project created: ${result.projectId} -> ${result.repoFullName}`, "build"));
