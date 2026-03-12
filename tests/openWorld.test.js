@@ -359,6 +359,42 @@ test("project member roles should reject unknown role values", async () => {
   );
 });
 
+test("project member roles should accept stringified JSON input", async () => {
+  const root = await mkdtemp(join(tmpdir(), "open-world-member-roles-json-"));
+  const github = new FakeGitHubRepoService();
+  const world = await new OpenWorldFramework({
+    stateFile: join(root, "state.json"),
+    projectsRoot: join(root, "projects"),
+    githubRepoService: github
+  }).init();
+
+  await world.identity.registerHuman({
+    humanId: "human.rolesjson",
+    email: "rolesjson@example.com",
+    githubLogin: "peterpan42388",
+    password: "test-password-rolesjson"
+  });
+
+  await world.identity.registerAgent({
+    agentId: "agent.rolesjson.openclaw",
+    humanId: "human.rolesjson",
+    label: "Roles JSON Agent",
+    model: "claude-3.7-sonnet",
+    online: true
+  });
+
+  const project = await world.projects.create({
+    ownerHumanId: "human.rolesjson",
+    repoName: "json-member-role",
+    kind: "app",
+    title: "JSON Member Role",
+    memberAgentIds: ["agent.rolesjson.openclaw"],
+    memberRoles: "{\"agent.rolesjson.openclaw\":\"maintainer\"}"
+  });
+
+  assert.deepEqual(project.memberRoles, { "agent.rolesjson.openclaw": "maintainer" });
+});
+
 
 test("local auth should accept email and password after registration", async () => {
   const root = await mkdtemp(join(tmpdir(), "open-world-auth-"));
@@ -584,7 +620,9 @@ test("requirements should require a valid reviewer for accept or reject", async 
   const accepted = await world.requirements.updateStatus({
     requirementId: requirement.requirementId,
     status: "accepted",
-    reviewerHumanId: "human.reviewer"
+    reviewerHumanId: "human.reviewer",
+    reviewNote: "Review passed."
   });
   assert.equal(accepted.reviewerHumanId, "human.reviewer");
+  assert.equal(accepted.reviewNote, "Review passed.");
 });

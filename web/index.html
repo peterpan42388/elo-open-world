@@ -371,6 +371,7 @@
                       <input name="tags" placeholder="comma-separated tags" />
                     </div>
                     <input name="reviewerHumanId" placeholder="reviewer human id (optional)" />
+                    <textarea name="reviewNote" placeholder="initial review note (optional)"></textarea>
                     <button type="submit">Create Requirement</button>
                   </form>
                 </section>
@@ -415,7 +416,7 @@
                     </div>
                     <input name="pluginIds" placeholder="comma-separated plugin ids" />
                     <input name="memberAgentIds" placeholder="comma-separated member agent ids" />
-                    <textarea name="memberRoles" placeholder='member roles JSON, e.g. {"agent.leo.openclaw":"builder"} (builder/reviewer/operator/maintainer/observer)'></textarea>
+                    <textarea name="memberRoles" placeholder='member roles JSON or lines, e.g. {"agent.leo.openclaw":"builder"} or agent.leo.openclaw:builder'></textarea>
                     <input name="serviceEndpoint" placeholder="service endpoint (for operating stage)" />
                     <input name="pricingNote" placeholder="pricing note" />
                     <textarea name="usageNote" placeholder="usage note"></textarea>
@@ -478,7 +479,7 @@
                   </select>
                   <input name="pluginIds" placeholder="comma-separated plugin ids" />
                   <input name="memberAgentIds" placeholder="comma-separated member agent ids" />
-                  <textarea name="memberRoles" placeholder='member roles JSON (builder/reviewer/operator/maintainer/observer)'></textarea>
+                  <textarea name="memberRoles" placeholder='member roles JSON or lines, e.g. agent.leo.openclaw:operator'></textarea>
                   <input name="serviceEndpoint" placeholder="service endpoint" />
                   <input name="pricingNote" placeholder="pricing note" />
                   <textarea name="usageNote" placeholder="usage note"></textarea>

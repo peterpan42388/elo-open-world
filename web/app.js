@@ -163,6 +163,22 @@ function downloadTextFile(filename, content, mimeType = "text/plain;charset=utf-
   URL.revokeObjectURL(url);
 }
 
+function normalizeMemberRolesInput(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return {};
+  if (raw.startsWith("{")) return raw;
+  const entries = raw
+    .split(/\n|,/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((item) => {
+      const [agentId, role] = item.split(":").map((part) => part.trim());
+      if (!agentId || !role) throw new Error("memberRoles lines must use agentId:role format");
+      return [agentId, role];
+    });
+  return Object.fromEntries(entries);
+}
+
 function renderTopbarActions() {
   const root = $("topbar-actions");
   if (!root) return;
@@ -717,6 +733,7 @@ function renderRequirements(requirements) {
           <div class="detail-item"><span>Status</span><strong>${requirementStatusLabel(item.status)}</strong></div>
           <div class="detail-item"><span>Linked Project</span><strong>${item.linkedProjectId || "Not linked"}</strong></div>
         </div>
+        <p>Review Note: ${item.reviewNote || "Not provided."}</p>
         <div class="tag-row action-row">
           ${item.status !== "implemented" ? `<button type="button" class="topbar-button secondary requirement-status-button" data-requirement-id="${item.requirementId}" data-requirement-status="accepted">Accept</button>` : ""}
           ${item.status !== "implemented" ? `<button type="button" class="topbar-button ghost requirement-status-button" data-requirement-id="${item.requirementId}" data-requirement-status="rejected">Reject</button>` : ""}
@@ -729,10 +746,12 @@ function renderRequirements(requirements) {
   root.querySelectorAll(".requirement-status-button").forEach((node) => {
     node.addEventListener("click", async () => {
       try {
+        const reviewNote = window.prompt("Review note (optional)", "") || "";
         const updated = await request("/api/requirements/update", "POST", {
           requirementId: node.dataset.requirementId,
           status: node.dataset.requirementStatus,
-          reviewerHumanId: currentHuman()?.humanId || ""
+          reviewerHumanId: currentHuman()?.humanId || "",
+          reviewNote
         });
         setStatus(`Requirement ${updated.requirementId} -> ${updated.status}`, "ok");
         await refresh();
@@ -1134,6 +1153,7 @@ function formDataToObject(form) {
   if (obj.capabilities) obj.capabilities = obj.capabilities.split(",").map((item) => item.trim()).filter(Boolean);
   if (obj.pluginIds) obj.pluginIds = obj.pluginIds.split(",").map((item) => item.trim()).filter(Boolean);
   if (obj.memberAgentIds) obj.memberAgentIds = obj.memberAgentIds.split(",").map((item) => item.trim()).filter(Boolean);
+  if (Object.hasOwn(obj, "memberRoles")) obj.memberRoles = normalizeMemberRolesInput(obj.memberRoles);
   return obj;
 }
 
@@ -1282,11 +1302,17 @@ $("signed-agent-guide-form")?.addEventListener("submit", async (event) => {
     if (actions) {
       actions.innerHTML = `
         <button type="button" class="topbar-button secondary" id="download-signed-guide-button">Download Registration Guide</button>
+        <button type="button" class="topbar-button ghost" id="download-signed-payload-button">Download Payload JSON</button>
         <button type="button" class="topbar-button ghost" id="download-signed-script-button">Download Shell Script</button>
       `;
       $("download-signed-guide-button")?.addEventListener("click", () => {
         if (!state.latestSignedAgentGuide) return;
         downloadTextFile(`${state.latestSignedAgentGuide.agentId}.registration-guide.md`, state.latestSignedAgentGuide.guide, "text/markdown;charset=utf-8");
+      });
+      $("download-signed-payload-button")?.addEventListener("click", () => {
+        if (!state.latestSignedAgentGuide) return;
+        const payload = JSON.parse(result.payload);
+        downloadTextFile(`${state.latestSignedAgentGuide.agentId}.payload.json`, JSON.stringify(payload, null, 2), "application/json;charset=utf-8");
       });
       $("download-signed-script-button")?.addEventListener("click", () => {
         if (!state.latestSignedAgentGuide) return;

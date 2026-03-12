@@ -15,7 +15,8 @@ export class ProjectRequirementRegistry {
     createdByType,
     createdById,
     ownerHumanId = "",
-    reviewerHumanId = ""
+    reviewerHumanId = "",
+    reviewNote = ""
   }) {
     const safeCreatedByType = token("createdByType", createdByType, 32).toLowerCase();
     if (!["human", "agent"].includes(safeCreatedByType)) throw new Error("createdByType must be human or agent");
@@ -41,10 +42,12 @@ export class ProjectRequirementRegistry {
       createdById: safeCreatedById,
       ownerHumanId: safeCreatedByType === "human" ? safeCreatedById : safeOwnerHumanId || this.identityRegistry.getAgent(safeCreatedById).humanId,
       reviewerHumanId: reviewerHumanId ? token("reviewerHumanId", reviewerHumanId, 128) : "",
+      reviewNote: text("reviewNote", reviewNote, 2000),
       status: "drafted",
       linkedProjectId: "",
       createdAt: now(),
-      updatedAt: now()
+      updatedAt: now(),
+      reviewedAt: 0
     };
 
     this.requirements.set(requirement.requirementId, requirement);
@@ -63,7 +66,7 @@ export class ProjectRequirementRegistry {
     return { ...requirement };
   }
 
-  async updateStatus({ requirementId, status, reviewerHumanId = "" }) {
+  async updateStatus({ requirementId, status, reviewerHumanId = "", reviewNote = "" }) {
     const safeRequirementId = token("requirementId", requirementId, 128);
     const safeStatus = token("status", status, 32).toLowerCase();
     if (!["drafted", "accepted", "rejected", "implemented"].includes(safeStatus)) {
@@ -86,7 +89,9 @@ export class ProjectRequirementRegistry {
     }
     requirement.status = safeStatus;
     if (safeReviewerHumanId) requirement.reviewerHumanId = safeReviewerHumanId;
+    if (reviewNote !== undefined) requirement.reviewNote = text("reviewNote", reviewNote, 2000);
     requirement.updatedAt = now();
+    if (["accepted", "rejected"].includes(safeStatus)) requirement.reviewedAt = requirement.updatedAt;
     await this.onChange();
     return { ...requirement };
   }
