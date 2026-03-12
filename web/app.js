@@ -1,4 +1,26 @@
 const $ = (id) => document.getElementById(id);
+const SESSION_KEY = "elo-open-world.session";
+const SETTINGS_DEFAULT_SECTION = "profile";
+
+const state = {
+  summary: null,
+  sessionHumanId: loadSession(),
+  activeSettingsSection: SETTINGS_DEFAULT_SECTION,
+  buildFilters: {
+    kind: "",
+    query: ""
+  }
+};
+
+function loadSession() {
+  return localStorage.getItem(SESSION_KEY) || "";
+}
+
+function saveSession(humanId) {
+  if (humanId) localStorage.setItem(SESSION_KEY, humanId);
+  else localStorage.removeItem(SESSION_KEY);
+  state.sessionHumanId = humanId || "";
+}
 
 async function request(path, method = "GET", body) {
   const res = await fetch(path, {
@@ -22,19 +44,103 @@ function currentRoute() {
   return route || "home";
 }
 
+function allowedRoutes() {
+  return new Set(["home", "join", "settings", "world", "build", "market", "docs"]);
+}
+
 function showRoute(route) {
-  const allowed = new Set(["home", "world", "build", "market", "docs"]);
-  const nextRoute = allowed.has(route) ? route : "home";
+  const nextRoute = allowedRoutes().has(route) ? route : "home";
   document.querySelectorAll("[data-route]").forEach((node) => {
     node.hidden = node.dataset.route !== nextRoute;
   });
   document.querySelectorAll("[data-route-link]").forEach((node) => {
     node.classList.toggle("active", node.dataset.routeLink === nextRoute);
   });
+  renderTopbarActions();
+  renderSettingsShell();
 }
 
 function goToRoute(route) {
   window.location.hash = route;
+}
+
+function currentHuman() {
+  if (!state.summary || !state.sessionHumanId) return null;
+  return (state.summary.identity?.humans || []).find((human) => human.humanId === state.sessionHumanId) || null;
+}
+
+function currentHumanAgents() {
+  const human = currentHuman();
+  if (!human || !state.summary) return [];
+  return (state.summary.identity?.agents || []).filter((agent) => agent.humanId === human.humanId);
+}
+
+function currentHumanProjects() {
+  const human = currentHuman();
+  if (!human || !state.summary) return [];
+  const agentIds = new Set(currentHumanAgents().map((agent) => agent.agentId));
+  return (state.summary.projects || []).filter((project) => project.ownerHumanId === human.humanId || (project.memberAgentIds || []).some((agentId) => agentIds.has(agentId)));
+}
+
+function buildAgentMarkdownPrompt() {
+  const human = currentHuman();
+  if (!human) return "Sign in first to generate your AI registration prompt.";
+  return [
+    "# ELO Open World Agent Registration Prompt",
+    "",
+    "You are preparing a local AI agent for ELO Open World.",
+    "",
+    "## Required Human Context",
+    `- humanId: ${human.humanId}`,
+    `- email: ${human.email}`,
+    `- githubLogin: ${human.githubLogin || ""}`,
+    `- worldUrl: ${window.location.origin}`,
+    "",
+    "## Your Task",
+    "1. Create or choose an agentId.",
+    "2. Decide runtime, endpoint, and model.",
+    "3. Register the agent through the Settings > My Agents workflow or prepare equivalent API payload.",
+    "4. Keep reporting your status with model and online state.",
+    "",
+    "## Suggested Agent Registration Payload",
+    "```json",
+    JSON.stringify({
+      agentId: "agent.your-name.openclaw",
+      humanId: human.humanId,
+      label: "OpenClaw Main",
+      runtime: "openclaw",
+      endpoint: "http://localhost:3000",
+      model: "gpt-4.1",
+      online: true
+    }, null, 2),
+    "```"
+  ].join("\n");
+}
+
+function renderTopbarActions() {
+  const root = $("topbar-actions");
+  const human = currentHuman();
+  if (!human) {
+    root.innerHTML = '<button type="button" class="topbar-button" data-route-target="join">Join</button>';
+  } else {
+    root.innerHTML = `
+      <div class="session-chip">${human.displayName || human.humanId}</div>
+      <button type="button" class="topbar-button secondary" data-route-target="settings">Settings</button>
+      <button type="button" class="topbar-button ghost" id="signout-button">Sign Out</button>
+    `;
+    const signOut = $("signout-button");
+    if (signOut) {
+      signOut.addEventListener("click", () => {
+        saveSession("");
+        setStatus("Signed out.", "ok");
+        goToRoute("home");
+        renderAll();
+      });
+    }
+  }
+  root.querySelectorAll("[data-route-target]").forEach((node) => {
+    node.addEventListener("click", () => goToRoute(node.dataset.routeTarget));
+  });
 }
 
 function renderSummary(summary) {
@@ -51,11 +157,11 @@ function renderSummary(summary) {
     ["Plugins", plugins],
     ["Projects", projects]
   ].map(([label, value]) => `<article class="metric"><div class="label">${label}</div><div class="value">${value}</div></article>`).join("");
-  $("world-feed").textContent = JSON.stringify(summary, null, 2);
   renderInfrastructure(summary);
-  renderAgents(summary.identity?.agents || []);
+  renderProjectGraph(summary.projects || []);
   renderPlugins(summary.plugins || []);
   renderProjects(summary.projects || []);
+  renderSettingsData();
 }
 
 function renderInfrastructure(summary) {
@@ -67,12 +173,12 @@ function renderInfrastructure(summary) {
 
   root.innerHTML = `
     <div class="infra-column">
-      <div class="infra-node core"><strong>Identity Layer</strong><span>Email Human + GitHub link + Agent initId</span></div>
-      <div class="infra-node core"><strong>Protocol Standards</strong><span>Shared project rules + elo-init + manifest + healthcheck</span></div>
+      <div class="infra-node core"><strong>Identity Layer</strong><span>Email human, GitHub link, private settings state</span></div>
+      <div class="infra-node core"><strong>Protocol Standards</strong><span>Shared project rules, manifest, healthcheck, universe identity</span></div>
     </div>
     <div class="infra-arrow">→</div>
     <div class="infra-column">
-      <div class="infra-node plugin"><strong>Plugins</strong><span>ELO Protocol / Market / Social / Future integrations</span></div>
+      <div class="infra-node plugin"><strong>Plugins</strong><span>ELO Protocol, Market, Social, Future integrations</span></div>
       <div class="infra-node plugin"><strong>Current Focus</strong><span>ELO OpenClaw Onboarding Assistant</span></div>
     </div>
     <div class="infra-arrow">→</div>
@@ -82,20 +188,106 @@ function renderInfrastructure(summary) {
   `;
 }
 
-function renderAgents(agents) {
-  const root = $("agents-list");
-  if (!agents.length) {
-    root.innerHTML = '<div class="empty">No agents registered yet.</div>';
+function renderProjectGraph(projects) {
+  const root = $("project-graph");
+  if (!projects.length) {
+    root.innerHTML = '<div class="graph-empty">No source projects yet. Use Build to create the first project node.</div>';
     return;
   }
-  root.innerHTML = agents.map((agent) => `
-    <article class="agent-card">
-      <strong>${agent.agentId}</strong>
-      <span>${agent.label}</span>
-      <span>model: ${agent.model || "unknown"}</span>
-      <span>online: ${agent.online ? "yes" : "no"}</span>
-    </article>
+  const universeNode = '<div class="graph-node universe"><strong>elo-universe-0</strong><span>MetaVie deployment</span></div>';
+  const projectNodes = projects.map((project) => `
+    <div class="graph-column">
+      <div class="graph-link"></div>
+      <div class="graph-node project">
+        <strong>${project.title}</strong>
+        <span>${project.repoName}</span>
+        <span>${project.kind}</span>
+        <span>${project.state}</span>
+      </div>
+    </div>
   `).join("");
+  root.innerHTML = `
+    <div class="graph-stage">
+      <div class="graph-root">${universeNode}</div>
+      <div class="graph-children">${projectNodes}</div>
+    </div>
+  `;
+}
+
+function agentWorkStatus(agent) {
+  if (agent.online) return "Online";
+  return "Idle";
+}
+
+function renderSettingsData() {
+  const human = currentHuman();
+  $("agent-markdown-output").textContent = buildAgentMarkdownPrompt();
+  if (!human) {
+    $("settings-profile").innerHTML = "";
+    $("my-agents-list").innerHTML = "";
+    $("my-projects-list").innerHTML = "";
+    return;
+  }
+
+  $("settings-profile").innerHTML = [
+    ["Human ID", human.humanId],
+    ["Email", human.email],
+    ["GitHub", human.githubLogin || "Not linked"],
+    ["Display Name", human.displayName || human.humanId]
+  ].map(([k, v]) => `<div class="detail-item"><span>${k}</span><strong>${v}</strong></div>`).join("");
+
+  const agents = currentHumanAgents();
+  const agentsRoot = $("my-agents-list");
+  if (!agents.length) {
+    agentsRoot.innerHTML = '<div class="empty">No agents registered for this user yet.</div>';
+  } else {
+    agentsRoot.innerHTML = agents.map((agent) => {
+      const relatedProjects = currentHumanProjects().filter((project) => (project.memberAgentIds || []).includes(agent.agentId));
+      return `
+        <details class="expand-card">
+          <summary>
+            <strong>${agent.label || agent.agentId}</strong>
+            <span>${agent.agentId}</span>
+            <span>Status: ${agentWorkStatus(agent)}</span>
+          </summary>
+          <div class="expand-body">
+            <p>Model: ${agent.model || "unknown"}</p>
+            <p>Runtime: ${agent.runtime || "openclaw"}</p>
+            <p>Endpoint: ${agent.endpoint || "not set"}</p>
+            <p>Role: active participant</p>
+            <p>Contribution: pending richer scoring model</p>
+            <div class="nested-list">
+              ${relatedProjects.length ? relatedProjects.map((project) => `<div class="nested-item"><strong>${project.title}</strong><span>${project.state}</span><span>Role: contributor</span></div>`).join("") : '<div class="empty">No related projects yet.</div>'}
+            </div>
+          </div>
+        </details>
+      `;
+    }).join("");
+  }
+
+  const projects = currentHumanProjects();
+  const projectsRoot = $("my-projects-list");
+  if (!projects.length) {
+    projectsRoot.innerHTML = '<div class="empty">No projects linked to this user yet.</div>';
+  } else {
+    projectsRoot.innerHTML = projects.map((project) => `
+      <details class="expand-card">
+        <summary>
+          <strong>${project.title}</strong>
+          <span>${project.kind}</span>
+          <span>${project.state}</span>
+        </summary>
+        <div class="expand-body">
+          <p>Purpose: ${project.summary || "not specified"}</p>
+          <p>Phase: ${project.state}</p>
+          <p>Type: public infrastructure / source project baseline</p>
+          <p>Tags: ${project.kind}</p>
+          <p>Members: ${(project.memberAgentIds || []).join(", ") || "none"}</p>
+          <a href="${project.repoUrl}" target="_blank" rel="noreferrer">Open GitHub Repo</a>
+        </div>
+      </details>
+    `).join("");
+  }
 }
 
 function renderPlugins(plugins) {
@@ -105,37 +297,65 @@ function renderPlugins(plugins) {
     root.innerHTML = '<div class="empty">No plugins registered yet.</div>';
     return;
   }
-  root.innerHTML = plugins.map((plugin) => `
+  root.innerHTML = applyBuildFiltersToPlugins(plugins).map((plugin) => `
     <article class="entity-card">
       <strong>${plugin.title}</strong>
       <span>${plugin.pluginId}</span>
-      <span>kind: ${plugin.kind}</span>
-      <span>owner: ${plugin.ownerHumanId}</span>
+      <span>Kind: ${plugin.kind}</span>
+      <span>Owner: ${plugin.ownerHumanId}</span>
     </article>
   `).join("");
+}
+
+function applyBuildFiltersToProjects(projects) {
+  const query = state.buildFilters.query.trim().toLowerCase();
+  return projects.filter((project) => {
+    const kindPass = !state.buildFilters.kind || (project.kind || "").toLowerCase() === state.buildFilters.kind;
+    const queryPass = !query || [project.title, project.repoName, project.summary].join(" ").toLowerCase().includes(query);
+    return kindPass && queryPass;
+  });
+}
+
+function applyBuildFiltersToPlugins(plugins) {
+  const query = state.buildFilters.query.trim().toLowerCase();
+  return plugins.filter((plugin) => {
+    const kindPass = !state.buildFilters.kind || (plugin.kind || "").toLowerCase() === state.buildFilters.kind;
+    const queryPass = !query || [plugin.title, plugin.pluginId, plugin.description].join(" ").toLowerCase().includes(query);
+    return kindPass && queryPass;
+  });
 }
 
 function renderProjects(projects) {
   const root = $("projects-list");
   if (!root) return;
-  if (!projects.length) {
-    root.innerHTML = '<div class="empty">No projects created yet.</div>';
+  const filtered = applyBuildFiltersToProjects(projects);
+  if (!filtered.length) {
+    root.innerHTML = '<div class="empty">No projects match the current filter.</div>';
     return;
   }
-  root.innerHTML = projects.map((project) => `
+  root.innerHTML = filtered.map((project) => `
     <article class="entity-card">
       <strong>${project.title}</strong>
       <span>${project.repoName}</span>
-      <span>state: ${project.state}</span>
-      <span>owner: ${project.ownerHumanId}</span>
+      <span>Type: ${project.kind}</span>
+      <span>State: ${project.state}</span>
+      <span>Owner: ${project.ownerHumanId}</span>
       <a href="${project.repoUrl}" target="_blank" rel="noreferrer">Open GitHub Repo</a>
     </article>
   `).join("");
 }
 
 async function refresh() {
-  const summary = await request("/api/world/summary");
-  renderSummary(summary);
+  state.summary = await request("/api/world/summary");
+  renderAll();
+}
+
+function renderAll() {
+  if (!state.summary) return;
+  renderTopbarActions();
+  renderSummary(state.summary);
+  renderSettingsShell();
+  showRoute(currentRoute());
 }
 
 function formDataToObject(form) {
@@ -147,17 +367,50 @@ function formDataToObject(form) {
   return obj;
 }
 
-async function handleSubmit(event, path, successMessage, routeAfter = null) {
+async function handleSubmit(event, path, successMessage, routeAfter = null, afterSuccess = null) {
   event.preventDefault();
   try {
     const result = await request(path, "POST", formDataToObject(event.currentTarget));
     event.currentTarget.reset();
+    if (afterSuccess) afterSuccess(result);
     setStatus(successMessage(result), "ok");
     await refresh();
     if (routeAfter) goToRoute(routeAfter);
   } catch (error) {
     setStatus(error.message, "error");
   }
+}
+
+function renderSettingsShell() {
+  const human = currentHuman();
+  const guest = $("settings-guest");
+  const shell = $("settings-shell");
+  if (!human) {
+    guest.hidden = false;
+    shell.hidden = true;
+  } else {
+    guest.hidden = true;
+    shell.hidden = false;
+  }
+  document.querySelectorAll("[data-settings-panel]").forEach((node) => {
+    node.hidden = node.dataset.settingsPanel !== state.activeSettingsSection;
+  });
+  document.querySelectorAll("[data-settings-section]").forEach((node) => {
+    node.classList.toggle("active", node.dataset.settingsSection === state.activeSettingsSection);
+  });
+}
+
+function signInWithValue(value) {
+  if (!state.summary) return false;
+  const normalized = value.trim().toLowerCase();
+  const human = (state.summary.identity?.humans || []).find((item) => item.humanId.toLowerCase() === normalized || item.email.toLowerCase() === normalized);
+  if (!human) return false;
+  saveSession(human.humanId);
+  state.activeSettingsSection = SETTINGS_DEFAULT_SECTION;
+  setStatus(`Signed in as ${human.humanId}`, "ok");
+  renderAll();
+  goToRoute("settings");
+  return true;
 }
 
 async function handleOnboarderSubmit(event) {
@@ -171,15 +424,41 @@ async function handleOnboarderSubmit(event) {
   }
 }
 
-$("human-form").addEventListener("submit", (event) => handleSubmit(event, "/api/humans/register", (result) => `Human created: ${result.humanId}`, "world"));
-$("agent-form").addEventListener("submit", (event) => handleSubmit(event, "/api/agents/register", (result) => `Agent created: ${result.agentId}`, "world"));
-$("agent-status-form").addEventListener("submit", (event) => handleSubmit(event, "/api/agents/status", (result) => `Agent updated: ${result.agentId}`, "world"));
-$("plugin-form").addEventListener("submit", (event) => handleSubmit(event, "/api/plugins/register", (result) => `Plugin created: ${result.pluginId}`, "build"));
-$("project-form").addEventListener("submit", (event) => handleSubmit(event, "/api/projects/create", (result) => `Project created: ${result.projectId} -> ${result.repoFullName}`, "build"));
+$("human-form").addEventListener("submit", (event) => handleSubmit(event, "/api/humans/register", (result) => `Human created: ${result.humanId}`, "settings", (result) => saveSession(result.humanId)));
+$("agent-form").addEventListener("submit", (event) => handleSubmit(event, "/api/agents/register", (result) => `Agent created: ${result.agentId}`, "settings", null));
+$("agent-status-form").addEventListener("submit", (event) => handleSubmit(event, "/api/agents/status", (result) => `Agent updated: ${result.agentId}`, "settings", null));
+$("plugin-form").addEventListener("submit", (event) => handleSubmit(event, "/api/plugins/register", (result) => `Plugin created: ${result.pluginId}`, "build", null));
+$("project-form").addEventListener("submit", (event) => handleSubmit(event, "/api/projects/create", (result) => `Project created: ${result.projectId} -> ${result.repoFullName}`, "build", null));
 $("onboarder-form").addEventListener("submit", handleOnboarderSubmit);
+$("signin-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const form = new FormData(event.currentTarget);
+  const value = String(form.get("humanIdOrEmail") || "");
+  if (!signInWithValue(value)) {
+    setStatus("Human identity not found.", "error");
+    return;
+  }
+  event.currentTarget.reset();
+});
 
 document.querySelectorAll("[data-route-target]").forEach((node) => {
   node.addEventListener("click", () => goToRoute(node.dataset.routeTarget));
+});
+
+document.querySelectorAll("[data-settings-section]").forEach((node) => {
+  node.addEventListener("click", () => {
+    state.activeSettingsSection = node.dataset.settingsSection;
+    renderSettingsShell();
+  });
+});
+
+$("build-filter-kind").addEventListener("change", (event) => {
+  state.buildFilters.kind = event.currentTarget.value.trim().toLowerCase();
+  renderAll();
+});
+$("build-filter-query").addEventListener("input", (event) => {
+  state.buildFilters.query = event.currentTarget.value;
+  renderAll();
 });
 
 window.addEventListener("hashchange", () => showRoute(currentRoute()));
