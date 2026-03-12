@@ -43,6 +43,8 @@ export class ProjectRequirementRegistry {
       ownerHumanId: safeCreatedByType === "human" ? safeCreatedById : safeOwnerHumanId || this.identityRegistry.getAgent(safeCreatedById).humanId,
       reviewerHumanId: reviewerHumanId ? token("reviewerHumanId", reviewerHumanId, 128) : "",
       reviewNote: text("reviewNote", reviewNote, 2000),
+      acceptedByHumanId: "",
+      rejectedByHumanId: "",
       status: "drafted",
       linkedProjectId: "",
       createdAt: now(),
@@ -91,7 +93,16 @@ export class ProjectRequirementRegistry {
     if (safeReviewerHumanId) requirement.reviewerHumanId = safeReviewerHumanId;
     if (reviewNote !== undefined) requirement.reviewNote = text("reviewNote", reviewNote, 2000);
     requirement.updatedAt = now();
-    if (["accepted", "rejected"].includes(safeStatus)) requirement.reviewedAt = requirement.updatedAt;
+    if (safeStatus === "accepted") {
+      requirement.acceptedByHumanId = safeReviewerHumanId;
+      requirement.rejectedByHumanId = "";
+      requirement.reviewedAt = requirement.updatedAt;
+    }
+    if (safeStatus === "rejected") {
+      requirement.rejectedByHumanId = safeReviewerHumanId;
+      requirement.acceptedByHumanId = "";
+      requirement.reviewedAt = requirement.updatedAt;
+    }
     await this.onChange();
     return { ...requirement };
   }

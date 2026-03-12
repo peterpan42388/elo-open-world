@@ -179,6 +179,69 @@ function normalizeMemberRolesInput(value) {
   return Object.fromEntries(entries);
 }
 
+function parseMemberRolesToEntries(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return [];
+  try {
+    const normalized = normalizeMemberRolesInput(raw);
+    const objectValue = typeof normalized === "string" ? JSON.parse(normalized) : normalized;
+    return Object.entries(objectValue);
+  } catch {
+    return [];
+  }
+}
+
+function syncMemberRoleTextarea(formId) {
+  const editor = document.querySelector(`[data-role-editor="${formId}"]`);
+  const form = $(formId);
+  if (!editor || !form?.memberRoles) return;
+  const entries = [...editor.querySelectorAll("[data-role-row]")].map((row) => {
+    const agentId = row.querySelector("[data-role-agent]")?.value.trim() || "";
+    const role = row.querySelector("[data-role-value]")?.value.trim() || "";
+    return agentId && role ? [agentId, role] : null;
+  }).filter(Boolean);
+  form.memberRoles.value = entries.map(([agentId, role]) => `${agentId}:${role}`).join("\n");
+}
+
+function addMemberRoleRow(formId, agentId = "", role = "builder") {
+  const editor = document.querySelector(`[data-role-editor="${formId}"]`);
+  if (!editor) return;
+  const row = document.createElement("div");
+  row.className = "panel-inline-fields";
+  row.dataset.roleRow = "true";
+  row.innerHTML = `
+    <input data-role-agent placeholder="agent id" value="${agentId}" />
+    <select data-role-value>
+      <option value="builder">builder</option>
+      <option value="reviewer">reviewer</option>
+      <option value="operator">operator</option>
+      <option value="maintainer">maintainer</option>
+      <option value="observer">observer</option>
+    </select>
+    <button type="button" class="topbar-button ghost" data-role-remove>Remove</button>
+  `;
+  editor.appendChild(row);
+  row.querySelector("[data-role-value]").value = role;
+  row.querySelectorAll("input,select").forEach((node) => {
+    node.addEventListener("input", () => syncMemberRoleTextarea(formId));
+    node.addEventListener("change", () => syncMemberRoleTextarea(formId));
+  });
+  row.querySelector("[data-role-remove]")?.addEventListener("click", () => {
+    row.remove();
+    syncMemberRoleTextarea(formId);
+  });
+  syncMemberRoleTextarea(formId);
+}
+
+function resetMemberRoleEditor(formId, value = "") {
+  const editor = document.querySelector(`[data-role-editor="${formId}"]`);
+  if (!editor) return;
+  editor.innerHTML = "";
+  for (const [agentId, role] of parseMemberRolesToEntries(value)) {
+    addMemberRoleRow(formId, agentId, role);
+  }
+}
+
 function renderTopbarActions() {
   const root = $("topbar-actions");
   if (!root) return;
@@ -594,6 +657,7 @@ function renderSettingsData() {
   if (agentForm?.humanId) agentForm.humanId.value = human.humanId;
   if (onboarderForm?.humanId) onboarderForm.humanId.value = human.humanId;
   if (projectForm?.ownerHumanId) projectForm.ownerHumanId.value = human.humanId;
+  if (projectForm) resetMemberRoleEditor("project-form", projectForm.memberRoles?.value || "");
   if (requirementForm?.createdByType && requirementForm?.createdById) {
     if (!requirementForm.createdById.value) {
       requirementForm.createdByType.value = "human";
@@ -730,6 +794,9 @@ function renderRequirements(requirements) {
           <div class="detail-item"><span>Created By</span><strong>${item.createdByType}: ${item.createdById}</strong></div>
           <div class="detail-item"><span>Owner Human</span><strong>${item.ownerHumanId}</strong></div>
           <div class="detail-item"><span>Reviewer</span><strong>${item.reviewerHumanId || "Not assigned"}</strong></div>
+          <div class="detail-item"><span>Accepted By</span><strong>${item.acceptedByHumanId || "-"}</strong></div>
+          <div class="detail-item"><span>Rejected By</span><strong>${item.rejectedByHumanId || "-"}</strong></div>
+          <div class="detail-item"><span>Reviewed At</span><strong>${formatTimestamp(item.reviewedAt)}</strong></div>
           <div class="detail-item"><span>Status</span><strong>${requirementStatusLabel(item.status)}</strong></div>
           <div class="detail-item"><span>Linked Project</span><strong>${item.linkedProjectId || "Not linked"}</strong></div>
         </div>
@@ -840,11 +907,16 @@ function buildSignedAgentScript({ human, authKey, payload }) {
     `PEM_FILE="${human.humanId}.agent-auth.pem"`,
     "PAYLOAD_FILE=\"agent-registration.payload.json\"",
     "",
+    "command -v openssl >/dev/null 2>&1 || { echo 'openssl is required' >&2; exit 1; }",
+    "command -v curl >/dev/null 2>&1 || { echo 'curl is required' >&2; exit 1; }",
+    "[ -f \"$PEM_FILE\" ] || { echo \"Missing PEM file: $PEM_FILE\" >&2; exit 1; }",
+    "",
     `cat > \"$PAYLOAD_FILE\" <<'JSON'`,
     payload,
     "JSON",
     "",
     "SIGNATURE=$(openssl pkeyutl -sign -inkey \"$PEM_FILE\" -rawin -in \"$PAYLOAD_FILE\" | base64 | tr -d '\\n')",
+    "[ -n \"$SIGNATURE\" ] || { echo 'Signature generation failed' >&2; exit 1; }",
     "",
     "curl -X POST \"$WORLD_URL/api/agents/register-signed\" \\",
     "  -H 'Content-Type: application/json' \\",
@@ -1053,6 +1125,7 @@ function populateProjectEditForm(projectId) {
   form.pluginIds.value = (project.pluginIds || []).join(", ");
   form.memberAgentIds.value = (project.memberAgentIds || []).join(", ");
   form.memberRoles.value = JSON.stringify(project.memberRoles || {}, null, 2);
+  resetMemberRoleEditor("project-edit-form", form.memberRoles.value);
   form.serviceEndpoint.value = project.serviceEndpoint || "";
   form.pricingNote.value = project.pricingNote || "";
   form.usageNote.value = project.usageNote || "";
@@ -1230,6 +1303,10 @@ function renderAll() {
   renderSettingsShell();
   showRoute(currentRoute());
 }
+
+document.querySelectorAll(".member-role-add-button").forEach((node) => {
+  node.addEventListener("click", () => addMemberRoleRow(node.dataset.roleTarget));
+});
 
 $("human-form")?.addEventListener("submit", async (event) => {
   event.preventDefault();

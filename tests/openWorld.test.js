@@ -625,4 +625,7 @@ test("requirements should require a valid reviewer for accept or reject", async 
   });
   assert.equal(accepted.reviewerHumanId, "human.reviewer");
   assert.equal(accepted.reviewNote, "Review passed.");
+  assert.equal(accepted.acceptedByHumanId, "human.reviewer");
+  assert.equal(accepted.rejectedByHumanId, "");
+  assert.ok(accepted.reviewedAt > 0);
 });

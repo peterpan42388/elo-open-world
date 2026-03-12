@@ -416,6 +416,13 @@
                     </div>
                     <input name="pluginIds" placeholder="comma-separated plugin ids" />
                     <input name="memberAgentIds" placeholder="comma-separated member agent ids" />
+                    <div class="role-helper">
+                      <div class="summary-row">
+                        <strong>Member Role Helper</strong>
+                        <button type="button" class="topbar-button ghost member-role-add-button" data-role-target="project-form">Add Role Row</button>
+                      </div>
+                      <div class="member-role-editor" data-role-editor="project-form"></div>
+                    </div>
                     <textarea name="memberRoles" placeholder='member roles JSON or lines, e.g. {"agent.leo.openclaw":"builder"} or agent.leo.openclaw:builder'></textarea>
                     <input name="serviceEndpoint" placeholder="service endpoint (for operating stage)" />
                     <input name="pricingNote" placeholder="pricing note" />
@@ -479,6 +486,13 @@
                   </select>
                   <input name="pluginIds" placeholder="comma-separated plugin ids" />
                   <input name="memberAgentIds" placeholder="comma-separated member agent ids" />
+                  <div class="role-helper">
+                    <div class="summary-row">
+                      <strong>Member Role Helper</strong>
+                      <button type="button" class="topbar-button ghost member-role-add-button" data-role-target="project-edit-form">Add Role Row</button>
+                    </div>
+                    <div class="member-role-editor" data-role-editor="project-edit-form"></div>
+                  </div>
                   <textarea name="memberRoles" placeholder='member roles JSON or lines, e.g. agent.leo.openclaw:operator'></textarea>
                   <input name="serviceEndpoint" placeholder="service endpoint" />
                   <input name="pricingNote" placeholder="pricing note" />
