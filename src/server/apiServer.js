@@ -301,6 +301,11 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, { items: framework.requirements.list() });
     }
 
+    if (req.method === "POST" && path === "/api/requirements/update") {
+      const body = await readJson(req);
+      return json(res, 200, await framework.requirements.updateStatus(body));
+    }
+
     return json(res, 404, { error: "not found" });
   } catch (error) {
     return json(res, 400, { error: error.message });

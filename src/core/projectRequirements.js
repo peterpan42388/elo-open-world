@@ -60,6 +60,23 @@ export class ProjectRequirementRegistry {
     return { ...requirement };
   }
 
+  async updateStatus({ requirementId, status }) {
+    const safeRequirementId = token("requirementId", requirementId, 128);
+    const safeStatus = token("status", status, 32).toLowerCase();
+    if (!["drafted", "accepted", "rejected", "implemented"].includes(safeStatus)) {
+      throw new Error("invalid requirement status");
+    }
+    const requirement = this.requirements.get(safeRequirementId);
+    if (!requirement) throw new Error(`unknown requirementId: ${safeRequirementId}`);
+    if (requirement.linkedProjectId && safeStatus !== "implemented") {
+      throw new Error("implemented requirement cannot move to a non-implemented state");
+    }
+    requirement.status = safeStatus;
+    requirement.updatedAt = now();
+    await this.onChange();
+    return { ...requirement };
+  }
+
   list() {
     return [...this.requirements.values()].sort((a, b) => b.createdAt - a.createdAt);
   }

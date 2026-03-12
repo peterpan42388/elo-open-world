@@ -449,3 +449,35 @@ test("requirements should be creatable by humans and linked into project creatio
   assert.equal(linked.status, "implemented");
   assert.equal(linked.linkedProjectId, project.projectId);
 });
+
+test("requirements should support explicit accepted and rejected status updates", async () => {
+  const root = await mkdtemp(join(tmpdir(), "open-world-requirement-status-"));
+  const world = await new OpenWorldFramework({
+    stateFile: join(root, "state.json"),
+    projectsRoot: join(root, "projects")
+  }).init();
+
+  await world.identity.registerHuman({
+    humanId: "human.reqstate",
+    email: "reqstate@example.com",
+    password: "secret-status"
+  });
+
+  const requirement = await world.requirements.create({
+    title: "Review requirement flow",
+    createdByType: "human",
+    createdById: "human.reqstate"
+  });
+
+  const accepted = await world.requirements.updateStatus({
+    requirementId: requirement.requirementId,
+    status: "accepted"
+  });
+  assert.equal(accepted.status, "accepted");
+
+  const rejected = await world.requirements.updateStatus({
+    requirementId: requirement.requirementId,
+    status: "rejected"
+  });
+  assert.equal(rejected.status, "rejected");
+});

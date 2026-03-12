@@ -234,6 +234,7 @@ function renderSummary(summary) {
   renderInfrastructure(summary);
   renderProjectGraph(summary.projects || []);
   renderRequirements(summary.requirements || []);
+  renderRequirementSelect(summary.requirements || []);
   renderPlugins(summary.plugins || []);
   renderProjects(summary.projects || []);
   renderMarketProjects(summary.projects || []);
@@ -686,9 +687,96 @@ function renderRequirements(requirements) {
           <div class="detail-item"><span>Status</span><strong>${requirementStatusLabel(item.status)}</strong></div>
           <div class="detail-item"><span>Linked Project</span><strong>${item.linkedProjectId || "Not linked"}</strong></div>
         </div>
+        <div class="tag-row action-row">
+          ${item.status !== "implemented" ? `<button type="button" class="topbar-button secondary requirement-status-button" data-requirement-id="${item.requirementId}" data-requirement-status="accepted">Accept</button>` : ""}
+          ${item.status !== "implemented" ? `<button type="button" class="topbar-button ghost requirement-status-button" data-requirement-id="${item.requirementId}" data-requirement-status="rejected">Reject</button>` : ""}
+          ${!item.linkedProjectId ? `<button type="button" class="topbar-button secondary use-requirement-button" data-requirement-use="${item.requirementId}">Use For Project</button>` : ""}
+        </div>
       </div>
     </details>
   `).join("");
+
+  root.querySelectorAll(".requirement-status-button").forEach((node) => {
+    node.addEventListener("click", async () => {
+      try {
+        const updated = await request("/api/requirements/update", "POST", {
+          requirementId: node.dataset.requirementId,
+          status: node.dataset.requirementStatus
+        });
+        setStatus(`Requirement ${updated.requirementId} -> ${updated.status}`, "ok");
+        await refresh();
+      } catch (error) {
+        setStatus(error.message, "error");
+      }
+    });
+  });
+
+  root.querySelectorAll(".use-requirement-button").forEach((node) => {
+    node.addEventListener("click", () => {
+      const requirement = requirements.find((item) => item.requirementId === node.dataset.requirementUse);
+      const form = $("project-form");
+      if (!requirement || !form) return;
+      if (form.requirementId) form.requirementId.value = requirement.requirementId;
+      if (form.kind && !form.kind.value) form.kind.value = requirement.desiredKind || "";
+      if (form.title && !form.title.value) form.title.value = requirement.title || "";
+      if (form.summary && !form.summary.value) form.summary.value = requirement.summary || "";
+      if (form.tags && !form.tags.value) form.tags.value = (requirement.tags || []).join(", ");
+      setStatus(`Requirement ${requirement.requirementId} loaded into project form.`, "ok");
+      form.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  });
+}
+
+function renderRequirementSelect(requirements) {
+  const select = $("project-requirement-select");
+  if (!select) return;
+  const current = select.value || "";
+  const available = requirements.filter((item) => !item.linkedProjectId && item.status !== "rejected");
+  select.innerHTML = [
+    '<option value="">No linked requirement</option>',
+    ...available.map((item) => `<option value="${item.requirementId}">${item.requirementId} · ${item.title}</option>`)
+  ].join("");
+  if (available.some((item) => item.requirementId === current)) {
+    select.value = current;
+  }
+}
+
+function buildSignedAgentGuide({ human, authKey, formData, payload }) {
+  return [
+    "# Signed Agent Registration",
+    "",
+    `humanId: ${human.humanId}`,
+    `keyId: ${authKey?.keyId || "not-issued"}`,
+    `fingerprint: ${authKey?.fingerprint || "not-issued"}`,
+    "",
+    "## Canonical Payload",
+    "```json",
+    payload,
+    "```",
+    "",
+    "## Sign Locally",
+    "```bash",
+    "printf '%s' '<paste-payload-here>' > payload.json",
+    `openssl pkeyutl -sign -inkey ${human.humanId}.agent-auth.pem -rawin -in payload.json | base64`,
+    "```",
+    "",
+    "## Register With API",
+    "```bash",
+    "curl -X POST https://world.metavie.co/api/agents/register-signed \\",
+    "  -H 'Content-Type: application/json' \\",
+    "  -d '{",
+    `    \"humanId\": \"${human.humanId}\",`,
+    `    \"keyId\": \"${authKey?.keyId || ""}\",`,
+    '    "signature": "<base64-signature>",',
+    `    \"agent\": ${payload}`,
+    "  }'",
+    "```",
+    "",
+    "## Requested Agent",
+    "```json",
+    JSON.stringify(formData, null, 2),
+    "```"
+  ].join("\n");
 }
 
 function buildAgentMarkdownPrompt() {
@@ -1077,6 +1165,37 @@ $("preset-onboarder-button")?.addEventListener("click", () => {
   setStatus("elo-agent-onboarder preset applied.", "ok");
 });
 $("onboarder-form")?.addEventListener("submit", handleOnboarderSubmit);
+$("signed-agent-guide-form")?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const human = currentHuman();
+  const output = $("signed-agent-output");
+  if (!human) {
+    setStatus("Sign in first.", "error");
+    return;
+  }
+  if (!human.agentAuthKey) {
+    setStatus("Issue an agent auth key first.", "error");
+    return;
+  }
+  const form = event.currentTarget;
+  const formData = formDataToObject(form);
+  const body = {
+    humanId: human.humanId,
+    ...formData
+  };
+  try {
+    const result = await request("/api/agents/register-signing-payload", "POST", body);
+    if (output) output.textContent = buildSignedAgentGuide({
+      human,
+      authKey: human.agentAuthKey,
+      formData: body,
+      payload: result.payload
+    });
+    setStatus(`Signed registration payload prepared for ${formData.agentId}`, "ok");
+  } catch (error) {
+    setStatus(error.message, "error");
+  }
+});
 $("signin-form")?.addEventListener("submit", async (event) => {
   event.preventDefault();
   const form = event.currentTarget;

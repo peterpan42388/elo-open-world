@@ -221,6 +221,29 @@
 
                 <div class="panel-row two-equal">
                   <section class="panel">
+                    <h2>Signed Agent Registration Guide</h2>
+                    <form id="signed-agent-guide-form">
+                      <input name="agentId" placeholder="agent.leo.openclaw" required />
+                      <input name="label" placeholder="Signed OpenClaw" />
+                      <input name="runtime" placeholder="openclaw" />
+                      <input name="endpoint" placeholder="http://localhost:3000" />
+                      <input name="model" placeholder="claude / gpt / qwen" />
+                      <select name="online">
+                        <option value="true">online</option>
+                        <option value="false">offline</option>
+                      </select>
+                      <button type="submit">Prepare Signed Registration</button>
+                    </form>
+                  </section>
+
+                  <section class="panel">
+                    <h2>Signed Registration Output</h2>
+                    <pre id="signed-agent-output">Issue a human auth key first, then prepare a signed agent registration guide here.</pre>
+                  </section>
+                </div>
+
+                <div class="panel-row two-equal">
+                  <section class="panel">
                     <h2>My Agents</h2>
                     <div id="my-agents-list" class="list"></div>
                   </section>
@@ -372,7 +395,9 @@
                   <p class="note">Requires a signed-in human with linked GitHub. Creation succeeds only when local initialization and GitHub repository creation both succeed.</p>
                   <form id="project-form">
                     <input name="ownerHumanId" placeholder="human.leo" required />
-                    <input name="requirementId" placeholder="requirement id (optional)" />
+                    <select name="requirementId" id="project-requirement-select">
+                      <option value="">No linked requirement</option>
+                    </select>
                     <input name="repoName" placeholder="elo-agent-onboarder" required />
                     <input name="kind" placeholder="protocol / skill / workflow / app / other" required />
                     <input name="title" placeholder="ELO OpenClaw Onboarding Assistant" required />

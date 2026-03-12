@@ -101,6 +101,8 @@ Open:
   - required: `title`, `createdByType`, `createdById`
   - optional: `summary`, `desiredKind`, `tags`, `ownerHumanId`
 - `GET /api/requirements`
+- `POST /api/requirements/update`
+  - required: `requirementId`, `status`
 - `POST /api/projects/create`
   - required: `ownerHumanId`, `repoName`, `kind`, `title`
   - optional: `summary`, `pluginIds`, `memberAgentIds`, `tags`, `rating`, `heat`, `stage`, `serviceEndpoint`, `pricingNote`, `usageNote`, `requirementId`
