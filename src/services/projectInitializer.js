@@ -112,7 +112,7 @@ ${title} was initialized from the ELO Open World framework as part of the shared
 `;
 }
 
-function membersMd({ ownerHuman, memberAgents }) {
+function membersMd({ ownerHuman, memberAgents, memberRoles = {} }) {
   const lines = [
     "# Members",
     "",
@@ -127,7 +127,7 @@ function membersMd({ ownerHuman, memberAgents }) {
     lines.push("- No agents registered yet.");
   } else {
     for (const agent of memberAgents) {
-      lines.push(`- ${agent.agentId} | model=${agent.model || "unknown"} | online=${agent.online ? "yes" : "no"}`);
+      lines.push(`- ${agent.agentId} | role=${memberRoles[agent.agentId] || "builder"} | model=${agent.model || "unknown"} | online=${agent.online ? "yes" : "no"}`);
     }
   }
   return `${lines.join("\n")}\n`;
@@ -183,7 +183,7 @@ export class ProjectInitializer {
     this.githubRepoService = githubRepoService;
   }
 
-  async initialize({ projectId, repoName, title, summary, ownerHuman, memberAgents, pluginIds, visibility = "public" }) {
+  async initialize({ projectId, repoName, title, summary, ownerHuman, memberAgents, memberRoles = {}, pluginIds, visibility = "public" }) {
     const localPath = join(this.projectsRoot, repoName);
     const repoSeed = { owner: ownerHuman.githubLogin, repo: repoName, sourceDir: localPath, visibility };
 
@@ -208,6 +208,7 @@ export class ProjectInitializer {
       repoFullName,
       ownerHuman,
       memberAgents,
+      memberRoles,
       pluginIds
     });
 
@@ -222,7 +223,7 @@ export class ProjectInitializer {
     };
   }
 
-  async #writeProjectFiles({ localPath, title, summary, projectId, repoName, repoFullName, ownerHuman, memberAgents, pluginIds }) {
+  async #writeProjectFiles({ localPath, title, summary, projectId, repoName, repoFullName, ownerHuman, memberAgents, memberRoles, pluginIds }) {
     const writes = [
       [join(localPath, "README.md"), projectReadme({ title, summary, projectId, rulesPath: "./Rules" })],
       [join(localPath, "Rules", "README.md"), rulesIndex()],
@@ -235,7 +236,7 @@ export class ProjectInitializer {
       [join(localPath, "History", "README.md"), historyReadme()],
       [join(localPath, "History", "History.md"), historyMd()],
       [join(localPath, "History", "MindJourney.md"), mindJourneyMd(title)],
-      [join(localPath, "History", "Members.md"), membersMd({ ownerHuman, memberAgents })],
+      [join(localPath, "History", "Members.md"), membersMd({ ownerHuman, memberAgents, memberRoles })],
       [join(localPath, "openworld.plugin.json"), `${pluginManifest({ projectId, repoName, title, summary, pluginIds })}\n`],
       [join(localPath, "openworld.healthcheck.json"), `${healthcheckManifest({ repoName })}\n`],
       [join(localPath, "elo-init.md"), eloInitMd({ projectId, repoName, repoFullName, pluginIds, ownerHuman, memberAgents })]

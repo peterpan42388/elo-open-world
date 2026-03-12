@@ -1,5 +1,26 @@
 import { asArray, csvArray, now, numberInRange, slug, text, token, uid } from "../lib/validation.js";
 
+function normalizeMemberRoles(memberRoles, memberAgentIds) {
+  let raw = memberRoles;
+  if (raw === undefined || raw === null || raw === "") raw = {};
+  if (typeof raw === "string") {
+    try {
+      raw = JSON.parse(raw);
+    } catch {
+      throw new Error("memberRoles must be valid JSON when provided as a string");
+    }
+  }
+  if (typeof raw !== "object" || Array.isArray(raw)) {
+    throw new Error("memberRoles must be an object");
+  }
+  const normalized = {};
+  for (const agentId of memberAgentIds) {
+    const role = raw[agentId] === undefined ? "builder" : token("memberRole", String(raw[agentId]), 64).toLowerCase();
+    normalized[agentId] = role;
+  }
+  return normalized;
+}
+
 export class ProjectProtocol {
   constructor({ projects = [], identityRegistry, requirementRegistry = null, onChange = async () => {}, projectInitializer } = {}) {
     this.projects = new Map(projects.map((project) => [project.projectId, { ...project }]));
@@ -25,7 +46,8 @@ export class ProjectProtocol {
     serviceEndpoint = "",
     pricingNote = "",
     usageNote = "",
-    requirementId = ""
+    requirementId = "",
+    memberRoles = {}
   }) {
     const safeOwnerHumanId = token("ownerHumanId", ownerHumanId);
     const ownerHuman = this.identityRegistry.getHuman(safeOwnerHumanId);
@@ -43,6 +65,7 @@ export class ProjectProtocol {
     const safePricingNote = text("pricingNote", pricingNote, 256);
     const safeUsageNote = text("usageNote", usageNote, 1000);
     const memberAgents = safeMemberAgentIds.map((agentId) => this.identityRegistry.getAgent(agentId));
+    const safeMemberRoles = normalizeMemberRoles(memberRoles, safeMemberAgentIds);
 
     const projectId = uid("owp");
     const initialized = await this.projectInitializer.initialize({
@@ -52,6 +75,7 @@ export class ProjectProtocol {
       summary: text("summary", summary, 1000),
       ownerHuman,
       memberAgents,
+      memberRoles: safeMemberRoles,
       pluginIds: safePluginIds,
       visibility,
       tags: safeTags,
@@ -72,6 +96,7 @@ export class ProjectProtocol {
       summary: text("summary", summary, 1000),
       pluginIds: safePluginIds,
       memberAgentIds: safeMemberAgentIds,
+      memberRoles: safeMemberRoles,
       tags: safeTags,
       rating: safeRating,
       heat: safeHeat,
@@ -111,7 +136,8 @@ export class ProjectProtocol {
     state,
     serviceEndpoint,
     pricingNote,
-    usageNote
+    usageNote,
+    memberRoles
   }) {
     const safeProjectId = token("projectId", projectId);
     const project = this.projects.get(safeProjectId);
@@ -130,6 +156,10 @@ export class ProjectProtocol {
       const safeMemberAgentIds = asArray(memberAgentIds, "agentId");
       safeMemberAgentIds.forEach((agentId) => this.identityRegistry.getAgent(agentId));
       project.memberAgentIds = safeMemberAgentIds;
+      project.memberRoles = normalizeMemberRoles(memberRoles !== undefined ? memberRoles : project.memberRoles || {}, safeMemberAgentIds);
+    }
+    if (memberAgentIds === undefined && memberRoles !== undefined) {
+      project.memberRoles = normalizeMemberRoles(memberRoles, project.memberAgentIds || []);
     }
     if (tags !== undefined) project.tags = csvArray(tags, "tag", 64);
     if (rating !== undefined) project.rating = numberInRange("rating", rating, 0, 5, project.rating || 0);

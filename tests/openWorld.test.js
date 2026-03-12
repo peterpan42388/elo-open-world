@@ -127,6 +127,7 @@ test("project creation should require github-linked human and initialize repo sc
 
   const members = await readFile(join(localRoot, "History", "Members.md"), "utf8");
   assert.match(members, /agent\.leo\.openclaw/);
+  assert.match(members, /role=builder/);
 
   const stateRaw = await readFile(join(root, "state.json"), "utf8");
   assert.match(stateRaw, /elo-agent-onboarder/);
@@ -279,6 +280,14 @@ test("project metadata update should persist editable fields", async () => {
     password: "test-password-6"
   });
 
+  await world.identity.registerAgent({
+    agentId: "agent.edit.openclaw",
+    humanId: "human.edit",
+    label: "Edit Agent",
+    model: "claude-3.7-sonnet",
+    online: true
+  });
+
   const project = await world.projects.create({
     ownerHumanId: "human.edit",
     repoName: "editable-project",
@@ -295,6 +304,8 @@ test("project metadata update should persist editable fields", async () => {
     heat: 900,
     stage: "operating",
     state: "operating",
+    memberAgentIds: ["agent.edit.openclaw"],
+    memberRoles: { "agent.edit.openclaw": "operator" },
     serviceEndpoint: "https://world.metavie.co/services/editable-project",
     pricingNote: "10 ELO per call",
     usageNote: "Call from your agent workflow"
@@ -306,6 +317,7 @@ test("project metadata update should persist editable fields", async () => {
   assert.equal(updated.heat, 900);
   assert.equal(updated.stage, "operating");
   assert.equal(updated.state, "operating");
+  assert.deepEqual(updated.memberRoles, { "agent.edit.openclaw": "operator" });
   assert.equal(updated.serviceEndpoint, "https://world.metavie.co/services/editable-project");
   assert.equal(world.projects.listOperating().length, 1);
 });
@@ -471,9 +483,11 @@ test("requirements should support explicit accepted and rejected status updates"
 
   const accepted = await world.requirements.updateStatus({
     requirementId: requirement.requirementId,
-    status: "accepted"
+    status: "accepted",
+    reviewerHumanId: "human.reqstate"
   });
   assert.equal(accepted.status, "accepted");
+  assert.equal(accepted.reviewerHumanId, "human.reqstate");
 
   const rejected = await world.requirements.updateStatus({
     requirementId: requirement.requirementId,

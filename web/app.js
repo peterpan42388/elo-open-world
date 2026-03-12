@@ -19,6 +19,7 @@ const state = {
   summary: null,
   sessionHumanId: loadSession(),
   latestAuthKeyBundle: null,
+  latestSignedAgentGuide: null,
   activeSettingsSection: SETTINGS_DEFAULT_SECTION,
   selectedGraphProjectId: "",
   buildFilters: {
@@ -98,6 +99,11 @@ function currentHumanProjects() {
   });
 }
 
+function projectMemberRole(project, agentId) {
+  if (!project || !agentId) return "";
+  return project.memberRoles?.[agentId] || "builder";
+}
+
 function humanReadableAgentStatus(agent) {
   if (agent.online) return "Online";
   if (agent.model) return "Idle";
@@ -143,6 +149,18 @@ function formatTimestamp(ts) {
   const date = new Date(ts);
   if (Number.isNaN(date.getTime())) return "-";
   return date.toLocaleString();
+}
+
+function downloadTextFile(filename, content, mimeType = "text/plain;charset=utf-8") {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
 }
 
 function renderTopbarActions() {
@@ -424,12 +442,14 @@ function renderSettingsData() {
   const profileKeyPanel = $("profile-key-panel");
   const agentsRoot = $("my-agents-list");
   const projectsRoot = $("my-projects-list");
+  const signedActions = $("signed-agent-actions");
   if (!human) {
     if (profile) profile.innerHTML = "";
     if (profileActions) profileActions.innerHTML = "";
     if (profileKeyPanel) profileKeyPanel.innerHTML = "";
     if (agentsRoot) agentsRoot.innerHTML = "";
     if (projectsRoot) projectsRoot.innerHTML = "";
+    if (signedActions) signedActions.innerHTML = "";
     return;
   }
 
@@ -564,6 +584,7 @@ function renderSettingsData() {
       requirementForm.createdById.value = human.humanId;
     }
     if (requirementForm.ownerHumanId) requirementForm.ownerHumanId.value = human.humanId;
+    if (requirementForm.reviewerHumanId && !requirementForm.reviewerHumanId.value) requirementForm.reviewerHumanId.value = human.humanId;
   }
 
   const agents = currentHumanAgents();
@@ -602,7 +623,7 @@ function renderSettingsData() {
                       ${createBadge(projectStateLabel(project.state))}
                       ${createBadge(projectTypeLabel(project.kind))}
                     </div>
-                    <span>Role: contributor</span>
+                    <span>Role: ${projectMemberRole(project, agent.agentId)}</span>
                   </div>
                 `).join("") : '<div class="empty">No related projects yet.</div>'}
               </div>
@@ -637,6 +658,14 @@ function renderSettingsData() {
               <div class="detail-item"><span>Agents</span><strong>${project.memberAgentIds?.length || 0}</strong></div>
               <div class="detail-item"><span>Plugins</span><strong>${project.pluginIds?.length || 0}</strong></div>
               <div class="detail-item"><span>Repository</span><strong>${project.repoName}</strong></div>
+            </div>
+            <div class="nested-list">
+              ${(project.memberAgentIds || []).length ? (project.memberAgentIds || []).map((agentId) => `
+                <div class="nested-item">
+                  <strong>${agentId}</strong>
+                  <span>Role: ${projectMemberRole(project, agentId)}</span>
+                </div>
+              `).join("") : '<div class="empty">No member agents recorded.</div>'}
             </div>
             <div class="tag-row action-row">
           <button type="button" class="topbar-button secondary edit-project-button" data-edit-project="${project.projectId}">Edit Metadata</button>
@@ -684,6 +713,7 @@ function renderRequirements(requirements) {
         <div class="detail-grid compact">
           <div class="detail-item"><span>Created By</span><strong>${item.createdByType}: ${item.createdById}</strong></div>
           <div class="detail-item"><span>Owner Human</span><strong>${item.ownerHumanId}</strong></div>
+          <div class="detail-item"><span>Reviewer</span><strong>${item.reviewerHumanId || "Not assigned"}</strong></div>
           <div class="detail-item"><span>Status</span><strong>${requirementStatusLabel(item.status)}</strong></div>
           <div class="detail-item"><span>Linked Project</span><strong>${item.linkedProjectId || "Not linked"}</strong></div>
         </div>
@@ -701,7 +731,8 @@ function renderRequirements(requirements) {
       try {
         const updated = await request("/api/requirements/update", "POST", {
           requirementId: node.dataset.requirementId,
-          status: node.dataset.requirementStatus
+          status: node.dataset.requirementStatus,
+          reviewerHumanId: currentHuman()?.humanId || ""
         });
         setStatus(`Requirement ${updated.requirementId} -> ${updated.status}`, "ok");
         await refresh();
@@ -796,8 +827,10 @@ function buildAgentMarkdownPrompt() {
     "## Your Task",
     "1. Create or choose an agentId.",
     "2. Decide runtime, endpoint, and model.",
-    "3. Register the agent through Settings > My Agents or prepare equivalent API payload.",
-    "4. Keep reporting your status with model and online state.",
+    "3. Issue a human agent-auth PEM bundle from Settings > Personal Info.",
+    "4. Prepare a signed registration payload from Settings > My Agents.",
+    "5. Sign the payload locally with the PEM private key and call register-signed.",
+    "6. Keep reporting your status with model and online state.",
     "",
     "## Suggested Agent Registration Payload",
     "```json",
@@ -930,6 +963,14 @@ function renderProjects(projects) {
           <div class="detail-item"><span>Service Endpoint</span><strong>${project.serviceEndpoint || "Not set"}</strong></div>
           <div class="detail-item"><span>GitHub</span><strong>${project.repoFullName}</strong></div>
         </div>
+        <div class="nested-list">
+          ${(project.memberAgentIds || []).length ? (project.memberAgentIds || []).map((agentId) => `
+            <div class="nested-item">
+              <strong>${agentId}</strong>
+              <span>Role: ${projectMemberRole(project, agentId)}</span>
+            </div>
+          `).join("") : '<div class="empty">No member agents recorded.</div>'}
+        </div>
         <p>Pricing: ${project.pricingNote || "Not specified"}</p>
         <p>Usage: ${project.usageNote || "Not specified"}</p>
         <div class="tag-row action-row">
@@ -959,6 +1000,7 @@ function populateProjectEditForm(projectId) {
   form.state.value = project.state || "initialized";
   form.pluginIds.value = (project.pluginIds || []).join(", ");
   form.memberAgentIds.value = (project.memberAgentIds || []).join(", ");
+  form.memberRoles.value = JSON.stringify(project.memberRoles || {}, null, 2);
   form.serviceEndpoint.value = project.serviceEndpoint || "";
   form.pricingNote.value = project.pricingNote || "";
   form.usageNote.value = project.usageNote || "";
@@ -1169,6 +1211,7 @@ $("signed-agent-guide-form")?.addEventListener("submit", async (event) => {
   event.preventDefault();
   const human = currentHuman();
   const output = $("signed-agent-output");
+  const actions = $("signed-agent-actions");
   if (!human) {
     setStatus("Sign in first.", "error");
     return;
@@ -1185,12 +1228,25 @@ $("signed-agent-guide-form")?.addEventListener("submit", async (event) => {
   };
   try {
     const result = await request("/api/agents/register-signing-payload", "POST", body);
-    if (output) output.textContent = buildSignedAgentGuide({
+    const guide = buildSignedAgentGuide({
       human,
       authKey: human.agentAuthKey,
       formData: body,
       payload: result.payload
     });
+    state.latestSignedAgentGuide = {
+      humanId: human.humanId,
+      agentId: formData.agentId,
+      guide
+    };
+    if (output) output.textContent = guide;
+    if (actions) {
+      actions.innerHTML = '<button type="button" class="topbar-button secondary" id="download-signed-guide-button">Download Registration Guide</button>';
+      $("download-signed-guide-button")?.addEventListener("click", () => {
+        if (!state.latestSignedAgentGuide) return;
+        downloadTextFile(`${state.latestSignedAgentGuide.agentId}.registration-guide.md`, state.latestSignedAgentGuide.guide, "text/markdown;charset=utf-8");
+      });
+    }
     setStatus(`Signed registration payload prepared for ${formData.agentId}`, "ok");
   } catch (error) {
     setStatus(error.message, "error");

@@ -238,6 +238,7 @@
 
                   <section class="panel">
                     <h2>Signed Registration Output</h2>
+                    <div id="signed-agent-actions" class="action-row"></div>
                     <pre id="signed-agent-output">Issue a human auth key first, then prepare a signed agent registration guide here.</pre>
                   </section>
                 </div>
@@ -369,6 +370,7 @@
                       <input name="desiredKind" placeholder="app / workflow / skill / protocol" />
                       <input name="tags" placeholder="comma-separated tags" />
                     </div>
+                    <input name="reviewerHumanId" placeholder="reviewer human id (optional)" />
                     <button type="submit">Create Requirement</button>
                   </form>
                 </section>
@@ -413,6 +415,7 @@
                     </div>
                     <input name="pluginIds" placeholder="comma-separated plugin ids" />
                     <input name="memberAgentIds" placeholder="comma-separated member agent ids" />
+                    <textarea name="memberRoles" placeholder='member roles JSON, e.g. {"agent.leo.openclaw":"builder"}'></textarea>
                     <input name="serviceEndpoint" placeholder="service endpoint (for operating stage)" />
                     <input name="pricingNote" placeholder="pricing note" />
                     <textarea name="usageNote" placeholder="usage note"></textarea>
@@ -475,6 +478,7 @@
                   </select>
                   <input name="pluginIds" placeholder="comma-separated plugin ids" />
                   <input name="memberAgentIds" placeholder="comma-separated member agent ids" />
+                  <textarea name="memberRoles" placeholder='member roles JSON'></textarea>
                   <input name="serviceEndpoint" placeholder="service endpoint" />
                   <input name="pricingNote" placeholder="pricing note" />
                   <textarea name="usageNote" placeholder="usage note"></textarea>
