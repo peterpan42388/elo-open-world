@@ -1,9 +1,10 @@
 import { asArray, csvArray, now, numberInRange, slug, text, token, uid } from "../lib/validation.js";
 
 export class ProjectProtocol {
-  constructor({ projects = [], identityRegistry, onChange = async () => {}, projectInitializer } = {}) {
+  constructor({ projects = [], identityRegistry, requirementRegistry = null, onChange = async () => {}, projectInitializer } = {}) {
     this.projects = new Map(projects.map((project) => [project.projectId, { ...project }]));
     this.identityRegistry = identityRegistry;
+    this.requirementRegistry = requirementRegistry;
     this.onChange = onChange;
     this.projectInitializer = projectInitializer;
   }
@@ -23,7 +24,8 @@ export class ProjectProtocol {
     stage = "source",
     serviceEndpoint = "",
     pricingNote = "",
-    usageNote = ""
+    usageNote = "",
+    requirementId = ""
   }) {
     const safeOwnerHumanId = token("ownerHumanId", ownerHumanId);
     const ownerHuman = this.identityRegistry.getHuman(safeOwnerHumanId);
@@ -74,6 +76,7 @@ export class ProjectProtocol {
       rating: safeRating,
       heat: safeHeat,
       stage: safeStage,
+      requirementId: requirementId ? token("requirementId", requirementId, 128) : "",
       serviceEndpoint: safeServiceEndpoint,
       pricingNote: safePricingNote,
       usageNote: safeUsageNote,
@@ -86,6 +89,9 @@ export class ProjectProtocol {
       updatedAt: now()
     };
     this.projects.set(projectId, project);
+    if (project.requirementId && this.requirementRegistry) {
+      this.requirementRegistry.attachToProject(project.requirementId, projectId);
+    }
     await this.onChange();
     return project;
   }

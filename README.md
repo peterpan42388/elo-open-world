@@ -73,12 +73,22 @@ Open:
   - required: `token`
 - `POST /api/auth/github/unlink`
   - required: `humanId`
+- `POST /api/auth/keys/issue`
+  - required: `humanId`
+  - returns one-time PEM key bundle for agent-auth signing
 - `POST /api/humans/register`
   - required: `humanId`, `email`, `password`
   - optional: `displayName`
 - `POST /api/agents/register`
   - required: `agentId`, `humanId`
   - optional: `label`, `runtime`, `endpoint`, `online`, `model`
+- `POST /api/agents/register-signing-payload`
+  - required: `humanId`, `agentId`
+  - optional: `label`, `runtime`, `endpoint`, `online`, `model`
+  - returns canonical payload to sign with the human auth private key
+- `POST /api/agents/register-signed`
+  - required: `humanId`, `signature`, `agent`
+  - optional: `keyId`
 - `POST /api/agents/status`
   - required: `agentId`
   - optional: `online`, `model`, `runtime`, `endpoint`
@@ -87,9 +97,13 @@ Open:
   - optional: `worldUrl`, `machineLabel`, `notes`
   - returns `.env` template, JSON config, and status curl for local OpenClaw setup
 - `POST /api/plugins/register`
+- `POST /api/requirements/create`
+  - required: `title`, `createdByType`, `createdById`
+  - optional: `summary`, `desiredKind`, `tags`, `ownerHumanId`
+- `GET /api/requirements`
 - `POST /api/projects/create`
   - required: `ownerHumanId`, `repoName`, `kind`, `title`
-  - optional: `summary`, `pluginIds`, `memberAgentIds`, `tags`, `rating`, `heat`, `stage`, `serviceEndpoint`, `pricingNote`, `usageNote`
+  - optional: `summary`, `pluginIds`, `memberAgentIds`, `tags`, `rating`, `heat`, `stage`, `serviceEndpoint`, `pricingNote`, `usageNote`, `requirementId`
 
 ## Project Initialization Baseline
 
@@ -126,6 +140,7 @@ The Web UI now includes `ELO OpenClaw Onboarding Assistant`:
 - `docs/MIGRATION_FROM_ELO_PROTOCOL.zh-en.md`
 - `docs/DELIVERY_REPORT_2026-03-11.zh-en.md`
 - `docs/UI_EXECUTION_PHASES.md`
+- `docs/AUTH_AGENT_PROJECT_PHASE_PLAN.md`
 - `docs/UNIVERSE_NODE_PROTOCOL.md`
 - `docs/UNIVERSE_DEPLOYMENT_GUIDE.md`
 - `docs/PARALLEL_UNIVERSE.md`

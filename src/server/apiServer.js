@@ -231,9 +231,24 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, await framework.identity.unlinkGitHubHuman(body));
     }
 
+    if (req.method === "POST" && path === "/api/auth/keys/issue") {
+      const body = await readJson(req);
+      return json(res, 200, await framework.identity.issueHumanAuthKeypair(body));
+    }
+
     if (req.method === "POST" && path === "/api/agents/register") {
       const body = await readJson(req);
       return json(res, 200, await framework.identity.registerAgent(body));
+    }
+
+    if (req.method === "POST" && path === "/api/agents/register-signed") {
+      const body = await readJson(req);
+      return json(res, 200, await framework.identity.registerAgentSigned(body));
+    }
+
+    if (req.method === "POST" && path === "/api/agents/register-signing-payload") {
+      const body = await readJson(req);
+      return json(res, 200, { payload: framework.identity.agentRegistrationSigningPayload(body) });
     }
 
     if (req.method === "POST" && path === "/api/agents/status") {
@@ -275,6 +290,15 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === "GET" && path === "/api/projects/operating") {
       return json(res, 200, { items: framework.projects.listOperating() });
+    }
+
+    if (req.method === "POST" && path === "/api/requirements/create") {
+      const body = await readJson(req);
+      return json(res, 200, await framework.requirements.create(body));
+    }
+
+    if (req.method === "GET" && path === "/api/requirements") {
+      return json(res, 200, { items: framework.requirements.list() });
     }
 
     return json(res, 404, { error: "not found" });

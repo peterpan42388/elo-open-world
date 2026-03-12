@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import crypto from "node:crypto";
 import { mkdtemp, readFile, access } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -362,4 +363,89 @@ test("email verification and github link management should update human identity
   const unlinked = await world.identity.unlinkGitHubHuman({ humanId: "human.manage" });
   assert.equal(unlinked.githubLogin, "");
   assert.ok(!unlinked.authMethods.includes("github"));
+});
+
+test("human auth keypair should support signed agent registration", async () => {
+  const root = await mkdtemp(join(tmpdir(), "open-world-signed-agent-"));
+  const world = await new OpenWorldFramework({
+    stateFile: join(root, "state.json"),
+    projectsRoot: join(root, "projects")
+  }).init();
+
+  await world.identity.registerHuman({
+    humanId: "human.signed",
+    email: "signed@example.com",
+    password: "secret-789"
+  });
+
+  const issued = await world.identity.issueHumanAuthKeypair({ humanId: "human.signed" });
+  assert.equal(issued.algorithm, "ed25519");
+  assert.match(issued.privateKeyPem, /BEGIN PRIVATE KEY/);
+
+  const agent = {
+    agentId: "agent.signed.openclaw",
+    label: "Signed OpenClaw",
+    runtime: "openclaw",
+    endpoint: "http://127.0.0.1:3001",
+    online: true,
+    model: "claude-3.7-sonnet"
+  };
+  const payload = world.identity.agentRegistrationSigningPayload({
+    humanId: "human.signed",
+    ...agent
+  });
+  const privateKey = crypto.createPrivateKey(issued.privateKeyPem);
+  const signature = crypto.sign(null, Buffer.from(payload), privateKey).toString("base64");
+
+  const created = await world.identity.registerAgentSigned({
+    humanId: "human.signed",
+    keyId: issued.keyId,
+    signature,
+    agent
+  });
+
+  assert.equal(created.agentId, "agent.signed.openclaw");
+  assert.equal(created.humanId, "human.signed");
+  assert.equal(created.authKeyId, issued.keyId);
+});
+
+test("requirements should be creatable by humans and linked into project creation", async () => {
+  const root = await mkdtemp(join(tmpdir(), "open-world-requirements-"));
+  const github = new FakeGitHubRepoService();
+  const world = await new OpenWorldFramework({
+    stateFile: join(root, "state.json"),
+    projectsRoot: join(root, "projects"),
+    githubRepoService: github
+  }).init();
+
+  await world.identity.registerHuman({
+    humanId: "human.req",
+    email: "req@example.com",
+    githubLogin: "peterpan42388",
+    password: "secret-req"
+  });
+
+  const requirement = await world.requirements.create({
+    title: "Create onboarding skill",
+    summary: "Need a project that helps new users configure OpenClaw and join the world.",
+    desiredKind: "app",
+    tags: ["onboarding", "skill"],
+    createdByType: "human",
+    createdById: "human.req"
+  });
+
+  assert.equal(requirement.status, "drafted");
+
+  const project = await world.projects.create({
+    ownerHumanId: "human.req",
+    repoName: "elo-agent-onboarder-req",
+    kind: "app",
+    title: "Requirement Linked Project",
+    requirementId: requirement.requirementId
+  });
+
+  assert.equal(project.requirementId, requirement.requirementId);
+  const linked = world.requirements.list()[0];
+  assert.equal(linked.status, "implemented");
+  assert.equal(linked.linkedProjectId, project.projectId);
 });

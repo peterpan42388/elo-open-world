@@ -5,7 +5,8 @@ const EMPTY_STATE = {
   humans: [],
   agents: [],
   plugins: [],
-  projects: []
+  projects: [],
+  requirements: []
 };
 
 export class StateStore {
@@ -21,7 +22,8 @@ export class StateStore {
         humans: Array.isArray(parsed.humans) ? parsed.humans : [],
         agents: Array.isArray(parsed.agents) ? parsed.agents : [],
         plugins: Array.isArray(parsed.plugins) ? parsed.plugins : [],
-        projects: Array.isArray(parsed.projects) ? parsed.projects : []
+        projects: Array.isArray(parsed.projects) ? parsed.projects : [],
+        requirements: Array.isArray(parsed.requirements) ? parsed.requirements : []
       };
     } catch (error) {
       if (error && error.code === "ENOENT") return { ...EMPTY_STATE };

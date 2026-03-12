@@ -4,6 +4,7 @@ import { mkdir } from "node:fs/promises";
 import { IdentityRegistry } from "./identityRegistry.js";
 import { PluginRegistry } from "./pluginRegistry.js";
 import { ProjectProtocol } from "./projectProtocol.js";
+import { ProjectRequirementRegistry } from "./projectRequirements.js";
 import { StateStore } from "../services/stateStore.js";
 import { GitHubRepoService } from "../services/githubRepoService.js";
 import { ProjectInitializer } from "../services/projectInitializer.js";
@@ -32,6 +33,7 @@ export class OpenWorldFramework {
     this.onboarder = null;
     this.identity = null;
     this.plugins = null;
+    this.requirements = null;
     this.projects = null;
   }
 
@@ -43,9 +45,15 @@ export class OpenWorldFramework {
     };
     this.identity = new IdentityRegistry({ humans: snapshot.humans, agents: snapshot.agents, onChange: persist });
     this.plugins = new PluginRegistry({ plugins: snapshot.plugins, onChange: persist });
+    this.requirements = new ProjectRequirementRegistry({
+      requirements: snapshot.requirements,
+      identityRegistry: this.identity,
+      onChange: persist
+    });
     this.projects = new ProjectProtocol({
       projects: snapshot.projects,
       identityRegistry: this.identity,
+      requirementRegistry: this.requirements,
       onChange: persist,
       projectInitializer: this.projectInitializer
     });
@@ -95,6 +103,7 @@ export class OpenWorldFramework {
             "Web UI",
             "OpenClaw Onboarding Assistant"
           ],
+          requirementCount: this.requirements.list().length,
           projects: this.projects.list().map((project) => ({
             projectId: project.projectId,
             title: project.title,
@@ -108,6 +117,7 @@ export class OpenWorldFramework {
       },
       identity: this.identity.summary(),
       plugins: this.plugins.list(),
+      requirements: this.requirements.list(),
       projects: this.projects.list()
     };
   }

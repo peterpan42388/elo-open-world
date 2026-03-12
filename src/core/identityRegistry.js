@@ -18,6 +18,10 @@ function verifyPassword(password, salt, hash) {
   return expected.length === computed.length && crypto.timingSafeEqual(computed, expected);
 }
 
+function fingerprintPublicKey(publicKeyPem) {
+  return crypto.createHash("sha256").update(publicKeyPem).digest("hex");
+}
+
 export class IdentityRegistry {
   constructor({ factions = DEFAULT_FACTIONS, humans = [], agents = [], onChange = async () => {} } = {}) {
     this.factions = factions;
@@ -169,6 +173,67 @@ export class IdentityRegistry {
     return this.#publicHuman(human);
   }
 
+  async issueHumanAuthKeypair({ humanId }) {
+    const human = this.getHuman(humanId);
+    const { publicKey, privateKey } = crypto.generateKeyPairSync("ed25519");
+    const publicKeyPem = publicKey.export({ type: "spki", format: "pem" }).toString();
+    const privateKeyPem = privateKey.export({ type: "pkcs8", format: "pem" }).toString();
+    const keyId = `hak_${crypto.randomUUID()}`;
+    human.agentAuthKey = {
+      keyId,
+      algorithm: "ed25519",
+      publicKeyPem,
+      fingerprint: fingerprintPublicKey(publicKeyPem),
+      issuedAt: now(),
+      lastUsedAt: 0
+    };
+    human.updatedAt = now();
+    await this.onChange();
+    return {
+      human: this.#publicHuman(human),
+      keyId,
+      algorithm: "ed25519",
+      publicKeyPem,
+      privateKeyPem,
+      fingerprint: human.agentAuthKey.fingerprint
+    };
+  }
+
+  async registerAgentSigned({ humanId, keyId = "", signature, agent }) {
+    const human = this.getHuman(humanId);
+    if (!human.agentAuthKey?.publicKeyPem) throw new Error("human has no issued agent auth key");
+    if (keyId && human.agentAuthKey.keyId !== keyId) throw new Error("keyId does not match active human auth key");
+    const payload = this.agentRegistrationSigningPayload({ humanId, ...agent });
+    const signatureBuffer = Buffer.from(text("signature", signature, 4096), "base64");
+    const verified = crypto.verify(null, Buffer.from(payload), human.agentAuthKey.publicKeyPem, signatureBuffer);
+    if (!verified) throw new Error("agent signature verification failed");
+    human.agentAuthKey.lastUsedAt = now();
+    human.updatedAt = now();
+    const created = await this.registerAgent({ ...agent, humanId });
+    return { ...created, authKeyId: human.agentAuthKey.keyId };
+  }
+
+  agentRegistrationSigningPayload({
+    humanId,
+    agentId,
+    label = "",
+    runtime = "openclaw",
+    endpoint = "",
+    online = false,
+    model = ""
+  }) {
+    const canonical = {
+      humanId: token("humanId", humanId),
+      agentId: token("agentId", agentId),
+      label: text("label", label, 128),
+      runtime: text("runtime", runtime, 64) || "openclaw",
+      endpoint: text("endpoint", endpoint, 256),
+      online: bool(online, false),
+      model: text("model", model, 128)
+    };
+    return JSON.stringify(canonical);
+  }
+
   async registerAgent({
     agentId,
     humanId,
@@ -280,6 +345,15 @@ export class IdentityRegistry {
       admissionMethod: human.admissionMethod,
       emailVerified: Boolean(human.emailVerified),
       authMethods: [...(human.authMethods || [])],
+      agentAuthKey: human.agentAuthKey
+        ? {
+            keyId: human.agentAuthKey.keyId,
+            algorithm: human.agentAuthKey.algorithm,
+            fingerprint: human.agentAuthKey.fingerprint,
+            issuedAt: human.agentAuthKey.issuedAt,
+            lastUsedAt: human.agentAuthKey.lastUsedAt || 0
+          }
+        : null,
       createdAt: human.createdAt,
       updatedAt: human.updatedAt || human.createdAt
     };
