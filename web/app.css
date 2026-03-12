@@ -627,3 +627,8 @@ pre {
 .workspace-sidebar label input[type="number"] {
   width: 100%;
 }
+
+.inline-button {
+  width: fit-content;
+  align-self: start;
+}

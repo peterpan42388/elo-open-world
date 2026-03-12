@@ -97,7 +97,10 @@ test("project creation should require github-linked human and initialize repo sc
     tags: ["onboarding", "openclaw"],
     rating: 4.4,
     heat: 240,
-    stage: "operating"
+    stage: "operating",
+    serviceEndpoint: "https://world.metavie.co/services/elo-agent-onboarder",
+    pricingNote: "Free during bootstrap",
+    usageNote: "Call the endpoint after generating your onboarding bundle."
   });
 
   assert.match(project.projectId, /^owp_/);
@@ -106,6 +109,9 @@ test("project creation should require github-linked human and initialize repo sc
   assert.equal(project.heat, 240);
   assert.deepEqual(project.tags, ["onboarding", "openclaw"]);
   assert.equal(project.stage, "operating");
+  assert.equal(project.serviceEndpoint, "https://world.metavie.co/services/elo-agent-onboarder");
+  assert.equal(project.pricingNote, "Free during bootstrap");
+  assert.equal(project.usageNote, "Call the endpoint after generating your onboarding bundle.");
   assert.equal(github.calls.length, 1);
 
   const localRoot = join(root, "projects", "elo-agent-onboarder");

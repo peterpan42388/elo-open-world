@@ -77,7 +77,7 @@ Open:
 - `POST /api/plugins/register`
 - `POST /api/projects/create`
   - required: `ownerHumanId`, `repoName`, `kind`, `title`
-  - optional: `summary`, `pluginIds`, `memberAgentIds`
+  - optional: `summary`, `pluginIds`, `memberAgentIds`, `tags`, `rating`, `heat`, `stage`, `serviceEndpoint`, `pricingNote`, `usageNote`
 
 ## Project Initialization Baseline
 

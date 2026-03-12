@@ -20,7 +20,10 @@ export class ProjectProtocol {
     tags = [],
     rating = 0,
     heat = 0,
-    stage = "source"
+    stage = "source",
+    serviceEndpoint = "",
+    pricingNote = "",
+    usageNote = ""
   }) {
     const safeOwnerHumanId = token("ownerHumanId", ownerHumanId);
     const ownerHuman = this.identityRegistry.getHuman(safeOwnerHumanId);
@@ -49,7 +52,10 @@ export class ProjectProtocol {
       tags: safeTags,
       rating: safeRating,
       heat: safeHeat,
-      stage: safeStage
+      stage: safeStage,
+      serviceEndpoint: text("serviceEndpoint", serviceEndpoint, 256),
+      pricingNote: text("pricingNote", pricingNote, 256),
+      usageNote: text("usageNote", usageNote, 1000)
     });
 
     const project = {
@@ -65,6 +71,9 @@ export class ProjectProtocol {
       rating: safeRating,
       heat: safeHeat,
       stage: safeStage,
+      serviceEndpoint: text("serviceEndpoint", serviceEndpoint, 256),
+      pricingNote: text("pricingNote", pricingNote, 256),
+      usageNote: text("usageNote", usageNote, 1000),
       repoName: safeRepoName,
       repoFullName: initialized.repoFullName,
       repoUrl: initialized.repoUrl,

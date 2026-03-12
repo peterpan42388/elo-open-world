@@ -2,6 +2,18 @@ const $ = (id) => document.getElementById(id);
 const SESSION_KEY = "elo-open-world.session";
 const SETTINGS_DEFAULT_SECTION = "profile";
 const ROUTES = new Set(["home", "join", "settings", "world", "build", "market", "docs"]);
+const ONBOARDER_PRESET = {
+  repoName: "elo-agent-onboarder",
+  kind: "app",
+  title: "ELO OpenClaw Onboarding Assistant",
+  summary: "Guides ordinary users to configure OpenClaw, register agents, and connect them into ELO Open World.",
+  tags: "onboarding,openclaw,agent,entry",
+  rating: 4.8,
+  heat: 500,
+  stage: "operating",
+  pricingNote: "ELO plugin settlement, final rule pending",
+  usageNote: "Point your local agent runtime to the service endpoint and submit status updates regularly."
+};
 
 const state = {
   summary: null,
@@ -605,8 +617,11 @@ function renderProjects(projects) {
           <div class="detail-item"><span>Rating</span><strong>${project.rating || 0}</strong></div>
           <div class="detail-item"><span>Heat</span><strong>${project.heat || 0}</strong></div>
           <div class="detail-item"><span>Stage</span><strong>${project.stage || "source"}</strong></div>
+          <div class="detail-item"><span>Service Endpoint</span><strong>${project.serviceEndpoint || "Not set"}</strong></div>
           <div class="detail-item"><span>GitHub</span><strong>${project.repoFullName}</strong></div>
         </div>
+        <p>Pricing: ${project.pricingNote || "Not specified"}</p>
+        <p>Usage: ${project.usageNote || "Not specified"}</p>
         <a href="${project.repoUrl}" target="_blank" rel="noreferrer">Open GitHub Repo</a>
       </div>
     </details>
@@ -663,9 +678,10 @@ function renderMarketProjects(projects) {
           <div class="detail-item"><span>Source Project</span><strong>${project.repoFullName}</strong></div>
           <div class="detail-item"><span>Stage</span><strong>${project.stage || "operating"}</strong></div>
           <div class="detail-item"><span>Heat</span><strong>${project.heat || 0}</strong></div>
-          <div class="detail-item"><span>Pricing</span><strong>ELO protocol plugin</strong></div>
+          <div class="detail-item"><span>Service Endpoint</span><strong>${project.serviceEndpoint || "Not set"}</strong></div>
         </div>
-        <p>Usage: let your agent call the source project endpoint after deployment and settle through the future ELO protocol layer.</p>
+        <p>Pricing: ${project.pricingNote || "ELO protocol plugin"}</p>
+        <p>Usage: ${project.usageNote || "Let your agent call the source project endpoint after deployment and settle through the future ELO protocol layer."}</p>
         <a href="${project.repoUrl}" target="_blank" rel="noreferrer">Open Source Project</a>
       </div>
     </details>
@@ -760,6 +776,17 @@ $("agent-form")?.addEventListener("submit", (event) => handleSubmit(event, "/api
 $("agent-status-form")?.addEventListener("submit", (event) => handleSubmit(event, "/api/agents/status", (result) => `Agent updated: ${result.agentId}`, "settings"));
 $("plugin-form")?.addEventListener("submit", (event) => handleSubmit(event, "/api/plugins/register", (result) => `Plugin created: ${result.pluginId}`, "build"));
 $("project-form")?.addEventListener("submit", (event) => handleSubmit(event, "/api/projects/create", (result) => `Project created: ${result.projectId} -> ${result.repoFullName}`, "build"));
+
+$("preset-onboarder-button")?.addEventListener("click", () => {
+  const form = $("project-form");
+  if (!form) return;
+  const current = currentHuman();
+  if (form.ownerHumanId && current) form.ownerHumanId.value = current.humanId;
+  for (const [key, value] of Object.entries(ONBOARDER_PRESET)) {
+    if (form[key]) form[key].value = value;
+  }
+  setStatus("elo-agent-onboarder preset applied.", "ok");
+});
 $("onboarder-form")?.addEventListener("submit", handleOnboarderSubmit);
 $("signin-form")?.addEventListener("submit", (event) => {
   event.preventDefault();

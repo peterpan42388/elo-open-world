@@ -335,7 +335,10 @@
                 </section>
 
                 <section class="panel project-panel">
-                  <h2>Create Project</h2>
+                  <div class="panel-header">
+                    <h2>Create Project</h2>
+                    <button type="button" class="topbar-button secondary inline-button" id="preset-onboarder-button">Use elo-agent-onboarder Preset</button>
+                  </div>
                   <p class="note">Requires a signed-in human with linked GitHub. Creation succeeds only when local initialization and GitHub repository creation both succeed.</p>
                   <form id="project-form">
                     <input name="ownerHumanId" placeholder="human.leo" required />
@@ -354,6 +357,9 @@
                     </div>
                     <input name="pluginIds" placeholder="comma-separated plugin ids" />
                     <input name="memberAgentIds" placeholder="comma-separated member agent ids" />
+                    <input name="serviceEndpoint" placeholder="service endpoint (for operating stage)" />
+                    <input name="pricingNote" placeholder="pricing note" />
+                    <textarea name="usageNote" placeholder="usage note"></textarea>
                     <button type="submit">Create Project</button>
                   </form>
                 </section>
