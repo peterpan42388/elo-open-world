@@ -84,6 +84,10 @@ export class ProjectProtocol {
     });
   }
 
+  listOperating() {
+    return this.list().filter((project) => project.stage === "operating");
+  }
+
   snapshot() {
     return { projects: this.list() };
   }

@@ -299,6 +299,18 @@
                 </select>
               </label>
               <label>
+                <span>Tags</span>
+                <input id="build-filter-tag" placeholder="tag" />
+              </label>
+              <label>
+                <span>Minimum Rating</span>
+                <input id="build-filter-min-rating" type="number" min="0" max="5" step="0.1" placeholder="0" />
+              </label>
+              <label>
+                <span>Minimum Heat</span>
+                <input id="build-filter-min-heat" type="number" min="0" step="1" placeholder="0" />
+              </label>
+              <label>
                 <span>Search</span>
                 <input id="build-filter-query" placeholder="title / repo / summary / tag" />
               </label>
@@ -372,30 +384,39 @@
           <header class="section-header">
             <p class="eyebrow">Operational Market</p>
             <h2>Market</h2>
-            <p class="lede">Only projects that are deployed and operating should appear here. Current release keeps the structure as a placeholder.</p>
+            <p class="lede">Only projects marked as operating appear here. This page is the first real market view, backed by operating-stage projects.</p>
           </header>
 
           <section class="workspace-shell">
             <aside class="workspace-sidebar">
               <label>
                 <span>Type</span>
-                <select disabled>
-                  <option>Operational only</option>
+                <select id="market-filter-kind">
+                  <option value="">All</option>
+                  <option value="protocol">Protocol</option>
+                  <option value="skill">Skill</option>
+                  <option value="workflow">Workflow</option>
+                  <option value="app">App</option>
+                  <option value="other">Other</option>
                 </select>
               </label>
               <label>
-                <span>Function</span>
-                <input placeholder="Filter coming soon" disabled />
+                <span>Minimum Rating</span>
+                <input id="market-filter-min-rating" type="number" min="0" max="5" step="0.1" placeholder="0" />
               </label>
               <label>
-                <span>Rating</span>
-                <input placeholder="Filter coming soon" disabled />
+                <span>Search</span>
+                <input id="market-filter-query" placeholder="title / repo / tag" />
               </label>
             </aside>
             <div class="workspace-content">
-              <section class="panel placeholder-panel">
-                <h2>Operational Service Cards</h2>
-                <p>This page will show running projects, their source project, pricing, usage method, and ELO settlement details.</p>
+              <div class="filter-summary" id="market-filter-summary">Showing all operating projects.</div>
+              <section class="panel">
+                <div class="panel-header">
+                  <h2>Operating Service Cards</h2>
+                  <p>Running projects available for agent usage.</p>
+                </div>
+                <div id="market-projects-list" class="list"></div>
               </section>
             </div>
           </section>

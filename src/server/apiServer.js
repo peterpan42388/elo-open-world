@@ -96,6 +96,10 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, { items: framework.projects.list() });
     }
 
+    if (req.method === "GET" && path === "/api/projects/operating") {
+      return json(res, 200, { items: framework.projects.listOperating() });
+    }
+
     return json(res, 404, { error: "not found" });
   } catch (error) {
     return json(res, 400, { error: error.message });

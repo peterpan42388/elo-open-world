@@ -209,3 +209,43 @@ test("universe manifest should expose federation baseline", async () => {
   assert.ok(Array.isArray(manifest.supportedStandards));
   assert.ok(manifest.supportedStandards.includes("openworld.universe.v1"));
 });
+
+
+test("operating projects list should only expose operating stage items", async () => {
+  const root = await mkdtemp(join(tmpdir(), "open-world-operating-"));
+  const github = new FakeGitHubRepoService();
+  const world = await new OpenWorldFramework({
+    stateFile: join(root, "state.json"),
+    projectsRoot: join(root, "projects"),
+    githubRepoService: github
+  }).init();
+
+  await world.identity.registerHuman({
+    humanId: "human.ops",
+    email: "ops@example.com",
+    githubLogin: "peterpan42388"
+  });
+
+  await world.projects.create({
+    ownerHumanId: "human.ops",
+    repoName: "source-project",
+    kind: "app",
+    title: "Source Project",
+    stage: "source"
+  });
+
+  await world.projects.create({
+    ownerHumanId: "human.ops",
+    repoName: "operating-project",
+    kind: "app",
+    title: "Operating Project",
+    stage: "operating",
+    rating: 4.8,
+    heat: 120
+  });
+
+  const operating = world.projects.listOperating();
+  assert.equal(operating.length, 1);
+  assert.equal(operating[0].repoName, "operating-project");
+  assert.equal(operating[0].stage, "operating");
+});

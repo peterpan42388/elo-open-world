@@ -623,3 +623,7 @@ pre {
   .infra-diagram { grid-template-columns: 1fr; }
   .infra-arrow { transform: rotate(90deg); }
 }
+
+.workspace-sidebar label input[type="number"] {
+  width: 100%;
+}

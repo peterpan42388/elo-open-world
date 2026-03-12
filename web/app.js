@@ -11,6 +11,14 @@ const state = {
   buildFilters: {
     kind: "",
     status: "",
+    tag: "",
+    minRating: 0,
+    minHeat: 0,
+    query: ""
+  },
+  marketFilters: {
+    kind: "",
+    minRating: 0,
     query: ""
   }
 };
@@ -182,6 +190,7 @@ function renderSummary(summary) {
   renderProjectGraph(summary.projects || []);
   renderPlugins(summary.plugins || []);
   renderProjects(summary.projects || []);
+  renderMarketProjects(summary.projects || []);
   renderSettingsData();
 }
 
@@ -502,13 +511,34 @@ function buildAgentMarkdownPrompt() {
 
 function applyBuildFiltersToProjects(projects) {
   const query = state.buildFilters.query.trim().toLowerCase();
+  const tag = state.buildFilters.tag.trim().toLowerCase();
   return projects.filter((project) => {
     const kindValue = String(project.kind || "").toLowerCase();
     const stateValue = String(project.state || "").toLowerCase();
+    const tags = (project.tags || []).map((item) => String(item).toLowerCase());
+    const rating = Number(project.rating || 0);
+    const heat = Number(project.heat || 0);
     const kindPass = !state.buildFilters.kind || kindValue === state.buildFilters.kind;
     const statePass = !state.buildFilters.status || stateValue === state.buildFilters.status;
-    const queryPass = !query || [project.title, project.repoName, project.summary, project.ownerHumanId, ...(project.tags || [])].join(" ").toLowerCase().includes(query);
-    return kindPass && statePass && queryPass;
+    const tagPass = !tag || tags.some((item) => item.includes(tag));
+    const ratingPass = rating >= Number(state.buildFilters.minRating || 0);
+    const heatPass = heat >= Number(state.buildFilters.minHeat || 0);
+    const queryPass = !query || [project.title, project.repoName, project.summary, project.ownerHumanId, ...tags].join(" ").toLowerCase().includes(query);
+    return kindPass && statePass && tagPass && ratingPass && heatPass && queryPass;
+  });
+}
+
+function applyMarketFiltersToProjects(projects) {
+  const query = state.marketFilters.query.trim().toLowerCase();
+  return projects.filter((project) => {
+    if (project.stage !== "operating") return false;
+    const kindValue = String(project.kind || "").toLowerCase();
+    const tags = (project.tags || []).map((item) => String(item).toLowerCase());
+    const rating = Number(project.rating || 0);
+    const kindPass = !state.marketFilters.kind || kindValue === state.marketFilters.kind;
+    const ratingPass = rating >= Number(state.marketFilters.minRating || 0);
+    const queryPass = !query || [project.title, project.repoName, project.summary, ...tags].join(" ").toLowerCase().includes(query);
+    return kindPass && ratingPass && queryPass;
   });
 }
 
@@ -589,8 +619,57 @@ function renderBuildFilterSummary() {
   const parts = [];
   if (state.buildFilters.kind) parts.push(`type: ${projectTypeLabel(state.buildFilters.kind)}`);
   if (state.buildFilters.status) parts.push(`state: ${projectStateLabel(state.buildFilters.status)}`);
+  if (state.buildFilters.tag.trim()) parts.push(`tag: ${state.buildFilters.tag.trim()}`);
+  if (Number(state.buildFilters.minRating || 0) > 0) parts.push(`min rating: ${state.buildFilters.minRating}`);
+  if (Number(state.buildFilters.minHeat || 0) > 0) parts.push(`min heat: ${state.buildFilters.minHeat}`);
   if (state.buildFilters.query.trim()) parts.push(`query: ${state.buildFilters.query.trim()}`);
   node.textContent = parts.length ? `Active filters -> ${parts.join(" | ")}` : "No active build filters.";
+}
+
+function renderMarketFilterSummary() {
+  const node = $("market-filter-summary");
+  if (!node) return;
+  const parts = [];
+  if (state.marketFilters.kind) parts.push(`type: ${projectTypeLabel(state.marketFilters.kind)}`);
+  if (Number(state.marketFilters.minRating || 0) > 0) parts.push(`min rating: ${state.marketFilters.minRating}`);
+  if (state.marketFilters.query.trim()) parts.push(`query: ${state.marketFilters.query.trim()}`);
+  node.textContent = parts.length ? `Active market filters -> ${parts.join(" | ")}` : "Showing all operating projects.";
+}
+
+function renderMarketProjects(projects) {
+  const root = $("market-projects-list");
+  if (!root) return;
+  const filtered = applyMarketFiltersToProjects(projects);
+  if (!filtered.length) {
+    root.innerHTML = '<div class="empty">No operating projects match the current market filter.</div>';
+    return;
+  }
+  root.innerHTML = filtered.map((project) => `
+    <details class="expand-card">
+      <summary>
+        <div class="summary-row">
+          <strong>${project.title}</strong>
+          <div class="tag-row">
+            ${createBadge(projectTypeLabel(project.kind))}
+            ${createBadge(`Rating ${project.rating || 0}`)}
+          </div>
+        </div>
+        <span>${project.repoName}</span>
+      </summary>
+      <div class="expand-body">
+        <p>${project.summary || "No summary provided."}</p>
+        <div class="tag-row">${(project.tags || []).map((tag) => `<span class="subtle-tag">${tag}</span>`).join("")}</div>
+        <div class="detail-grid compact">
+          <div class="detail-item"><span>Source Project</span><strong>${project.repoFullName}</strong></div>
+          <div class="detail-item"><span>Stage</span><strong>${project.stage || "operating"}</strong></div>
+          <div class="detail-item"><span>Heat</span><strong>${project.heat || 0}</strong></div>
+          <div class="detail-item"><span>Pricing</span><strong>ELO protocol plugin</strong></div>
+        </div>
+        <p>Usage: let your agent call the source project endpoint after deployment and settle through the future ELO protocol layer.</p>
+        <a href="${project.repoUrl}" target="_blank" rel="noreferrer">Open Source Project</a>
+      </div>
+    </details>
+  `).join("");
 }
 
 function renderSettingsShell() {
@@ -671,6 +750,7 @@ function renderAll() {
   renderTopbarActions();
   renderSummary(state.summary);
   renderBuildFilterSummary();
+  renderMarketFilterSummary();
   renderSettingsShell();
   showRoute(currentRoute());
 }
@@ -712,8 +792,38 @@ $("build-filter-state")?.addEventListener("change", (event) => {
   renderAll();
 });
 
+$("build-filter-tag")?.addEventListener("input", (event) => {
+  state.buildFilters.tag = event.currentTarget.value;
+  renderAll();
+});
+
+$("build-filter-min-rating")?.addEventListener("input", (event) => {
+  state.buildFilters.minRating = Number(event.currentTarget.value || 0);
+  renderAll();
+});
+
+$("build-filter-min-heat")?.addEventListener("input", (event) => {
+  state.buildFilters.minHeat = Number(event.currentTarget.value || 0);
+  renderAll();
+});
+
 $("build-filter-query")?.addEventListener("input", (event) => {
   state.buildFilters.query = event.currentTarget.value;
+  renderAll();
+});
+
+$("market-filter-kind")?.addEventListener("change", (event) => {
+  state.marketFilters.kind = event.currentTarget.value.trim().toLowerCase();
+  renderAll();
+});
+
+$("market-filter-min-rating")?.addEventListener("input", (event) => {
+  state.marketFilters.minRating = Number(event.currentTarget.value || 0);
+  renderAll();
+});
+
+$("market-filter-query")?.addEventListener("input", (event) => {
+  state.marketFilters.query = event.currentTarget.value;
   renderAll();
 });
 
