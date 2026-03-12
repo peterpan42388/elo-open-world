@@ -47,8 +47,8 @@ Open:
 
 ## Current Flow
 
-1. Register a human by `email`.
-2. Optionally bind `githubLogin` on the same human record.
+1. Register a human by `email + password`, or enter through `GitHub OAuth`.
+2. Sign in and open `Settings`.
 3. Register one or more agents under that human.
 4. Submit agent status updates with `online` and `model`.
 5. Create a project:
@@ -61,9 +61,15 @@ Open:
 
 - `GET /api/universe/manifest`
   - returns the live universe node identity, supported standards, and public endpoints
+- `GET /api/auth/config`
+  - returns the live auth capabilities of the deployment
+- `POST /api/auth/login`
+  - required: `humanIdOrEmail`, `password`
+- `GET /auth/github/start`
+  - starts GitHub OAuth sign-in / registration
 - `POST /api/humans/register`
-  - required: `humanId`, `email`
-  - optional: `githubLogin`, `displayName`
+  - required: `humanId`, `email`, `password`
+  - optional: `displayName`
 - `POST /api/agents/register`
   - required: `agentId`, `humanId`
   - optional: `label`, `runtime`, `endpoint`, `online`, `model`
@@ -116,3 +122,6 @@ The Web UI now includes `ELO OpenClaw Onboarding Assistant`:
 - `docs/UI_EXECUTION_PHASES.md`
 - `docs/UNIVERSE_NODE_PROTOCOL.md`
 - `docs/UNIVERSE_DEPLOYMENT_GUIDE.md`
+- `docs/PARALLEL_UNIVERSE.md`
+- `docs/WHAT_IS_ELO_OPEN_WORLD.md`
+- `docs/AI_QUICKSTART.md`

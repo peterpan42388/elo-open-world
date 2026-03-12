@@ -7,6 +7,17 @@ const DEFAULT_FACTIONS = [
   { key: "elite", weight: 0.02, initialCredits: 50000000 }
 ];
 
+function hashPassword(password, salt = crypto.randomBytes(16).toString("hex")) {
+  const hash = crypto.scryptSync(password, salt, 64).toString("hex");
+  return { salt, hash };
+}
+
+function verifyPassword(password, salt, hash) {
+  const computed = crypto.scryptSync(password, salt, 64);
+  const expected = Buffer.from(hash, "hex");
+  return expected.length === computed.length && crypto.timingSafeEqual(computed, expected);
+}
+
 export class IdentityRegistry {
   constructor({ factions = DEFAULT_FACTIONS, humans = [], agents = [], onChange = async () => {} } = {}) {
     this.factions = factions;
@@ -16,14 +27,22 @@ export class IdentityRegistry {
     this.onChange = onChange;
   }
 
-  async registerHuman({ humanId, email: humanEmail, displayName = "", githubLogin = "" }) {
+  async registerHuman({ humanId, email: humanEmail, displayName = "", githubLogin = "", password = "" }) {
     const safeHumanId = token("humanId", humanId);
     const safeEmail = email("email", humanEmail);
     const safeGithubLogin = githubLogin ? token("githubLogin", githubLogin) : "";
+    const safePassword = text("password", password, 256);
+    if (!safePassword) throw new Error("password is required for email registration");
     if (this.humans.has(safeHumanId)) throw new Error(`duplicate humanId: ${safeHumanId}`);
     for (const existing of this.humans.values()) {
       if (existing.email === safeEmail) throw new Error(`duplicate email: ${safeEmail}`);
     }
+
+    const secret = safePassword ? hashPassword(safePassword) : { salt: "", hash: "" };
+    const authMethods = [];
+    if (safePassword) authMethods.push("password");
+    if (safeGithubLogin) authMethods.push("github");
+
     const record = {
       humanId: safeHumanId,
       email: safeEmail,
@@ -31,11 +50,65 @@ export class IdentityRegistry {
       displayName: text("displayName", displayName, 128) || safeHumanId,
       admissionMethod: "email",
       emailVerified: false,
-      createdAt: now()
+      authMethods,
+      passwordSalt: secret.salt,
+      passwordHash: secret.hash,
+      createdAt: now(),
+      updatedAt: now()
     };
     this.humans.set(safeHumanId, record);
     await this.onChange();
-    return record;
+    return this.#publicHuman(record);
+  }
+
+  async upsertGitHubHuman({ githubLogin, email: githubEmail = "", displayName = "" }) {
+    const safeGithubLogin = token("githubLogin", githubLogin);
+    const safeEmail = githubEmail ? email("email", githubEmail) : `${safeGithubLogin}@users.noreply.github.com`;
+    const existing = [...this.humans.values()].find((human) => human.githubLogin === safeGithubLogin || human.email === safeEmail);
+    if (existing) {
+      existing.githubLogin = safeGithubLogin;
+      existing.displayName = text("displayName", displayName, 128) || existing.displayName || existing.humanId;
+      existing.email = safeEmail || existing.email;
+      existing.emailVerified = true;
+      if (!existing.authMethods.includes("github")) existing.authMethods.push("github");
+      existing.updatedAt = now();
+      await this.onChange();
+      return this.#publicHuman(existing);
+    }
+
+    let baseHumanId = `human.github.${safeGithubLogin.toLowerCase().replace(/[^a-z0-9._-]+/g, "-")}`;
+    let candidate = baseHumanId;
+    let counter = 1;
+    while (this.humans.has(candidate)) {
+      candidate = `${baseHumanId}-${counter++}`;
+    }
+
+    const record = {
+      humanId: candidate,
+      email: safeEmail,
+      githubLogin: safeGithubLogin,
+      displayName: text("displayName", displayName, 128) || safeGithubLogin,
+      admissionMethod: "github",
+      emailVerified: true,
+      authMethods: ["github"],
+      passwordSalt: "",
+      passwordHash: "",
+      createdAt: now(),
+      updatedAt: now()
+    };
+    this.humans.set(candidate, record);
+    await this.onChange();
+    return this.#publicHuman(record);
+  }
+
+  authenticateLocal({ humanIdOrEmail, password }) {
+    const identifier = text("humanIdOrEmail", humanIdOrEmail, 320).toLowerCase();
+    const safePassword = text("password", password, 256);
+    if (!safePassword) throw new Error("password is required");
+    const human = [...this.humans.values()].find((item) => item.humanId.toLowerCase() === identifier || item.email.toLowerCase() === identifier);
+    if (!human || !human.passwordHash || !human.passwordSalt) throw new Error("invalid credentials");
+    if (!verifyPassword(safePassword, human.passwordSalt, human.passwordHash)) throw new Error("invalid credentials");
+    return this.#publicHuman(human);
   }
 
   async registerAgent({
@@ -135,8 +208,22 @@ export class IdentityRegistry {
       },
       factions,
       models,
-      humans: [...this.humans.values()],
+      humans: [...this.humans.values()].map((human) => this.#publicHuman(human)),
       agents: [...this.agents.values()]
+    };
+  }
+
+  #publicHuman(human) {
+    return {
+      humanId: human.humanId,
+      email: human.email,
+      githubLogin: human.githubLogin || "",
+      displayName: human.displayName,
+      admissionMethod: human.admissionMethod,
+      emailVerified: Boolean(human.emailVerified),
+      authMethods: [...(human.authMethods || [])],
+      createdAt: human.createdAt,
+      updatedAt: human.updatedAt || human.createdAt
     };
   }
 

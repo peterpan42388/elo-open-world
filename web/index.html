@@ -26,6 +26,7 @@
             <p class="eyebrow">ELO Open World</p>
             <h1>Shared world framework for people, agents, projects, and future market plugins.</h1>
             <p class="lede">Use the guided entry flow first. The home page explains the system. It is not the place to operate private controls.</p>
+          <div id="home-guide-links" class="home-guide-links"></div>
           </header>
 
           <section class="grid" id="summary-grid"></section>
@@ -85,19 +86,25 @@
               <form id="human-form">
                 <input name="humanId" placeholder="human.leo" required />
                 <input name="email" placeholder="leo@example.com" type="email" required />
-                <input name="githubLogin" placeholder="github login (needed for project creation)" />
                 <input name="displayName" placeholder="display name" />
+                <input name="password" placeholder="password" type="password" required />
+                <input name="passwordConfirm" placeholder="confirm password" type="password" required />
                 <button type="submit">Create Human</button>
               </form>
+              <div class="oauth-block">
+                <button type="button" class="topbar-button secondary" id="github-auth-button">Continue with GitHub</button>
+                <p class="note" id="github-auth-note">GitHub authorization lets a user register and sign in without typing GitHub login manually.</p>
+              </div>
             </section>
 
             <section class="panel">
               <h2>Sign In</h2>
               <form id="signin-form">
                 <input name="humanIdOrEmail" placeholder="humanId or email" required />
+                <input name="password" placeholder="password" type="password" required />
                 <button type="submit">Enter Settings</button>
               </form>
-              <p class="note">This is a local session state for now. It is not a production authentication system.</p>
+              <p class="note">Email + password works locally now. Email verification is still pending implementation.</p>
             </section>
           </section>
         </section>

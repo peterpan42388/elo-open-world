@@ -32,7 +32,8 @@ test("open world should register humans with email and agents with status", asyn
     humanId: "human.leo",
     email: "leo@example.com",
     githubLogin: "peterpan42388",
-    displayName: "Leo"
+    displayName: "Leo",
+    password: "test-password-1"
   });
   assert.equal(human.email, "leo@example.com");
   assert.equal(human.admissionMethod, "email");
@@ -75,7 +76,8 @@ test("project creation should require github-linked human and initialize repo sc
   await world.identity.registerHuman({
     humanId: "human.leo",
     email: "leo@example.com",
-    githubLogin: "peterpan42388"
+    githubLogin: "peterpan42388",
+    password: "test-password-2"
   });
 
   await world.identity.registerAgent({
@@ -141,7 +143,8 @@ test("project creation should fail without githubLogin", async () => {
 
   await world.identity.registerHuman({
     humanId: "human.no-gh",
-    email: "nogh@example.com"
+    email: "nogh@example.com",
+    password: "test-password-3"
   });
 
   await assert.rejects(
@@ -168,7 +171,8 @@ test("onboarder bundle should generate env json and curl for registered agent", 
   await world.identity.registerHuman({
     humanId: "human.bundle",
     email: "bundle@example.com",
-    githubLogin: "peterpan42388"
+    githubLogin: "peterpan42388",
+    password: "test-password-4"
   });
 
   await world.identity.registerAgent({
@@ -229,7 +233,8 @@ test("operating projects list should only expose operating stage items", async (
   await world.identity.registerHuman({
     humanId: "human.ops",
     email: "ops@example.com",
-    githubLogin: "peterpan42388"
+    githubLogin: "peterpan42388",
+    password: "test-password-5"
   });
 
   await world.projects.create({
@@ -269,7 +274,8 @@ test("project metadata update should persist editable fields", async () => {
   await world.identity.registerHuman({
     humanId: "human.edit",
     email: "edit@example.com",
-    githubLogin: "peterpan42388"
+    githubLogin: "peterpan42388",
+    password: "test-password-6"
   });
 
   const project = await world.projects.create({
@@ -301,4 +307,28 @@ test("project metadata update should persist editable fields", async () => {
   assert.equal(updated.state, "operating");
   assert.equal(updated.serviceEndpoint, "https://world.metavie.co/services/editable-project");
   assert.equal(world.projects.listOperating().length, 1);
+});
+
+
+test("local auth should accept email and password after registration", async () => {
+  const root = await mkdtemp(join(tmpdir(), "open-world-auth-"));
+  const world = await new OpenWorldFramework({
+    stateFile: join(root, "state.json"),
+    projectsRoot: join(root, "projects")
+  }).init();
+
+  await world.identity.registerHuman({
+    humanId: "human.auth",
+    email: "auth@example.com",
+    password: "secret-123"
+  });
+
+  const auth = world.identity.authenticateLocal({
+    humanIdOrEmail: "auth@example.com",
+    password: "secret-123"
+  });
+
+  assert.equal(auth.humanId, "human.auth");
+  assert.equal(auth.email, "auth@example.com");
+  assert.equal(auth.passwordHash, undefined);
 });

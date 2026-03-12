@@ -1,11 +1,13 @@
+import crypto from "node:crypto";
 import http from "node:http";
 import { readFile } from "node:fs/promises";
-import { extname, join } from "node:path";
+import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import { OpenWorldFramework } from "../core/openWorld.js";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const WEB_ROOT = join(__dirname, "../../web");
+const githubAuthStates = new Map();
 
 function json(res, status, payload) {
   res.writeHead(status, {
@@ -13,6 +15,38 @@ function json(res, status, payload) {
     "Cache-Control": "no-store"
   });
   res.end(JSON.stringify(payload));
+}
+
+function redirect(res, location) {
+  res.writeHead(302, { Location: location, "Cache-Control": "no-store" });
+  res.end();
+}
+
+function html(res, status, content) {
+  res.writeHead(status, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
+  res.end(content);
+}
+
+function oauthConfig() {
+  return {
+    githubEnabled: Boolean(process.env.GITHUB_OAUTH_CLIENT_ID && process.env.GITHUB_OAUTH_CLIENT_SECRET),
+    githubClientId: process.env.GITHUB_OAUTH_CLIENT_ID || "",
+    publicBaseUrl: process.env.PUBLIC_BASE_URL || "https://world.metavie.co"
+  };
+}
+
+function renderAuthResultPage({ ok, message, humanId = "" }) {
+  const safeMessage = String(message || "Authentication failed.").replace(/</g, "&lt;");
+  const safeHumanId = String(humanId || "").replace(/'/g, "\\'");
+  if (ok) {
+    return `<!doctype html><html><body><script>
+      localStorage.setItem('elo-open-world.session', '${safeHumanId}');
+      window.location.replace('/#settings');
+    </script><p>${safeMessage}</p></body></html>`;
+  }
+  return `<!doctype html><html><body><script>
+    window.location.replace('/#join');
+  </script><p>${safeMessage}</p></body></html>`;
 }
 
 async function readJson(req) {
@@ -24,7 +58,8 @@ async function readJson(req) {
 
 async function serveStatic(pathname, res) {
   const target = pathname === "/" ? "/index.html" : pathname;
-  const fullPath = join(WEB_ROOT, target);
+  const safe = normalize(target).replace(/^\.\.(\/|\\|$)/, "");
+  const fullPath = join(WEB_ROOT, safe);
   const data = await readFile(fullPath);
   const types = {
     ".html": "text/html; charset=utf-8",
@@ -35,6 +70,52 @@ async function serveStatic(pathname, res) {
   res.end(data);
 }
 
+async function exchangeGitHubCode(code) {
+  const cfg = oauthConfig();
+  const response = await fetch("https://github.com/login/oauth/access_token", {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/x-www-form-urlencoded",
+      "User-Agent": "elo-open-world"
+    },
+    body: new URLSearchParams({
+      client_id: cfg.githubClientId,
+      client_secret: process.env.GITHUB_OAUTH_CLIENT_SECRET,
+      code
+    })
+  });
+  const data = await response.json();
+  if (!response.ok || data.error || !data.access_token) {
+    throw new Error(data.error_description || data.error || "github token exchange failed");
+  }
+  return data.access_token;
+}
+
+async function fetchGitHubProfile(accessToken) {
+  const headers = {
+    Authorization: `Bearer ${accessToken}`,
+    Accept: "application/vnd.github+json",
+    "User-Agent": "elo-open-world"
+  };
+  const userRes = await fetch("https://api.github.com/user", { headers });
+  const user = await userRes.json();
+  if (!userRes.ok || !user.login) throw new Error(user.message || "failed to fetch github user");
+
+  const emailsRes = await fetch("https://api.github.com/user/emails", { headers });
+  let email = user.email || "";
+  if (emailsRes.ok) {
+    const emails = await emailsRes.json();
+    const primary = Array.isArray(emails) ? emails.find((item) => item.primary) || emails.find((item) => item.verified) || emails[0] : null;
+    email = primary?.email || email;
+  }
+  return {
+    githubLogin: user.login,
+    email,
+    displayName: user.name || user.login
+  };
+}
+
 const framework = await new OpenWorldFramework().init();
 
 const server = http.createServer(async (req, res) => {
@@ -42,7 +123,9 @@ const server = http.createServer(async (req, res) => {
     const url = new URL(req.url || "/", "http://127.0.0.1");
     const path = url.pathname;
 
-    if ((req.method === "GET" || req.method === "HEAD") && (path === "/" || path === "/index.html" || path === "/app.css" || path === "/app.js")) {
+    if ((req.method === "GET" || req.method === "HEAD") && (
+      path === "/" || path === "/index.html" || path === "/app.css" || path === "/app.js" || path.startsWith("/guides/")
+    )) {
       return await serveStatic(path, res);
     }
 
@@ -52,6 +135,48 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === "GET" && path === "/api/universe/manifest") {
       return json(res, 200, framework.manifest());
+    }
+
+    if (req.method === "GET" && path === "/api/auth/config") {
+      return json(res, 200, oauthConfig());
+    }
+
+    if (req.method === "POST" && path === "/api/auth/login") {
+      const body = await readJson(req);
+      return json(res, 200, framework.identity.authenticateLocal(body));
+    }
+
+    if (req.method === "GET" && path === "/auth/github/start") {
+      const cfg = oauthConfig();
+      if (!cfg.githubEnabled) {
+        return html(res, 503, renderAuthResultPage({ ok: false, message: "GitHub OAuth is not configured on this deployment." }));
+      }
+      const state = crypto.randomUUID();
+      githubAuthStates.set(state, Date.now());
+      const redirectUri = `${cfg.publicBaseUrl}/auth/github/callback`;
+      const authUrl = new URL("https://github.com/login/oauth/authorize");
+      authUrl.searchParams.set("client_id", cfg.githubClientId);
+      authUrl.searchParams.set("redirect_uri", redirectUri);
+      authUrl.searchParams.set("scope", "read:user user:email");
+      authUrl.searchParams.set("state", state);
+      return redirect(res, authUrl.toString());
+    }
+
+    if (req.method === "GET" && path === "/auth/github/callback") {
+      const cfg = oauthConfig();
+      if (!cfg.githubEnabled) {
+        return html(res, 503, renderAuthResultPage({ ok: false, message: "GitHub OAuth is not configured on this deployment." }));
+      }
+      const code = url.searchParams.get("code") || "";
+      const state = url.searchParams.get("state") || "";
+      if (!githubAuthStates.has(state)) {
+        return html(res, 400, renderAuthResultPage({ ok: false, message: "GitHub auth state is invalid or expired." }));
+      }
+      githubAuthStates.delete(state);
+      const accessToken = await exchangeGitHubCode(code);
+      const profile = await fetchGitHubProfile(accessToken);
+      const human = await framework.identity.upsertGitHubHuman(profile);
+      return html(res, 200, renderAuthResultPage({ ok: true, humanId: human.humanId, message: `Signed in as ${human.humanId}` }));
     }
 
     if (req.method === "POST" && path === "/api/humans/register") {

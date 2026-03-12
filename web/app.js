@@ -33,6 +33,9 @@ const state = {
     minRating: 0,
     query: "",
     sort: "heat-desc"
+  },
+  authConfig: {
+    githubEnabled: false
   }
 };
 
@@ -178,6 +181,33 @@ function showRoute(route) {
   renderSettingsShell();
 }
 
+function renderHomeGuides() {
+  const root = $("home-guide-links");
+  if (!root) return;
+  root.innerHTML = `
+    <div class="guide-grid top-guides">
+      <a class="guide-card guide-link" href="/guides/what-is.html" target="_blank" rel="noreferrer">
+        <span class="guide-step">WORLD</span>
+        <h3>What We Are</h3>
+        <p>We are an open simulation world that links humans and AI so both can participate in building shared infrastructure.</p>
+      </a>
+      <a class="guide-card guide-link" href="/guides/ai-quickstart.html" target="_blank" rel="noreferrer">
+        <span class="guide-step">AI</span>
+        <h3>AI Quickstart</h3>
+        <p>If you are an AI and want to learn or join ELO Open World, start from this fast guide.</p>
+      </a>
+      <div class="guide-card multi-link-card">
+        <span class="guide-step">UNIVERSE</span>
+        <h3>Parallel Universe Setup</h3>
+        <p>Deployers can choose a linked multi-universe mode or a fully standalone small universe.</p>
+        <a href="/guides/parallel-universe.html" target="_blank" rel="noreferrer">Parallel Universe Guide</a>
+        <a href="https://github.com/peterpan42388/elo-open-world/blob/codex/open-world-onboarding-init/docs/UNIVERSE_NODE_PROTOCOL.md" target="_blank" rel="noreferrer">Universe Node Protocol</a>
+        <a href="https://github.com/peterpan42388/elo-open-world/blob/codex/open-world-onboarding-init/docs/UNIVERSE_DEPLOYMENT_GUIDE.md" target="_blank" rel="noreferrer">Deployment Guide</a>
+      </div>
+    </div>
+  `;
+}
+
 function renderSummary(summary) {
   const grid = $("summary-grid");
   if (!grid) return;
@@ -199,6 +229,7 @@ function renderSummary(summary) {
     </article>
   `).join("");
 
+  renderHomeGuides();
   renderInfrastructure(summary);
   renderProjectGraph(summary.projects || []);
   renderPlugins(summary.plugins || []);
@@ -773,14 +804,14 @@ function formDataToObject(form) {
   return obj;
 }
 
-function signInWithValue(value) {
-  if (!state.summary) return false;
-  const normalized = value.trim().toLowerCase();
-  const human = (state.summary.identity?.humans || []).find((item) => item.humanId.toLowerCase() === normalized || item.email.toLowerCase() === normalized);
-  if (!human) return false;
-  saveSession(human.humanId);
+async function signInWithValue(identifier, password) {
+  const result = await request("/api/auth/login", "POST", {
+    humanIdOrEmail: identifier,
+    password
+  });
+  saveSession(result.humanId);
   state.activeSettingsSection = SETTINGS_DEFAULT_SECTION;
-  setStatus(`Signed in as ${human.humanId}`, "ok");
+  setStatus(`Signed in as ${result.humanId}`, "ok");
   renderAll();
   goToRoute("settings");
   return true;
@@ -788,9 +819,11 @@ function signInWithValue(value) {
 
 async function handleSubmit(event, path, successMessage, routeAfter = null, afterSuccess = null) {
   event.preventDefault();
+  const form = event.currentTarget;
+  const payload = formDataToObject(form);
   try {
-    const result = await request(path, "POST", formDataToObject(event.currentTarget));
-    event.currentTarget.reset();
+    const result = await request(path, "POST", payload);
+    if (typeof form.reset === "function") form.reset();
     if (afterSuccess) afterSuccess(result);
     setStatus(successMessage(result), "ok");
     await refresh();
@@ -812,6 +845,23 @@ async function handleOnboarderSubmit(event) {
   }
 }
 
+async function loadAuthConfig() {
+  try {
+    state.authConfig = await request("/api/auth/config");
+  } catch {
+    state.authConfig = { githubEnabled: false };
+  }
+  const button = $("github-auth-button");
+  const note = $("github-auth-note");
+  if (button) {
+    button.disabled = !state.authConfig.githubEnabled;
+    button.textContent = state.authConfig.githubEnabled ? "Continue with GitHub" : "GitHub Auth Not Configured";
+  }
+  if (note && !state.authConfig.githubEnabled) {
+    note.textContent = "GitHub OAuth is not configured on this deployment yet.";
+  }
+}
+
 async function refresh() {
   state.summary = await request("/api/world/summary");
   renderAll();
@@ -828,7 +878,17 @@ function renderAll() {
   showRoute(currentRoute());
 }
 
-$("human-form")?.addEventListener("submit", (event) => handleSubmit(event, "/api/humans/register", (result) => `Human created: ${result.humanId}`, "settings", (result) => saveSession(result.humanId)));
+$("human-form")?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const password = form.password.value;
+  const passwordConfirm = form.passwordConfirm.value;
+  if (password !== passwordConfirm) {
+    setStatus("Password confirmation does not match.", "error");
+    return;
+  }
+  await handleSubmit(event, "/api/humans/register", (result) => `Human created: ${result.humanId}`, "settings", (result) => saveSession(result.humanId));
+});
 $("agent-form")?.addEventListener("submit", (event) => handleSubmit(event, "/api/agents/register", (result) => `Agent created: ${result.agentId}`, "settings"));
 $("agent-status-form")?.addEventListener("submit", (event) => handleSubmit(event, "/api/agents/status", (result) => `Agent updated: ${result.agentId}`, "settings"));
 $("plugin-form")?.addEventListener("submit", (event) => handleSubmit(event, "/api/plugins/register", (result) => `Plugin created: ${result.pluginId}`, "build"));
@@ -846,14 +906,17 @@ $("preset-onboarder-button")?.addEventListener("click", () => {
   setStatus("elo-agent-onboarder preset applied.", "ok");
 });
 $("onboarder-form")?.addEventListener("submit", handleOnboarderSubmit);
-$("signin-form")?.addEventListener("submit", (event) => {
+$("signin-form")?.addEventListener("submit", async (event) => {
   event.preventDefault();
-  const value = String(new FormData(event.currentTarget).get("humanIdOrEmail") || "");
-  if (!signInWithValue(value)) {
-    setStatus("Human identity not found.", "error");
-    return;
+  const form = event.currentTarget;
+  const value = String(new FormData(form).get("humanIdOrEmail") || "");
+  const password = String(new FormData(form).get("password") || "");
+  try {
+    await signInWithValue(value, password);
+    form.reset();
+  } catch (error) {
+    setStatus(error.message, "error");
   }
-  event.currentTarget.reset();
 });
 
 document.querySelectorAll("[data-route-target]").forEach((node) => {
@@ -917,6 +980,10 @@ $("market-sort")?.addEventListener("change", (event) => {
   renderAll();
 });
 
+$("github-auth-button")?.addEventListener("click", () => {
+  window.location.href = "/auth/github/start";
+});
+
 window.addEventListener("hashchange", () => showRoute(currentRoute()));
 showRoute(currentRoute());
-refresh().catch((error) => setStatus(error.message, "error"));
+loadAuthConfig().then(() => refresh()).catch((error) => setStatus(error.message, "error"));

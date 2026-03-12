@@ -640,3 +640,34 @@ pre {
 .edit-project-button {
   padding: 8px 12px;
 }
+
+.oauth-block {
+  margin-top: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.home-guide-links {
+  margin-top: 18px;
+}
+
+.multi-link-card a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.multi-link-card a:hover {
+  text-decoration: underline;
+}
+
+.guide-page {
+  margin-top: 18px;
+}
+
+.guide-markdown {
+  display: grid;
+  gap: 12px;
+  color: var(--muted);
+  line-height: 1.6;
+}
