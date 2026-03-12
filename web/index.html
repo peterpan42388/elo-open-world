@@ -252,7 +252,11 @@
               <h2>Project Graph</h2>
               <p>Inspired by graph-based repository exploration, but here the project is the atomic unit.</p>
             </div>
-            <div id="project-graph" class="project-graph"></div>
+            <div class="graph-layout">
+              <div id="graph-legend" class="graph-legend"></div>
+              <div id="project-graph" class="project-graph"></div>
+              <div id="graph-relations" class="graph-relations"></div>
+            </div>
           </section>
 
           <section class="panel chat-placeholder-panel">
@@ -285,12 +289,24 @@
                 </select>
               </label>
               <label>
+                <span>Project State</span>
+                <select id="build-filter-state">
+                  <option value="">All</option>
+                  <option value="initialized">Initialized</option>
+                  <option value="developing">Developing</option>
+                  <option value="operating">Operating</option>
+                  <option value="paused">Paused</option>
+                </select>
+              </label>
+              <label>
                 <span>Search</span>
                 <input id="build-filter-query" placeholder="title / repo / summary" />
               </label>
             </aside>
 
             <div class="workspace-content">
+              <div class="filter-summary" id="build-filter-summary">No active build filters.</div>
+
               <section class="panel-row two-equal">
                 <section class="panel">
                   <h2>Register Plugin</h2>
@@ -388,6 +404,11 @@
               <span class="guide-step">DOC</span>
               <h3>Repository</h3>
               <p>Read source code, README, and deployment details.</p>
+            </a>
+            <a class="guide-card guide-link" href="https://github.com/peterpan42388/elo-open-world/blob/codex/open-world-onboarding-init/docs/UI_EXECUTION_PHASES.md" target="_blank" rel="noreferrer">
+              <span class="guide-step">PHASE</span>
+              <h3>Execution Phases</h3>
+              <p>See the current phased UI execution model and delivery sequence.</p>
             </a>
             <article class="guide-card">
               <span class="guide-step">UNI</span>
