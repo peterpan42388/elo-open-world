@@ -251,6 +251,38 @@ function syncMemberRolesFromCurrentAgents(formId) {
   syncMemberRoleTextarea(formId);
 }
 
+function addSelectedAgentToRoleEditor(formId) {
+  const select = document.querySelector(`.member-role-agent-select[data-role-target="${formId}"]`);
+  const form = $(formId);
+  if (!select || !form?.memberAgentIds) return;
+  const agentId = select.value.trim();
+  if (!agentId) return;
+  const existing = new Set(
+    String(form.memberAgentIds.value || "")
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean)
+  );
+  existing.add(agentId);
+  form.memberAgentIds.value = [...existing].join(", ");
+  const currentEntries = new Map(parseMemberRolesToEntries(form.memberRoles?.value || ""));
+  if (!currentEntries.has(agentId)) currentEntries.set(agentId, "builder");
+  resetMemberRoleEditor(formId, JSON.stringify(Object.fromEntries(currentEntries), null, 2));
+  syncMemberRoleTextarea(formId);
+}
+
+function renderMemberRoleAgentOptions() {
+  const agents = currentHumanAgents();
+  document.querySelectorAll(".member-role-agent-select").forEach((select) => {
+    const current = select.value || "";
+    select.innerHTML = [
+      '<option value="">Select My Agent</option>',
+      ...agents.map((agent) => `<option value="${agent.agentId}">${agent.label || agent.agentId} · ${agent.agentId}</option>`)
+    ].join("");
+    if (agents.some((agent) => agent.agentId === current)) select.value = current;
+  });
+}
+
 function renderTopbarActions() {
   const root = $("topbar-actions");
   if (!root) return;
@@ -953,6 +985,25 @@ function buildSignedAgentScript({ human, authKey, payload }) {
   ].join("\n");
 }
 
+function buildSignedAgentBundle({ human, authKey, formData, payload, guide, script }) {
+  return {
+    metadata: {
+      humanId: human.humanId,
+      keyId: authKey?.keyId || "",
+      fingerprint: authKey?.fingerprint || "",
+      generatedAt: new Date().toISOString(),
+      worldUrl: window.location.origin
+    },
+    agent: formData,
+    payload: JSON.parse(payload),
+    files: {
+      guideMarkdown: guide,
+      payloadJson: JSON.stringify(JSON.parse(payload), null, 2),
+      registerShell: script
+    }
+  };
+}
+
 function buildAgentMarkdownPrompt() {
   const human = currentHuman();
   if (!human) return "Sign in first to generate your AI registration prompt.";
@@ -1319,6 +1370,7 @@ function renderAll() {
   renderBuildFilterSummary();
   renderMarketFilterSummary();
   bindProjectEditButtons();
+  renderMemberRoleAgentOptions();
   renderSettingsShell();
   showRoute(currentRoute());
 }
@@ -1331,6 +1383,13 @@ document.querySelectorAll(".member-role-sync-button").forEach((node) => {
   node.addEventListener("click", () => {
     syncMemberRolesFromCurrentAgents(node.dataset.roleTarget);
     setStatus("Member roles prefilled from your registered agents.", "ok");
+  });
+});
+
+document.querySelectorAll(".member-role-select-add-button").forEach((node) => {
+  node.addEventListener("click", () => {
+    addSelectedAgentToRoleEditor(node.dataset.roleTarget);
+    setStatus("Selected agent added to member roles.", "ok");
   });
 });
 
@@ -1395,11 +1454,21 @@ $("signed-agent-guide-form")?.addEventListener("submit", async (event) => {
       authKey: human.agentAuthKey,
       payload: result.payload
     });
+    const bundle = buildSignedAgentBundle({
+      human,
+      authKey: human.agentAuthKey,
+      formData: body,
+      payload: result.payload,
+      guide,
+      script
+    });
     state.latestSignedAgentGuide = {
       humanId: human.humanId,
       agentId: formData.agentId,
       guide,
-      script
+      script,
+      payload: result.payload,
+      bundle
     };
     if (output) output.textContent = guide;
     if (actions) {
@@ -1407,6 +1476,7 @@ $("signed-agent-guide-form")?.addEventListener("submit", async (event) => {
         <button type="button" class="topbar-button secondary" id="download-signed-guide-button">Download Registration Guide</button>
         <button type="button" class="topbar-button ghost" id="download-signed-payload-button">Download Payload JSON</button>
         <button type="button" class="topbar-button ghost" id="download-signed-script-button">Download Shell Script</button>
+        <button type="button" class="topbar-button ghost" id="download-signed-bundle-button">Download Bundle JSON</button>
       `;
       $("download-signed-guide-button")?.addEventListener("click", () => {
         if (!state.latestSignedAgentGuide) return;
@@ -1414,12 +1484,16 @@ $("signed-agent-guide-form")?.addEventListener("submit", async (event) => {
       });
       $("download-signed-payload-button")?.addEventListener("click", () => {
         if (!state.latestSignedAgentGuide) return;
-        const payload = JSON.parse(result.payload);
+        const payload = JSON.parse(state.latestSignedAgentGuide.payload);
         downloadTextFile(`${state.latestSignedAgentGuide.agentId}.payload.json`, JSON.stringify(payload, null, 2), "application/json;charset=utf-8");
       });
       $("download-signed-script-button")?.addEventListener("click", () => {
         if (!state.latestSignedAgentGuide) return;
         downloadTextFile(`${state.latestSignedAgentGuide.agentId}.register.sh`, state.latestSignedAgentGuide.script, "text/x-shellscript;charset=utf-8");
+      });
+      $("download-signed-bundle-button")?.addEventListener("click", () => {
+        if (!state.latestSignedAgentGuide) return;
+        downloadTextFile(`${state.latestSignedAgentGuide.agentId}.bundle.json`, JSON.stringify(state.latestSignedAgentGuide.bundle, null, 2), "application/json;charset=utf-8");
       });
     }
     setStatus(`Signed registration payload prepared for ${formData.agentId}`, "ok");
