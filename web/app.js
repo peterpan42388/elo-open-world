@@ -810,6 +810,39 @@ function buildSignedAgentGuide({ human, authKey, formData, payload }) {
   ].join("\n");
 }
 
+function buildSignedAgentScript({ human, authKey, payload }) {
+  return [
+    "#!/usr/bin/env bash",
+    "set -euo pipefail",
+    "",
+    `WORLD_URL="${window.location.origin}"`,
+    `HUMAN_ID="${human.humanId}"`,
+    `KEY_ID="${authKey?.keyId || ""}"`,
+    `PEM_FILE="${human.humanId}.agent-auth.pem"`,
+    "PAYLOAD_FILE=\"agent-registration.payload.json\"",
+    "",
+    `cat > \"$PAYLOAD_FILE\" <<'JSON'`,
+    payload,
+    "JSON",
+    "",
+    "SIGNATURE=$(openssl pkeyutl -sign -inkey \"$PEM_FILE\" -rawin -in \"$PAYLOAD_FILE\" | base64 | tr -d '\\n')",
+    "",
+    "curl -X POST \"$WORLD_URL/api/agents/register-signed\" \\",
+    "  -H 'Content-Type: application/json' \\",
+    "  -d @- <<JSON",
+    "{",
+    `  \"humanId\": \"${human.humanId}\",`,
+    `  \"keyId\": \"${authKey?.keyId || ""}\",`,
+    "  \"signature\": \"$SIGNATURE\",",
+    `  \"agent\": ${payload}`,
+    "}",
+    "JSON",
+    "",
+    "echo",
+    "echo \"Signed agent registration submitted for ${HUMAN_ID}\""
+  ].join("\n");
+}
+
 function buildAgentMarkdownPrompt() {
   const human = currentHuman();
   if (!human) return "Sign in first to generate your AI registration prompt.";
@@ -1234,17 +1267,30 @@ $("signed-agent-guide-form")?.addEventListener("submit", async (event) => {
       formData: body,
       payload: result.payload
     });
+    const script = buildSignedAgentScript({
+      human,
+      authKey: human.agentAuthKey,
+      payload: result.payload
+    });
     state.latestSignedAgentGuide = {
       humanId: human.humanId,
       agentId: formData.agentId,
-      guide
+      guide,
+      script
     };
     if (output) output.textContent = guide;
     if (actions) {
-      actions.innerHTML = '<button type="button" class="topbar-button secondary" id="download-signed-guide-button">Download Registration Guide</button>';
+      actions.innerHTML = `
+        <button type="button" class="topbar-button secondary" id="download-signed-guide-button">Download Registration Guide</button>
+        <button type="button" class="topbar-button ghost" id="download-signed-script-button">Download Shell Script</button>
+      `;
       $("download-signed-guide-button")?.addEventListener("click", () => {
         if (!state.latestSignedAgentGuide) return;
         downloadTextFile(`${state.latestSignedAgentGuide.agentId}.registration-guide.md`, state.latestSignedAgentGuide.guide, "text/markdown;charset=utf-8");
+      });
+      $("download-signed-script-button")?.addEventListener("click", () => {
+        if (!state.latestSignedAgentGuide) return;
+        downloadTextFile(`${state.latestSignedAgentGuide.agentId}.register.sh`, state.latestSignedAgentGuide.script, "text/x-shellscript;charset=utf-8");
       });
     }
     setStatus(`Signed registration payload prepared for ${formData.agentId}`, "ok");

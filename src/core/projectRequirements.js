@@ -29,6 +29,7 @@ export class ProjectRequirementRegistry {
         throw new Error("agent ownerHumanId does not match provided ownerHumanId");
       }
     }
+    if (reviewerHumanId) this.identityRegistry.getHuman(token("reviewerHumanId", reviewerHumanId, 128));
 
     const requirement = {
       requirementId: uid("owr"),
@@ -73,8 +74,18 @@ export class ProjectRequirementRegistry {
     if (requirement.linkedProjectId && safeStatus !== "implemented") {
       throw new Error("implemented requirement cannot move to a non-implemented state");
     }
+    const safeReviewerHumanId = reviewerHumanId ? token("reviewerHumanId", reviewerHumanId, 128) : "";
+    if (["accepted", "rejected"].includes(safeStatus)) {
+      if (!safeReviewerHumanId) throw new Error("reviewerHumanId is required when accepting or rejecting a requirement");
+      this.identityRegistry.getHuman(safeReviewerHumanId);
+      const existingReviewer = requirement.reviewerHumanId || "";
+      const ownerHumanId = requirement.ownerHumanId || "";
+      if (existingReviewer && safeReviewerHumanId !== existingReviewer && safeReviewerHumanId !== ownerHumanId) {
+        throw new Error("reviewerHumanId must match the assigned reviewer or requirement owner");
+      }
+    }
     requirement.status = safeStatus;
-    if (reviewerHumanId) requirement.reviewerHumanId = token("reviewerHumanId", reviewerHumanId, 128);
+    if (safeReviewerHumanId) requirement.reviewerHumanId = safeReviewerHumanId;
     requirement.updatedAt = now();
     await this.onChange();
     return { ...requirement };

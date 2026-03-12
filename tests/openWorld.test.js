@@ -322,6 +322,43 @@ test("project metadata update should persist editable fields", async () => {
   assert.equal(world.projects.listOperating().length, 1);
 });
 
+test("project member roles should reject unknown role values", async () => {
+  const root = await mkdtemp(join(tmpdir(), "open-world-member-roles-"));
+  const github = new FakeGitHubRepoService();
+  const world = await new OpenWorldFramework({
+    stateFile: join(root, "state.json"),
+    projectsRoot: join(root, "projects"),
+    githubRepoService: github
+  }).init();
+
+  await world.identity.registerHuman({
+    humanId: "human.roles",
+    email: "roles@example.com",
+    githubLogin: "peterpan42388",
+    password: "test-password-roles"
+  });
+
+  await world.identity.registerAgent({
+    agentId: "agent.roles.openclaw",
+    humanId: "human.roles",
+    label: "Roles Agent",
+    model: "claude-3.7-sonnet",
+    online: true
+  });
+
+  await assert.rejects(
+    () => world.projects.create({
+      ownerHumanId: "human.roles",
+      repoName: "bad-member-role",
+      kind: "app",
+      title: "Bad Member Role",
+      memberAgentIds: ["agent.roles.openclaw"],
+      memberRoles: { "agent.roles.openclaw": "captain" }
+    }),
+    /memberRole must be one of/
+  );
+});
+
 
 test("local auth should accept email and password after registration", async () => {
   const root = await mkdtemp(join(tmpdir(), "open-world-auth-"));
@@ -491,7 +528,63 @@ test("requirements should support explicit accepted and rejected status updates"
 
   const rejected = await world.requirements.updateStatus({
     requirementId: requirement.requirementId,
-    status: "rejected"
+    status: "rejected",
+    reviewerHumanId: "human.reqstate"
   });
   assert.equal(rejected.status, "rejected");
+});
+
+test("requirements should require a valid reviewer for accept or reject", async () => {
+  const root = await mkdtemp(join(tmpdir(), "open-world-requirement-reviewer-"));
+  const world = await new OpenWorldFramework({
+    stateFile: join(root, "state.json"),
+    projectsRoot: join(root, "projects")
+  }).init();
+
+  await world.identity.registerHuman({
+    humanId: "human.owner",
+    email: "owner@example.com",
+    password: "secret-owner"
+  });
+  await world.identity.registerHuman({
+    humanId: "human.reviewer",
+    email: "reviewer@example.com",
+    password: "secret-reviewer"
+  });
+  await world.identity.registerHuman({
+    humanId: "human.other",
+    email: "other@example.com",
+    password: "secret-other"
+  });
+
+  const requirement = await world.requirements.create({
+    title: "Need review guard",
+    createdByType: "human",
+    createdById: "human.owner",
+    reviewerHumanId: "human.reviewer"
+  });
+
+  await assert.rejects(
+    () => world.requirements.updateStatus({
+      requirementId: requirement.requirementId,
+      status: "accepted"
+    }),
+    /reviewerHumanId is required/
+  );
+
+  await assert.rejects(
+    () => world.requirements.updateStatus({
+      requirementId: requirement.requirementId,
+      status: "accepted",
+      reviewerHumanId: "human.other"
+    }),
+    /assigned reviewer or requirement owner/
+  );
+
+  const accepted = await world.requirements.updateStatus({
+    requirementId: requirement.requirementId,
+    status: "accepted",
+    reviewerHumanId: "human.reviewer"
+  });
+  assert.equal(accepted.reviewerHumanId, "human.reviewer");
 });

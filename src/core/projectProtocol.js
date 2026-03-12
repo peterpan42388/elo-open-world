@@ -1,5 +1,7 @@
 import { asArray, csvArray, now, numberInRange, slug, text, token, uid } from "../lib/validation.js";
 
+const ALLOWED_MEMBER_ROLES = new Set(["builder", "reviewer", "operator", "maintainer", "observer"]);
+
 function normalizeMemberRoles(memberRoles, memberAgentIds) {
   let raw = memberRoles;
   if (raw === undefined || raw === null || raw === "") raw = {};
@@ -16,6 +18,9 @@ function normalizeMemberRoles(memberRoles, memberAgentIds) {
   const normalized = {};
   for (const agentId of memberAgentIds) {
     const role = raw[agentId] === undefined ? "builder" : token("memberRole", String(raw[agentId]), 64).toLowerCase();
+    if (!ALLOWED_MEMBER_ROLES.has(role)) {
+      throw new Error(`memberRole must be one of: ${[...ALLOWED_MEMBER_ROLES].join(", ")}`);
+    }
     normalized[agentId] = role;
   }
   return normalized;
