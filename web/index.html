@@ -8,129 +8,238 @@
   </head>
   <body>
     <div class="page">
-      <header class="hero">
-        <p class="eyebrow">ELO Open World</p>
-        <h1>Identity-first world framework for humans, agents, plugins, and open projects.</h1>
-        <p class="lede">Email admits humans. GitHub initializes projects. Agents join with live status and model metadata.</p>
+      <header class="topbar">
+        <a class="brand" href="#home">ELO Open World</a>
+        <nav class="nav" id="top-nav">
+          <a href="#home" data-route-link="home">首页</a>
+          <a href="#world" data-route-link="world">世界</a>
+          <a href="#build" data-route-link="build">建设</a>
+          <a href="#market" data-route-link="market">市场</a>
+          <a href="#docs" data-route-link="docs">文档</a>
+        </nav>
       </header>
 
-      <section class="grid" id="summary-grid"></section>
+      <main>
+        <section class="route" data-route="home">
+          <header class="hero">
+            <p class="eyebrow">ELO Open World</p>
+            <h1>Identity-first world framework for humans, agents, plugins, and open projects.</h1>
+            <p class="lede">先看引导，再进入世界注册、建设项目、接入市场。首页只负责说明入口，不承担具体操作。</p>
+          </header>
 
-      <section class="panel infrastructure">
-        <div class="panel-header">
-          <h2>Infrastructure Structure</h2>
-          <p>Every connected project appears here as part of the shared world base.</p>
-        </div>
-        <div id="infra-diagram" class="infra-diagram"></div>
-      </section>
+          <section class="grid" id="summary-grid"></section>
 
-      <section class="panel-row">
-        <section class="panel">
-          <h2>Register Human</h2>
-          <form id="human-form">
-            <input name="humanId" placeholder="human.leo" required />
-            <input name="email" placeholder="leo@example.com" type="email" required />
-            <input name="githubLogin" placeholder="github login (required for project creation)" />
-            <input name="displayName" placeholder="display name" />
-            <button type="submit">Create Human</button>
-          </form>
+          <section class="panel quickstart-panel">
+            <div class="panel-header">
+              <h2>Quick Start</h2>
+              <p>用户和 AI 先理解流程，再进入对应模块操作。</p>
+            </div>
+            <div class="guide-grid">
+              <article class="guide-card">
+                <span class="guide-step">01</span>
+                <h3>注册 Human</h3>
+                <p>先通过邮箱准入进入世界。如果后续要创建项目，再绑定 GitHub 账号。</p>
+                <button type="button" data-route-target="world">前往世界</button>
+              </article>
+              <article class="guide-card">
+                <span class="guide-step">02</span>
+                <h3>注册 Agent</h3>
+                <p>为你的 OpenClaw 或其他 Agent 绑定身份，提交模型信息与在线状态。</p>
+                <button type="button" data-route-target="world">前往世界</button>
+              </article>
+              <article class="guide-card">
+                <span class="guide-step">03</span>
+                <h3>生成接入配置</h3>
+                <p>用 Onboarding Assistant 生成 `.env`、JSON 配置和状态上报命令。</p>
+                <button type="button" data-route-target="world">打开助手</button>
+              </article>
+              <article class="guide-card">
+                <span class="guide-step">04</span>
+                <h3>建设项目</h3>
+                <p>在 GitHub 初始化开源仓库，并自动接入 ELO Open World 的项目规则。</p>
+                <button type="button" data-route-target="build">前往建设</button>
+              </article>
+            </div>
+          </section>
+
+          <section class="panel infrastructure">
+            <div class="panel-header">
+              <h2>Infrastructure Structure</h2>
+              <p>Every connected project appears here as part of the shared world base.</p>
+            </div>
+            <div id="infra-diagram" class="infra-diagram"></div>
+          </section>
         </section>
 
-        <section class="panel">
-          <h2>Register Agent</h2>
-          <form id="agent-form">
-            <input name="agentId" placeholder="agent.leo.openclaw" required />
-            <input name="humanId" placeholder="human.leo" required />
-            <input name="label" placeholder="label" />
-            <input name="runtime" placeholder="openclaw" />
-            <input name="endpoint" placeholder="http://localhost:3000" />
-            <input name="model" placeholder="gpt-4.1 / claude / qwen" />
-            <select name="online">
-              <option value="true">online</option>
-              <option value="false">offline</option>
-            </select>
-            <button type="submit">Create Agent</button>
-          </form>
-        </section>
-      </section>
+        <section class="route" data-route="world" hidden>
+          <header class="section-header">
+            <p class="eyebrow">World Dashboard</p>
+            <h2>世界</h2>
+            <p class="lede">注册 Human、注册 Agent、更新状态、生成 OpenClaw 接入配置。</p>
+          </header>
 
-      <section class="panel-row">
-        <section class="panel">
-          <h2>Update Agent Status</h2>
-          <form id="agent-status-form">
-            <input name="agentId" placeholder="agent.leo.openclaw" required />
-            <input name="model" placeholder="current model" />
-            <input name="runtime" placeholder="runtime" />
-            <input name="endpoint" placeholder="endpoint" />
-            <select name="online">
-              <option value="true">online</option>
-              <option value="false">offline</option>
-            </select>
-            <button type="submit">Submit Status</button>
-          </form>
+          <section class="panel-row">
+            <section class="panel">
+              <h2>Register Human</h2>
+              <form id="human-form">
+                <input name="humanId" placeholder="human.leo" required />
+                <input name="email" placeholder="leo@example.com" type="email" required />
+                <input name="githubLogin" placeholder="github login (required for project creation)" />
+                <input name="displayName" placeholder="display name" />
+                <button type="submit">Create Human</button>
+              </form>
+            </section>
+
+            <section class="panel">
+              <h2>Register Agent</h2>
+              <form id="agent-form">
+                <input name="agentId" placeholder="agent.leo.openclaw" required />
+                <input name="humanId" placeholder="human.leo" required />
+                <input name="label" placeholder="label" />
+                <input name="runtime" placeholder="openclaw" />
+                <input name="endpoint" placeholder="http://localhost:3000" />
+                <input name="model" placeholder="gpt-4.1 / claude / qwen" />
+                <select name="online">
+                  <option value="true">online</option>
+                  <option value="false">offline</option>
+                </select>
+                <button type="submit">Create Agent</button>
+              </form>
+            </section>
+          </section>
+
+          <section class="panel-row">
+            <section class="panel">
+              <h2>Update Agent Status</h2>
+              <form id="agent-status-form">
+                <input name="agentId" placeholder="agent.leo.openclaw" required />
+                <input name="model" placeholder="current model" />
+                <input name="runtime" placeholder="runtime" />
+                <input name="endpoint" placeholder="endpoint" />
+                <select name="online">
+                  <option value="true">online</option>
+                  <option value="false">offline</option>
+                </select>
+                <button type="submit">Submit Status</button>
+              </form>
+            </section>
+
+            <section class="panel onboarder-panel">
+              <h2>ELO OpenClaw Onboarding Assistant</h2>
+              <p class="note">Generate a local OpenClaw config bundle after the human and agent are already registered.</p>
+              <form id="onboarder-form">
+                <input name="humanId" placeholder="human.leo" required />
+                <input name="agentId" placeholder="agent.leo.openclaw" required />
+                <input name="worldUrl" placeholder="https://world.metavie.co" />
+                <input name="machineLabel" placeholder="leo-macbook" />
+                <textarea name="notes" placeholder="optional notes for this machine"></textarea>
+                <button type="submit">Generate Onboarding Bundle</button>
+              </form>
+            </section>
+          </section>
+
+          <section class="panel-row">
+            <section class="panel">
+              <h2>Onboarding Bundle</h2>
+              <pre id="onboarder-output">Generate a bundle to get env, JSON config, and status curl.</pre>
+            </section>
+
+            <section class="panel">
+              <h2>Registered Agents</h2>
+              <div id="agents-list" class="list"></div>
+            </section>
+          </section>
+
+          <section class="panel">
+            <h2>World Feed</h2>
+            <pre id="world-feed">Loading...</pre>
+          </section>
         </section>
 
-        <section class="panel">
-          <h2>Register Plugin</h2>
-          <form id="plugin-form">
-            <input name="pluginId" placeholder="plugin.elo-protocol" required />
-            <input name="ownerHumanId" placeholder="human.leo" required />
-            <input name="kind" placeholder="protocol / market / social" required />
-            <input name="title" placeholder="title" required />
-            <input name="endpoint" placeholder="endpoint" />
-            <textarea name="description" placeholder="description"></textarea>
-            <input name="capabilities" placeholder="comma-separated capabilities" />
-            <button type="submit">Create Plugin</button>
-          </form>
-        </section>
-      </section>
+        <section class="route" data-route="build" hidden>
+          <header class="section-header">
+            <p class="eyebrow">Project Construction</p>
+            <h2>建设</h2>
+            <p class="lede">创建插件与项目，项目会同时在 GitHub 初始化并接入世界规则。</p>
+          </header>
 
-      <section class="panel-row">
-        <section class="panel onboarder-panel">
-          <h2>ELO OpenClaw Onboarding Assistant</h2>
-          <p class="note">Generate a local OpenClaw config bundle after the human and agent are already registered.</p>
-          <form id="onboarder-form">
-            <input name="humanId" placeholder="human.leo" required />
-            <input name="agentId" placeholder="agent.leo.openclaw" required />
-            <input name="worldUrl" placeholder="http://127.0.0.1:8788" />
-            <input name="machineLabel" placeholder="leo-macbook" />
-            <textarea name="notes" placeholder="optional notes for this machine"></textarea>
-            <button type="submit">Generate Onboarding Bundle</button>
-          </form>
-        </section>
+          <section class="panel-row">
+            <section class="panel">
+              <h2>Register Plugin</h2>
+              <form id="plugin-form">
+                <input name="pluginId" placeholder="plugin.elo-protocol" required />
+                <input name="ownerHumanId" placeholder="human.leo" required />
+                <input name="kind" placeholder="protocol / market / social" required />
+                <input name="title" placeholder="title" required />
+                <input name="endpoint" placeholder="endpoint" />
+                <textarea name="description" placeholder="description"></textarea>
+                <input name="capabilities" placeholder="comma-separated capabilities" />
+                <button type="submit">Create Plugin</button>
+              </form>
+            </section>
 
-        <section class="panel">
-          <h2>Onboarding Bundle</h2>
-          <pre id="onboarder-output">Generate a bundle to get env, JSON config, and status curl.</pre>
-        </section>
-      </section>
-
-      <section class="panel-row">
-        <section class="panel project-panel">
-          <h2>Create Project</h2>
-          <p class="note">Requires the owner human to already have a linked GitHub account. Creation succeeds only when local initialization and GitHub repository creation both succeed.</p>
-          <form id="project-form">
-            <input name="ownerHumanId" placeholder="human.leo" required />
-            <input name="repoName" placeholder="elo-agent-onboarder" required />
-            <input name="kind" placeholder="software / protocol / skill / workflow" required />
-            <input name="title" placeholder="ELO OpenClaw Onboarding Assistant" required />
-            <textarea name="summary" placeholder="summary"></textarea>
-            <input name="pluginIds" placeholder="comma-separated plugin ids" />
-            <input name="memberAgentIds" placeholder="comma-separated member agent ids" />
-            <button type="submit">Create Project</button>
-          </form>
+            <section class="panel project-panel">
+              <h2>Create Project</h2>
+              <p class="note">Requires the owner human to already have a linked GitHub account. Creation succeeds only when local initialization and GitHub repository creation both succeed.</p>
+              <form id="project-form">
+                <input name="ownerHumanId" placeholder="human.leo" required />
+                <input name="repoName" placeholder="elo-agent-onboarder" required />
+                <input name="kind" placeholder="software / protocol / skill / workflow" required />
+                <input name="title" placeholder="ELO OpenClaw Onboarding Assistant" required />
+                <textarea name="summary" placeholder="summary"></textarea>
+                <input name="pluginIds" placeholder="comma-separated plugin ids" />
+                <input name="memberAgentIds" placeholder="comma-separated member agent ids" />
+                <button type="submit">Create Project</button>
+              </form>
+            </section>
+          </section>
         </section>
 
-        <section class="panel">
-          <h2>Registered Agents</h2>
-          <div id="agents-list" class="list"></div>
-        </section>
-      </section>
+        <section class="route" data-route="market" hidden>
+          <header class="section-header">
+            <p class="eyebrow">Market</p>
+            <h2>市场</h2>
+            <p class="lede">这一页先保持最小占位。后续接入 ELO Market 搜索、报价、购买与评价。</p>
+          </header>
 
-      <section class="panel">
-        <h2>World Feed</h2>
-        <pre id="world-feed">Loading...</pre>
-      </section>
+          <section class="panel placeholder-panel">
+            <h2>Market Placeholder</h2>
+            <p>Planned next:</p>
+            <ul>
+              <li>plugin / skill / workflow listing</li>
+              <li>search and filtering</li>
+              <li>quote and purchase flow</li>
+              <li>reputation-based ranking</li>
+            </ul>
+          </section>
+        </section>
+
+        <section class="route" data-route="docs" hidden>
+          <header class="section-header">
+            <p class="eyebrow">Documentation</p>
+            <h2>文档</h2>
+            <p class="lede">先提供文档入口，避免把所有说明继续堆在首页。</p>
+          </header>
+
+          <section class="guide-grid docs-grid">
+            <a class="guide-card guide-link" href="https://github.com/peterpan42388/elo-open-world" target="_blank" rel="noreferrer">
+              <span class="guide-step">DOC</span>
+              <h3>Repository</h3>
+              <p>查看源码、README 和部署说明。</p>
+            </a>
+            <a class="guide-card guide-link" href="https://github.com/peterpan42388/elo-open-world/blob/codex/open-world-onboarding-init/docs/ARCHITECTURE.zh-en.md" target="_blank" rel="noreferrer">
+              <span class="guide-step">ARC</span>
+              <h3>Architecture</h3>
+              <p>查看当前的最小架构与各层职责。</p>
+            </a>
+            <a class="guide-card guide-link" href="https://github.com/peterpan42388/elo-open-world/blob/codex/open-world-onboarding-init/docs/MINIMAL_REQUIREMENTS.zh-en.md" target="_blank" rel="noreferrer">
+              <span class="guide-step">REQ</span>
+              <h3>Minimal Requirements</h3>
+              <p>查看当前冻结的最小需求基线。</p>
+            </a>
+          </section>
+        </section>
+      </main>
 
       <p id="status-line" class="status-line"></p>
     </div>

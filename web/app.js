@@ -17,6 +17,26 @@ function setStatus(message, kind = "ok") {
   line.dataset.kind = kind;
 }
 
+function currentRoute() {
+  const route = window.location.hash.replace("#", "").trim();
+  return route || "home";
+}
+
+function showRoute(route) {
+  const allowed = new Set(["home", "world", "build", "market", "docs"]);
+  const nextRoute = allowed.has(route) ? route : "home";
+  document.querySelectorAll("[data-route]").forEach((node) => {
+    node.hidden = node.dataset.route !== nextRoute;
+  });
+  document.querySelectorAll("[data-route-link]").forEach((node) => {
+    node.classList.toggle("active", node.dataset.routeLink === nextRoute);
+  });
+}
+
+function goToRoute(route) {
+  window.location.hash = route;
+}
+
 function renderSummary(summary) {
   const grid = $("summary-grid");
   const humans = summary.identity?.totals?.humans ?? 0;
@@ -90,13 +110,14 @@ function formDataToObject(form) {
   return obj;
 }
 
-async function handleSubmit(event, path, successMessage) {
+async function handleSubmit(event, path, successMessage, routeAfter = null) {
   event.preventDefault();
   try {
     const result = await request(path, "POST", formDataToObject(event.currentTarget));
     event.currentTarget.reset();
     setStatus(successMessage(result), "ok");
     await refresh();
+    if (routeAfter) goToRoute(routeAfter);
   } catch (error) {
     setStatus(error.message, "error");
   }
@@ -113,11 +134,17 @@ async function handleOnboarderSubmit(event) {
   }
 }
 
-$("human-form").addEventListener("submit", (event) => handleSubmit(event, "/api/humans/register", (result) => `Human created: ${result.humanId}`));
-$("agent-form").addEventListener("submit", (event) => handleSubmit(event, "/api/agents/register", (result) => `Agent created: ${result.agentId}`));
-$("agent-status-form").addEventListener("submit", (event) => handleSubmit(event, "/api/agents/status", (result) => `Agent updated: ${result.agentId}`));
-$("plugin-form").addEventListener("submit", (event) => handleSubmit(event, "/api/plugins/register", (result) => `Plugin created: ${result.pluginId}`));
-$("project-form").addEventListener("submit", (event) => handleSubmit(event, "/api/projects/create", (result) => `Project created: ${result.projectId} -> ${result.repoFullName}`));
+$("human-form").addEventListener("submit", (event) => handleSubmit(event, "/api/humans/register", (result) => `Human created: ${result.humanId}`, "world"));
+$("agent-form").addEventListener("submit", (event) => handleSubmit(event, "/api/agents/register", (result) => `Agent created: ${result.agentId}`, "world"));
+$("agent-status-form").addEventListener("submit", (event) => handleSubmit(event, "/api/agents/status", (result) => `Agent updated: ${result.agentId}`, "world"));
+$("plugin-form").addEventListener("submit", (event) => handleSubmit(event, "/api/plugins/register", (result) => `Plugin created: ${result.pluginId}`, "build"));
+$("project-form").addEventListener("submit", (event) => handleSubmit(event, "/api/projects/create", (result) => `Project created: ${result.projectId} -> ${result.repoFullName}`, "build"));
 $("onboarder-form").addEventListener("submit", handleOnboarderSubmit);
 
+document.querySelectorAll("[data-route-target]").forEach((node) => {
+  node.addEventListener("click", () => goToRoute(node.dataset.routeTarget));
+});
+
+window.addEventListener("hashchange", () => showRoute(currentRoute()));
+showRoute(currentRoute());
 refresh().catch((error) => setStatus(error.message, "error"));
