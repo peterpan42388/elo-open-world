@@ -89,15 +89,23 @@ test("project creation should require github-linked human and initialize repo sc
   const project = await world.projects.create({
     ownerHumanId: "human.leo",
     repoName: "elo-agent-onboarder",
-    kind: "plugin",
+    kind: "app",
     title: "ELO OpenClaw Onboarding Assistant",
     summary: "First onboarding project",
     memberAgentIds: ["agent.leo.openclaw"],
-    pluginIds: ["plugin.elo-protocol"]
+    pluginIds: ["plugin.elo-protocol"],
+    tags: ["onboarding", "openclaw"],
+    rating: 4.4,
+    heat: 240,
+    stage: "operating"
   });
 
   assert.match(project.projectId, /^owp_/);
   assert.equal(project.repoFullName, "peterpan42388/elo-agent-onboarder");
+  assert.equal(project.rating, 4.4);
+  assert.equal(project.heat, 240);
+  assert.deepEqual(project.tags, ["onboarding", "openclaw"]);
+  assert.equal(project.stage, "operating");
   assert.equal(github.calls.length, 1);
 
   const localRoot = join(root, "projects", "elo-agent-onboarder");
@@ -113,6 +121,7 @@ test("project creation should require github-linked human and initialize repo sc
 
   const stateRaw = await readFile(join(root, "state.json"), "utf8");
   assert.match(stateRaw, /elo-agent-onboarder/);
+  assert.match(stateRaw, /onboarding/);
 });
 
 test("project creation should fail without githubLogin", async () => {
@@ -173,6 +182,30 @@ test("onboarder bundle should generate env json and curl for registered agent", 
   assert.equal(bundle.identity.humanId, "human.bundle");
   assert.equal(bundle.identity.agentId, "agent.bundle.openclaw");
   assert.match(bundle.files.env, /ELO_OPEN_WORLD_AGENT_ID=agent\.bundle\.openclaw/);
-  assert.match(bundle.files.json, /\"machineLabel\": \"leo-mbp\"/);
+  assert.match(bundle.files.json, /"machineLabel": "leo-mbp"/);
   assert.match(bundle.files.curl, /api\/agents\/status/);
+});
+
+test("universe manifest should expose federation baseline", async () => {
+  const root = await mkdtemp(join(tmpdir(), "open-world-manifest-"));
+  const world = await new OpenWorldFramework({
+    stateFile: join(root, "state.json"),
+    projectsRoot: join(root, "projects"),
+    universeConfig: {
+      universeId: "elo-universe-9",
+      publicBaseUrl: "https://world.example.com",
+      operatorLabel: "Example Operator",
+      sourceRevision: "abc123"
+    }
+  }).init();
+
+  const manifest = world.manifest();
+  assert.equal(manifest.universeId, "elo-universe-9");
+  assert.equal(manifest.publicBaseUrl, "https://world.example.com");
+  assert.equal(manifest.operatorLabel, "Example Operator");
+  assert.equal(manifest.sourceRevision, "abc123");
+  assert.match(manifest.summaryUrl, /api\/world\/summary$/);
+  assert.match(manifest.manifestUrl, /api\/universe\/manifest$/);
+  assert.ok(Array.isArray(manifest.supportedStandards));
+  assert.ok(manifest.supportedStandards.includes("openworld.universe.v1"));
 });

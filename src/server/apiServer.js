@@ -50,6 +50,10 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, framework.summary());
     }
 
+    if (req.method === "GET" && path === "/api/universe/manifest") {
+      return json(res, 200, framework.manifest());
+    }
+
     if (req.method === "POST" && path === "/api/humans/register") {
       const body = await readJson(req);
       return json(res, 200, await framework.identity.registerHuman(body));

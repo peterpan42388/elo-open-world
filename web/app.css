@@ -178,6 +178,12 @@ h3 { margin: 0; }
   margin-bottom: 16px;
 }
 
+.panel-inline-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
 .panel h2 { margin-top: 0; }
 
 .panel-header {
@@ -374,6 +380,23 @@ button:hover { filter: brightness(1.05); }
 }
 
 .graph-node.project { border-color: rgba(21,21,21,0.18); }
+
+.graph-node.project.selected {
+  border-color: rgba(13,107,102,0.5);
+  box-shadow: 0 8px 30px rgba(13,107,102,0.16);
+}
+
+.graph-node-button {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+
+.graph-node-button.selected {
+  transform: translateY(-2px);
+}
 
 .graph-empty,
 .chat-placeholder {

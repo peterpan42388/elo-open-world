@@ -59,6 +59,8 @@ Open:
 
 ## API
 
+- `GET /api/universe/manifest`
+  - returns the live universe node identity, supported standards, and public endpoints
 - `POST /api/humans/register`
   - required: `humanId`, `email`
   - optional: `githubLogin`, `displayName`

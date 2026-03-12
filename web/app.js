@@ -296,6 +296,7 @@ function renderProjectGraph(projects) {
             </div>
             <span>${project.memberAgentIds?.length || 0} agent member${(project.memberAgentIds?.length || 0) === 1 ? "" : "s"}</span>
             <span>${project.pluginIds?.length || 0} plugin link${(project.pluginIds?.length || 0) === 1 ? "" : "s"}</span>
+            <div class="tag-row">${(project.tags || []).slice(0, 3).map((tag) => `<span class="subtle-tag">${tag}</span>`).join("")}</div>
           </div>
         </button>
       </div>
@@ -317,6 +318,9 @@ function renderProjectGraph(projects) {
       <span>Owner: ${selectedProject.ownerHumanId}</span>
       <span>Agents: ${selectedProject.memberAgentIds?.length || 0}</span>
       <span>Plugins: ${selectedProject.pluginIds?.length || 0}</span>
+      <span>Rating: ${selectedProject.rating || 0}</span>
+      <span>Heat: ${selectedProject.heat || 0}</span>
+      <div class="tag-row">${(selectedProject.tags || []).map((tag) => `<span class="subtle-tag">${tag}</span>`).join("")}</div>
       <a href="${selectedProject.repoUrl}" target="_blank" rel="noreferrer">Open GitHub Repo</a>
     </div>
     <div class="relation-card">
@@ -503,7 +507,7 @@ function applyBuildFiltersToProjects(projects) {
     const stateValue = String(project.state || "").toLowerCase();
     const kindPass = !state.buildFilters.kind || kindValue === state.buildFilters.kind;
     const statePass = !state.buildFilters.status || stateValue === state.buildFilters.status;
-    const queryPass = !query || [project.title, project.repoName, project.summary, project.ownerHumanId].join(" ").toLowerCase().includes(query);
+    const queryPass = !query || [project.title, project.repoName, project.summary, project.ownerHumanId, ...(project.tags || [])].join(" ").toLowerCase().includes(query);
     return kindPass && statePass && queryPass;
   });
 }
@@ -563,10 +567,14 @@ function renderProjects(projects) {
       </summary>
       <div class="expand-body">
         <p>${project.summary || "No summary provided."}</p>
+        <div class="tag-row">${(project.tags || []).map((tag) => `<span class="subtle-tag">${tag}</span>`).join("")}</div>
         <div class="detail-grid compact">
           <div class="detail-item"><span>Owner</span><strong>${project.ownerHumanId}</strong></div>
           <div class="detail-item"><span>Agents</span><strong>${project.memberAgentIds?.length || 0}</strong></div>
           <div class="detail-item"><span>Plugins</span><strong>${project.pluginIds?.length || 0}</strong></div>
+          <div class="detail-item"><span>Rating</span><strong>${project.rating || 0}</strong></div>
+          <div class="detail-item"><span>Heat</span><strong>${project.heat || 0}</strong></div>
+          <div class="detail-item"><span>Stage</span><strong>${project.stage || "source"}</strong></div>
           <div class="detail-item"><span>GitHub</span><strong>${project.repoFullName}</strong></div>
         </div>
         <a href="${project.repoUrl}" target="_blank" rel="noreferrer">Open GitHub Repo</a>

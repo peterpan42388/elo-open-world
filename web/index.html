@@ -300,7 +300,7 @@
               </label>
               <label>
                 <span>Search</span>
-                <input id="build-filter-query" placeholder="title / repo / summary" />
+                <input id="build-filter-query" placeholder="title / repo / summary / tag" />
               </label>
             </aside>
 
@@ -331,6 +331,15 @@
                     <input name="kind" placeholder="protocol / skill / workflow / app / other" required />
                     <input name="title" placeholder="ELO OpenClaw Onboarding Assistant" required />
                     <textarea name="summary" placeholder="summary"></textarea>
+                    <input name="tags" placeholder="comma-separated tags" />
+                    <div class="panel-inline-fields">
+                      <input name="rating" type="number" min="0" max="5" step="0.1" placeholder="rating 0-5" />
+                      <input name="heat" type="number" min="0" step="1" placeholder="heat" />
+                      <select name="stage">
+                        <option value="source">source</option>
+                        <option value="operating">operating</option>
+                      </select>
+                    </div>
                     <input name="pluginIds" placeholder="comma-separated plugin ids" />
                     <input name="memberAgentIds" placeholder="comma-separated member agent ids" />
                     <button type="submit">Create Project</button>
@@ -414,6 +423,11 @@
               <span class="guide-step">UNI</span>
               <h3>Universe Node Protocol</h3>
               <p>Defines universe identity, handshake payloads, trust boundary, and read-only federation baseline.</p>
+            </a>
+            <a class="guide-card guide-link" href="https://world.metavie.co/api/universe/manifest" target="_blank" rel="noreferrer">
+              <span class="guide-step">MANIFEST</span>
+              <h3>Universe Manifest</h3>
+              <p>Live universe identity payload for `elo-universe-0`, exposed from the running node.</p>
             </a>
             <a class="guide-card guide-link" href="https://github.com/peterpan42388/elo-open-world/blob/codex/open-world-onboarding-init/docs/UNIVERSE_DEPLOYMENT_GUIDE.md" target="_blank" rel="noreferrer">
               <span class="guide-step">DEPLOY</span>

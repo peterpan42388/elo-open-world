@@ -1,4 +1,4 @@
-import { asArray, now, slug, text, token, uid } from "../lib/validation.js";
+import { asArray, csvArray, now, numberInRange, slug, text, token, uid } from "../lib/validation.js";
 
 export class ProjectProtocol {
   constructor({ projects = [], identityRegistry, onChange = async () => {}, projectInitializer } = {}) {
@@ -8,7 +8,20 @@ export class ProjectProtocol {
     this.projectInitializer = projectInitializer;
   }
 
-  async create({ ownerHumanId, kind, title, summary = "", pluginIds = [], repoName, memberAgentIds = [], visibility = "public" }) {
+  async create({
+    ownerHumanId,
+    kind,
+    title,
+    summary = "",
+    pluginIds = [],
+    repoName,
+    memberAgentIds = [],
+    visibility = "public",
+    tags = [],
+    rating = 0,
+    heat = 0,
+    stage = "source"
+  }) {
     const safeOwnerHumanId = token("ownerHumanId", ownerHumanId);
     const ownerHuman = this.identityRegistry.getHuman(safeOwnerHumanId);
     if (!ownerHuman.githubLogin) throw new Error("owner human must link githubLogin before creating a project");
@@ -17,6 +30,10 @@ export class ProjectProtocol {
     const safeKind = token("kind", kind, 64);
     const safePluginIds = asArray(pluginIds, "pluginId");
     const safeMemberAgentIds = asArray(memberAgentIds, "agentId");
+    const safeTags = csvArray(tags, "tag", 64);
+    const safeStage = token("stage", stage, 32).toLowerCase();
+    const safeRating = numberInRange("rating", rating, 0, 5, 0);
+    const safeHeat = numberInRange("heat", heat, 0, 1_000_000, 0);
     const memberAgents = safeMemberAgentIds.map((agentId) => this.identityRegistry.getAgent(agentId));
 
     const projectId = uid("owp");
@@ -28,7 +45,11 @@ export class ProjectProtocol {
       ownerHuman,
       memberAgents,
       pluginIds: safePluginIds,
-      visibility
+      visibility,
+      tags: safeTags,
+      rating: safeRating,
+      heat: safeHeat,
+      stage: safeStage
     });
 
     const project = {
@@ -40,6 +61,10 @@ export class ProjectProtocol {
       summary: text("summary", summary, 1000),
       pluginIds: safePluginIds,
       memberAgentIds: safeMemberAgentIds,
+      tags: safeTags,
+      rating: safeRating,
+      heat: safeHeat,
+      stage: safeStage,
       repoName: safeRepoName,
       repoFullName: initialized.repoFullName,
       repoUrl: initialized.repoUrl,
@@ -53,7 +78,10 @@ export class ProjectProtocol {
   }
 
   list() {
-    return [...this.projects.values()].sort((a, b) => a.createdAt - b.createdAt);
+    return [...this.projects.values()].sort((a, b) => {
+      if ((b.heat || 0) !== (a.heat || 0)) return (b.heat || 0) - (a.heat || 0);
+      return a.createdAt - b.createdAt;
+    });
   }
 
   snapshot() {

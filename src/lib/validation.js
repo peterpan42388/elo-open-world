@@ -37,6 +37,17 @@ export function asArray(values, itemName, maxLen = 128) {
   return values.map((value) => token(itemName, String(value), maxLen));
 }
 
+export function csvArray(value, itemName, maxLen = 128) {
+  if (value === undefined || value === null || value === "") return [];
+  if (Array.isArray(value)) return asArray(value, itemName, maxLen);
+  if (typeof value !== "string") throw new Error(`${itemName} list must be a string or array`);
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((item) => token(itemName, item, maxLen));
+}
+
 export function bool(value, fallback = false) {
   if (value === undefined || value === null || value === "") return fallback;
   if (typeof value === "boolean") return value;
@@ -46,6 +57,14 @@ export function bool(value, fallback = false) {
     if (["false", "0", "no", "offline"].includes(normalized)) return false;
   }
   throw new Error("boolean value expected");
+}
+
+export function numberInRange(name, value, min = 0, max = Number.POSITIVE_INFINITY, fallback = min) {
+  if (value === undefined || value === null || value === "") return fallback;
+  const n = Number(value);
+  if (!Number.isFinite(n)) throw new Error(`${name} must be a number`);
+  if (n < min || n > max) throw new Error(`${name} must be between ${min} and ${max}`);
+  return n;
 }
 
 export function now() {
