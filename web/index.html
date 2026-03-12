@@ -382,6 +382,42 @@
                   <div id="projects-list" class="list"></div>
                 </section>
               </section>
+
+              <section class="panel" id="project-editor-panel">
+                <div class="panel-header">
+                  <h2>Edit Project Metadata</h2>
+                  <p>Select a source project card and edit its metadata here.</p>
+                </div>
+                <form id="project-edit-form">
+                  <input name="projectId" placeholder="project id" readonly required />
+                  <input name="ownerHumanId" placeholder="owner human id" required />
+                  <input name="kind" placeholder="kind" required />
+                  <input name="title" placeholder="title" required />
+                  <textarea name="summary" placeholder="summary"></textarea>
+                  <input name="tags" placeholder="comma-separated tags" />
+                  <div class="panel-inline-fields">
+                    <input name="rating" type="number" min="0" max="5" step="0.1" placeholder="rating 0-5" />
+                    <input name="heat" type="number" min="0" step="1" placeholder="heat" />
+                    <select name="stage">
+                      <option value="source">source</option>
+                      <option value="operating">operating</option>
+                    </select>
+                  </div>
+                  <select name="state">
+                    <option value="initialized">initialized</option>
+                    <option value="developing">developing</option>
+                    <option value="operating">operating</option>
+                    <option value="paused">paused</option>
+                  </select>
+                  <input name="pluginIds" placeholder="comma-separated plugin ids" />
+                  <input name="memberAgentIds" placeholder="comma-separated member agent ids" />
+                  <input name="serviceEndpoint" placeholder="service endpoint" />
+                  <input name="pricingNote" placeholder="pricing note" />
+                  <textarea name="usageNote" placeholder="usage note"></textarea>
+                  <button type="submit">Update Metadata</button>
+                </form>
+                </section>
+              </section>
             </div>
           </section>
         </section>
@@ -413,6 +449,15 @@
               <label>
                 <span>Search</span>
                 <input id="market-filter-query" placeholder="title / repo / tag" />
+              </label>
+              <label>
+                <span>Sort</span>
+                <select id="market-sort">
+                  <option value="heat-desc">Heat ↓</option>
+                  <option value="rating-desc">Rating ↓</option>
+                  <option value="title-asc">Title A-Z</option>
+                  <option value="newest">Newest</option>
+                </select>
               </label>
             </aside>
             <div class="workspace-content">

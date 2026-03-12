@@ -255,3 +255,50 @@ test("operating projects list should only expose operating stage items", async (
   assert.equal(operating[0].repoName, "operating-project");
   assert.equal(operating[0].stage, "operating");
 });
+
+
+test("project metadata update should persist editable fields", async () => {
+  const root = await mkdtemp(join(tmpdir(), "open-world-update-"));
+  const github = new FakeGitHubRepoService();
+  const world = await new OpenWorldFramework({
+    stateFile: join(root, "state.json"),
+    projectsRoot: join(root, "projects"),
+    githubRepoService: github
+  }).init();
+
+  await world.identity.registerHuman({
+    humanId: "human.edit",
+    email: "edit@example.com",
+    githubLogin: "peterpan42388"
+  });
+
+  const project = await world.projects.create({
+    ownerHumanId: "human.edit",
+    repoName: "editable-project",
+    kind: "app",
+    title: "Editable Project"
+  });
+
+  const updated = await world.projects.updateMetadata({
+    projectId: project.projectId,
+    ownerHumanId: "human.edit",
+    title: "Editable Project Updated",
+    tags: ["edited", "market"],
+    rating: 4.9,
+    heat: 900,
+    stage: "operating",
+    state: "operating",
+    serviceEndpoint: "https://world.metavie.co/services/editable-project",
+    pricingNote: "10 ELO per call",
+    usageNote: "Call from your agent workflow"
+  });
+
+  assert.equal(updated.title, "Editable Project Updated");
+  assert.deepEqual(updated.tags, ["edited", "market"]);
+  assert.equal(updated.rating, 4.9);
+  assert.equal(updated.heat, 900);
+  assert.equal(updated.stage, "operating");
+  assert.equal(updated.state, "operating");
+  assert.equal(updated.serviceEndpoint, "https://world.metavie.co/services/editable-project");
+  assert.equal(world.projects.listOperating().length, 1);
+});

@@ -31,7 +31,8 @@ const state = {
   marketFilters: {
     kind: "",
     minRating: 0,
-    query: ""
+    query: "",
+    sort: "heat-desc"
   }
 };
 
@@ -478,7 +479,10 @@ function renderSettingsData() {
               <div class="detail-item"><span>Plugins</span><strong>${project.pluginIds?.length || 0}</strong></div>
               <div class="detail-item"><span>Repository</span><strong>${project.repoName}</strong></div>
             </div>
-            <a href="${project.repoUrl}" target="_blank" rel="noreferrer">Open GitHub Repo</a>
+            <div class="tag-row action-row">
+          <button type="button" class="topbar-button secondary edit-project-button" data-edit-project="${project.projectId}">Edit Metadata</button>
+          <a href="${project.repoUrl}" target="_blank" rel="noreferrer">Open GitHub Repo</a>
+        </div>
           </div>
         </details>
       `).join("");
@@ -542,7 +546,7 @@ function applyBuildFiltersToProjects(projects) {
 
 function applyMarketFiltersToProjects(projects) {
   const query = state.marketFilters.query.trim().toLowerCase();
-  return projects.filter((project) => {
+  const filtered = projects.filter((project) => {
     if (project.stage !== "operating") return false;
     const kindValue = String(project.kind || "").toLowerCase();
     const tags = (project.tags || []).map((item) => String(item).toLowerCase());
@@ -552,6 +556,23 @@ function applyMarketFiltersToProjects(projects) {
     const queryPass = !query || [project.title, project.repoName, project.summary, ...tags].join(" ").toLowerCase().includes(query);
     return kindPass && ratingPass && queryPass;
   });
+  const sorted = [...filtered];
+  switch (state.marketFilters.sort) {
+    case "rating-desc":
+      sorted.sort((a, b) => Number(b.rating || 0) - Number(a.rating || 0));
+      break;
+    case "title-asc":
+      sorted.sort((a, b) => String(a.title || "").localeCompare(String(b.title || "")));
+      break;
+    case "newest":
+      sorted.sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0));
+      break;
+    case "heat-desc":
+    default:
+      sorted.sort((a, b) => Number(b.heat || 0) - Number(a.heat || 0));
+      break;
+  }
+  return sorted;
 }
 
 function applyBuildFiltersToPlugins(plugins) {
@@ -596,7 +617,7 @@ function renderProjects(projects) {
     return;
   }
   root.innerHTML = filtered.map((project) => `
-    <details class="expand-card">
+    <details class="expand-card" data-project-card="${project.projectId}">
       <summary>
         <div class="summary-row">
           <strong>${project.title}</strong>
@@ -622,10 +643,44 @@ function renderProjects(projects) {
         </div>
         <p>Pricing: ${project.pricingNote || "Not specified"}</p>
         <p>Usage: ${project.usageNote || "Not specified"}</p>
-        <a href="${project.repoUrl}" target="_blank" rel="noreferrer">Open GitHub Repo</a>
+        <div class="tag-row action-row">
+          <button type="button" class="topbar-button secondary edit-project-button" data-edit-project="${project.projectId}">Edit Metadata</button>
+          <a href="${project.repoUrl}" target="_blank" rel="noreferrer">Open GitHub Repo</a>
+        </div>
       </div>
     </details>
   `).join("");
+}
+
+
+function populateProjectEditForm(projectId) {
+  const form = $("project-edit-form");
+  if (!form || !state.summary) return;
+  const project = (state.summary.projects || []).find((item) => item.projectId === projectId);
+  if (!project) return;
+  form.projectId.value = project.projectId;
+  form.ownerHumanId.value = project.ownerHumanId;
+  form.kind.value = project.kind || "";
+  form.title.value = project.title || "";
+  form.summary.value = project.summary || "";
+  form.tags.value = (project.tags || []).join(", ");
+  form.rating.value = project.rating || 0;
+  form.heat.value = project.heat || 0;
+  form.stage.value = project.stage || "source";
+  form.state.value = project.state || "initialized";
+  form.pluginIds.value = (project.pluginIds || []).join(", ");
+  form.memberAgentIds.value = (project.memberAgentIds || []).join(", ");
+  form.serviceEndpoint.value = project.serviceEndpoint || "";
+  form.pricingNote.value = project.pricingNote || "";
+  form.usageNote.value = project.usageNote || "";
+  form.scrollIntoView({ behavior: "smooth", block: "start" });
+  setStatus(`Loaded ${project.title} into metadata editor.`, "ok");
+}
+
+function bindProjectEditButtons() {
+  document.querySelectorAll("[data-edit-project]").forEach((node) => {
+    node.addEventListener("click", () => populateProjectEditForm(node.dataset.editProject));
+  });
 }
 
 function renderBuildFilterSummary() {
@@ -648,6 +703,7 @@ function renderMarketFilterSummary() {
   if (state.marketFilters.kind) parts.push(`type: ${projectTypeLabel(state.marketFilters.kind)}`);
   if (Number(state.marketFilters.minRating || 0) > 0) parts.push(`min rating: ${state.marketFilters.minRating}`);
   if (state.marketFilters.query.trim()) parts.push(`query: ${state.marketFilters.query.trim()}`);
+  if (state.marketFilters.sort) parts.push(`sort: ${state.marketFilters.sort}`);
   node.textContent = parts.length ? `Active market filters -> ${parts.join(" | ")}` : "Showing all operating projects.";
 }
 
@@ -660,7 +716,7 @@ function renderMarketProjects(projects) {
     return;
   }
   root.innerHTML = filtered.map((project) => `
-    <details class="expand-card">
+    <details class="expand-card" data-project-card="${project.projectId}">
       <summary>
         <div class="summary-row">
           <strong>${project.title}</strong>
@@ -767,6 +823,7 @@ function renderAll() {
   renderSummary(state.summary);
   renderBuildFilterSummary();
   renderMarketFilterSummary();
+  bindProjectEditButtons();
   renderSettingsShell();
   showRoute(currentRoute());
 }
@@ -776,6 +833,7 @@ $("agent-form")?.addEventListener("submit", (event) => handleSubmit(event, "/api
 $("agent-status-form")?.addEventListener("submit", (event) => handleSubmit(event, "/api/agents/status", (result) => `Agent updated: ${result.agentId}`, "settings"));
 $("plugin-form")?.addEventListener("submit", (event) => handleSubmit(event, "/api/plugins/register", (result) => `Plugin created: ${result.pluginId}`, "build"));
 $("project-form")?.addEventListener("submit", (event) => handleSubmit(event, "/api/projects/create", (result) => `Project created: ${result.projectId} -> ${result.repoFullName}`, "build"));
+$("project-edit-form")?.addEventListener("submit", (event) => handleSubmit(event, "/api/projects/update", (result) => `Project updated: ${result.projectId}`, "build"));
 
 $("preset-onboarder-button")?.addEventListener("click", () => {
   const form = $("project-form");
@@ -851,6 +909,11 @@ $("market-filter-min-rating")?.addEventListener("input", (event) => {
 
 $("market-filter-query")?.addEventListener("input", (event) => {
   state.marketFilters.query = event.currentTarget.value;
+  renderAll();
+});
+
+$("market-sort")?.addEventListener("change", (event) => {
+  state.marketFilters.sort = event.currentTarget.value;
   renderAll();
 });
 

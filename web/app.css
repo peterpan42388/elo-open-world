@@ -632,3 +632,11 @@ pre {
   width: fit-content;
   align-self: start;
 }
+
+.action-row {
+  justify-content: flex-start;
+}
+
+.edit-project-button {
+  padding: 8px 12px;
+}

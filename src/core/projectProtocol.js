@@ -37,6 +37,9 @@ export class ProjectProtocol {
     const safeStage = token("stage", stage, 32).toLowerCase();
     const safeRating = numberInRange("rating", rating, 0, 5, 0);
     const safeHeat = numberInRange("heat", heat, 0, 1_000_000, 0);
+    const safeServiceEndpoint = text("serviceEndpoint", serviceEndpoint, 256);
+    const safePricingNote = text("pricingNote", pricingNote, 256);
+    const safeUsageNote = text("usageNote", usageNote, 1000);
     const memberAgents = safeMemberAgentIds.map((agentId) => this.identityRegistry.getAgent(agentId));
 
     const projectId = uid("owp");
@@ -53,9 +56,9 @@ export class ProjectProtocol {
       rating: safeRating,
       heat: safeHeat,
       stage: safeStage,
-      serviceEndpoint: text("serviceEndpoint", serviceEndpoint, 256),
-      pricingNote: text("pricingNote", pricingNote, 256),
-      usageNote: text("usageNote", usageNote, 1000)
+      serviceEndpoint: safeServiceEndpoint,
+      pricingNote: safePricingNote,
+      usageNote: safeUsageNote
     });
 
     const project = {
@@ -71,19 +74,69 @@ export class ProjectProtocol {
       rating: safeRating,
       heat: safeHeat,
       stage: safeStage,
-      serviceEndpoint: text("serviceEndpoint", serviceEndpoint, 256),
-      pricingNote: text("pricingNote", pricingNote, 256),
-      usageNote: text("usageNote", usageNote, 1000),
+      serviceEndpoint: safeServiceEndpoint,
+      pricingNote: safePricingNote,
+      usageNote: safeUsageNote,
       repoName: safeRepoName,
       repoFullName: initialized.repoFullName,
       repoUrl: initialized.repoUrl,
       localPath: initialized.localPath,
       state: "initialized",
-      createdAt: now()
+      createdAt: now(),
+      updatedAt: now()
     };
     this.projects.set(projectId, project);
     await this.onChange();
     return project;
+  }
+
+  async updateMetadata({
+    projectId,
+    ownerHumanId,
+    kind,
+    title,
+    summary,
+    pluginIds,
+    memberAgentIds,
+    tags,
+    rating,
+    heat,
+    stage,
+    state,
+    serviceEndpoint,
+    pricingNote,
+    usageNote
+  }) {
+    const safeProjectId = token("projectId", projectId);
+    const project = this.projects.get(safeProjectId);
+    if (!project) throw new Error(`unknown projectId: ${safeProjectId}`);
+
+    const safeOwnerHumanId = token("ownerHumanId", ownerHumanId);
+    if (project.ownerHumanId !== safeOwnerHumanId) {
+      throw new Error("only the project owner can update metadata");
+    }
+
+    if (kind !== undefined) project.kind = token("kind", kind, 64);
+    if (title !== undefined) project.title = text("title", title, 160) || project.title;
+    if (summary !== undefined) project.summary = text("summary", summary, 1000);
+    if (pluginIds !== undefined) project.pluginIds = asArray(pluginIds, "pluginId");
+    if (memberAgentIds !== undefined) {
+      const safeMemberAgentIds = asArray(memberAgentIds, "agentId");
+      safeMemberAgentIds.forEach((agentId) => this.identityRegistry.getAgent(agentId));
+      project.memberAgentIds = safeMemberAgentIds;
+    }
+    if (tags !== undefined) project.tags = csvArray(tags, "tag", 64);
+    if (rating !== undefined) project.rating = numberInRange("rating", rating, 0, 5, project.rating || 0);
+    if (heat !== undefined) project.heat = numberInRange("heat", heat, 0, 1_000_000, project.heat || 0);
+    if (stage !== undefined) project.stage = token("stage", stage, 32).toLowerCase();
+    if (state !== undefined) project.state = token("state", state, 32).toLowerCase();
+    if (serviceEndpoint !== undefined) project.serviceEndpoint = text("serviceEndpoint", serviceEndpoint, 256);
+    if (pricingNote !== undefined) project.pricingNote = text("pricingNote", pricingNote, 256);
+    if (usageNote !== undefined) project.usageNote = text("usageNote", usageNote, 1000);
+    project.updatedAt = now();
+
+    await this.onChange();
+    return { ...project };
   }
 
   list() {

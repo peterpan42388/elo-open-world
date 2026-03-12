@@ -92,6 +92,11 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, await framework.projects.create(body));
     }
 
+    if (req.method === "POST" && path === "/api/projects/update") {
+      const body = await readJson(req);
+      return json(res, 200, await framework.projects.updateMetadata(body));
+    }
+
     if (req.method === "GET" && path === "/api/projects") {
       return json(res, 200, { items: framework.projects.list() });
     }
