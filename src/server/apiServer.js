@@ -34,7 +34,8 @@ function oauthConfig() {
     githubEnabled: Boolean(process.env.GITHUB_OAUTH_CLIENT_ID && process.env.GITHUB_OAUTH_CLIENT_SECRET),
     githubClientId: process.env.GITHUB_OAUTH_CLIENT_ID || "",
     publicBaseUrl: process.env.PUBLIC_BASE_URL || "https://world.metavie.co",
-    emailEnabled: emailService.enabled
+    emailEnabled: emailService.enabled,
+    emailMode: emailService.mode
   };
 }
 

@@ -2,6 +2,9 @@ import nodemailer from "nodemailer";
 
 export class EmailService {
   constructor({
+    brevoApiKey = process.env.BREVO_API_KEY || "",
+    brevoSenderName = process.env.BREVO_SENDER_NAME || "",
+    brevoSenderEmail = process.env.BREVO_SENDER_EMAIL || "",
     host = process.env.EMAIL_HOST || "",
     port = Number(process.env.EMAIL_PORT || 587),
     secure = String(process.env.EMAIL_SECURE || "false") === "true",
@@ -11,8 +14,12 @@ export class EmailService {
     from = process.env.DEFAULT_FROM_EMAIL || process.env.EMAIL_HOST_USER || ""
   } = {}) {
     this.from = from;
-    this.enabled = Boolean(host && port && user && pass && from);
-    this.transporter = this.enabled
+    this.brevoApiKey = brevoApiKey;
+    this.brevoSenderName = brevoSenderName || "MetaVie";
+    this.brevoSenderEmail = brevoSenderEmail || from;
+    this.smtpEnabled = Boolean(host && port && user && pass && from);
+    this.enabled = Boolean((this.brevoApiKey && this.brevoSenderEmail) || this.smtpEnabled);
+    this.transporter = this.smtpEnabled
       ? nodemailer.createTransport({
           host,
           port,
@@ -21,6 +28,12 @@ export class EmailService {
           auth: { user, pass }
         })
       : null;
+  }
+
+  get mode() {
+    if (this.brevoApiKey && this.brevoSenderEmail) return "brevo-api";
+    if (this.smtpEnabled) return "smtp";
+    return "disabled";
   }
 
   verificationTemplate({ displayName, verifyUrl, humanId }) {
@@ -50,10 +63,46 @@ export class EmailService {
   }
 
   async sendVerificationEmail({ to, displayName, verifyUrl, humanId }) {
-    if (!this.enabled || !this.transporter) {
+    if (!this.enabled) {
       throw new Error("email delivery is not configured on this deployment");
     }
     const template = this.verificationTemplate({ displayName, verifyUrl, humanId });
+    if (this.mode === "brevo-api") {
+      const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+        method: "POST",
+        headers: {
+          accept: "application/json",
+          "content-type": "application/json",
+          "api-key": this.brevoApiKey
+        },
+        body: JSON.stringify({
+          sender: {
+            name: this.brevoSenderName,
+            email: this.brevoSenderEmail
+          },
+          to: [{ email: to, name: displayName || humanId }],
+          subject: template.subject,
+          htmlContent: template.html,
+          textContent: template.text,
+          tags: ["elo-open-world", "email-verification"]
+        })
+      });
+      if (!response.ok) {
+        let details = "";
+        try {
+          const data = await response.json();
+          details = data?.message || data?.code || JSON.stringify(data);
+        } catch {
+          details = await response.text();
+        }
+        throw new Error(`brevo email send failed: ${details || response.status}`);
+      }
+      return { delivered: true, mode: this.mode };
+    }
+
+    if (!this.transporter) {
+      throw new Error("smtp transporter is not configured on this deployment");
+    }
     await this.transporter.sendMail({
       from: this.from,
       to,
@@ -61,6 +110,6 @@ export class EmailService {
       text: template.text,
       html: template.html
     });
-    return { delivered: true };
+    return { delivered: true, mode: this.mode };
   }
 }
