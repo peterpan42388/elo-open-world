@@ -42,7 +42,7 @@ const server = http.createServer(async (req, res) => {
     const url = new URL(req.url || "/", "http://127.0.0.1");
     const path = url.pathname;
 
-    if (req.method === "GET" && (path === "/" || path === "/index.html" || path === "/app.css" || path === "/app.js")) {
+    if ((req.method === "GET" || req.method === "HEAD") && (path === "/" || path === "/index.html" || path === "/app.css" || path === "/app.js")) {
       return await serveStatic(path, res);
     }
 
