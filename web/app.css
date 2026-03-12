@@ -641,6 +641,12 @@ pre {
   padding: 8px 12px;
 }
 
+.profile-actions {
+  margin-top: 16px;
+  display: grid;
+  gap: 10px;
+}
+
 .oauth-block {
   margin-top: 14px;
   display: grid;

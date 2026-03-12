@@ -111,6 +111,64 @@ export class IdentityRegistry {
     return this.#publicHuman(human);
   }
 
+  async issueEmailVerification({ humanId, ttlMs = 1000 * 60 * 30 }) {
+    const human = this.getHuman(humanId);
+    const tokenValue = crypto.randomBytes(24).toString("hex");
+    human.emailVerification = {
+      token: tokenValue,
+      expiresAt: now() + ttlMs,
+      sentAt: now()
+    };
+    human.updatedAt = now();
+    await this.onChange();
+    return {
+      human: this.#publicHuman(human),
+      token: tokenValue,
+      expiresAt: human.emailVerification.expiresAt
+    };
+  }
+
+  async verifyEmailToken(tokenValue) {
+    const safeToken = text("token", tokenValue, 256);
+    const human = [...this.humans.values()].find((item) => item.emailVerification?.token === safeToken);
+    if (!human) throw new Error("verification token is invalid");
+    if (!human.emailVerification?.expiresAt || human.emailVerification.expiresAt < now()) {
+      throw new Error("verification token has expired");
+    }
+    human.emailVerified = true;
+    delete human.emailVerification;
+    human.updatedAt = now();
+    await this.onChange();
+    return this.#publicHuman(human);
+  }
+
+  async linkGitHubHuman({ humanId, githubLogin, email: githubEmail = "", displayName = "" }) {
+    const human = this.getHuman(humanId);
+    const safeGithubLogin = token("githubLogin", githubLogin);
+    const safeEmail = githubEmail ? email("email", githubEmail) : human.email;
+    for (const existing of this.humans.values()) {
+      if (existing.humanId !== human.humanId && existing.githubLogin === safeGithubLogin) {
+        throw new Error(`github login already linked: ${safeGithubLogin}`);
+      }
+    }
+    human.githubLogin = safeGithubLogin;
+    human.email = safeEmail || human.email;
+    human.displayName = text("displayName", displayName, 128) || human.displayName;
+    if (!human.authMethods.includes("github")) human.authMethods.push("github");
+    human.updatedAt = now();
+    await this.onChange();
+    return this.#publicHuman(human);
+  }
+
+  async unlinkGitHubHuman({ humanId }) {
+    const human = this.getHuman(humanId);
+    human.githubLogin = "";
+    human.authMethods = (human.authMethods || []).filter((item) => item !== "github");
+    human.updatedAt = now();
+    await this.onChange();
+    return this.#publicHuman(human);
+  }
+
   async registerAgent({
     agentId,
     humanId,

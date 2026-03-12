@@ -417,10 +417,12 @@ function renderSettingsData() {
   if (promptOutput) promptOutput.textContent = buildAgentMarkdownPrompt();
 
   const profile = $("settings-profile");
+  const profileActions = $("profile-actions");
   const agentsRoot = $("my-agents-list");
   const projectsRoot = $("my-projects-list");
   if (!human) {
     if (profile) profile.innerHTML = "";
+    if (profileActions) profileActions.innerHTML = "";
     if (agentsRoot) agentsRoot.innerHTML = "";
     if (projectsRoot) projectsRoot.innerHTML = "";
     return;
@@ -429,6 +431,7 @@ function renderSettingsData() {
   profile.innerHTML = [
     ["Human ID", human.humanId],
     ["Email", human.email],
+    ["Email Verification", human.emailVerified ? "Verified" : "Pending"],
     ["GitHub", human.githubLogin || "Not linked"],
     ["Display Name", human.displayName || human.humanId]
   ].map(([key, value]) => `
@@ -437,6 +440,47 @@ function renderSettingsData() {
       <strong>${value}</strong>
     </div>
   `).join("");
+
+  if (profileActions) {
+    profileActions.innerHTML = `
+      <div class="action-row">
+        <button type="button" class="topbar-button secondary" id="send-verification-button" ${state.authConfig.emailEnabled ? "" : "disabled"}>
+          ${human.emailVerified ? "Email Verified" : "Send Verification Email"}
+        </button>
+        <button type="button" class="topbar-button secondary" id="github-link-button" ${state.authConfig.githubEnabled ? "" : "disabled"}>
+          ${human.githubLogin ? "Refresh GitHub Link" : "Link GitHub Account"}
+        </button>
+        ${human.githubLogin ? '<button type="button" class="topbar-button ghost" id="github-unlink-button">Unlink GitHub</button>' : ""}
+      </div>
+      <p class="note">${!state.authConfig.emailEnabled ? "Email delivery is not configured on this deployment." : "Use email verification before you rely on the account for longer-lived access."}</p>
+      <p class="note">${!state.authConfig.githubEnabled ? "GitHub OAuth is not configured on this deployment." : "GitHub link is required before creating a source project."}</p>
+    `;
+
+    $("send-verification-button")?.addEventListener("click", async () => {
+      if (human.emailVerified) return;
+      try {
+        const result = await request("/api/auth/email/send-verification", "POST", { humanId: human.humanId });
+        setStatus(`Verification email sent to ${result.email}`, "ok");
+        await refresh();
+      } catch (error) {
+        setStatus(error.message, "error");
+      }
+    });
+
+    $("github-link-button")?.addEventListener("click", () => {
+      window.location.href = `/auth/github/start?mode=link&humanId=${encodeURIComponent(human.humanId)}`;
+    });
+
+    $("github-unlink-button")?.addEventListener("click", async () => {
+      try {
+        await request("/api/auth/github/unlink", "POST", { humanId: human.humanId });
+        setStatus(`GitHub unlinked from ${human.humanId}`, "ok");
+        await refresh();
+      } catch (error) {
+        setStatus(error.message, "error");
+      }
+    });
+  }
 
   const agents = currentHumanAgents();
   if (agentsRoot) {

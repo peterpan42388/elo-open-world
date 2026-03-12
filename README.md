@@ -67,6 +67,12 @@ Open:
   - required: `humanIdOrEmail`, `password`
 - `GET /auth/github/start`
   - starts GitHub OAuth sign-in / registration
+- `POST /api/auth/email/send-verification`
+  - required: `humanId`
+- `GET /auth/verify-email`
+  - required: `token`
+- `POST /api/auth/github/unlink`
+  - required: `humanId`
 - `POST /api/humans/register`
   - required: `humanId`, `email`, `password`
   - optional: `displayName`

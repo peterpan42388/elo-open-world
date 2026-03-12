@@ -4,10 +4,12 @@ import { readFile } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import { OpenWorldFramework } from "../core/openWorld.js";
+import { EmailService } from "../services/emailService.js";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const WEB_ROOT = join(__dirname, "../../web");
 const githubAuthStates = new Map();
+const emailService = new EmailService();
 
 function json(res, status, payload) {
   res.writeHead(status, {
@@ -31,7 +33,8 @@ function oauthConfig() {
   return {
     githubEnabled: Boolean(process.env.GITHUB_OAUTH_CLIENT_ID && process.env.GITHUB_OAUTH_CLIENT_SECRET),
     githubClientId: process.env.GITHUB_OAUTH_CLIENT_ID || "",
-    publicBaseUrl: process.env.PUBLIC_BASE_URL || "https://world.metavie.co"
+    publicBaseUrl: process.env.PUBLIC_BASE_URL || "https://world.metavie.co",
+    emailEnabled: emailService.enabled
   };
 }
 
@@ -46,6 +49,14 @@ function renderAuthResultPage({ ok, message, humanId = "" }) {
   }
   return `<!doctype html><html><body><script>
     window.location.replace('/#join');
+  </script><p>${safeMessage}</p></body></html>`;
+}
+
+function renderEmailVerifyResultPage({ ok, message }) {
+  const safeMessage = String(message || "Email verification failed.").replace(/</g, "&lt;");
+  const route = ok ? "/#settings" : "/#join";
+  return `<!doctype html><html><body><script>
+    window.location.replace('${route}');
   </script><p>${safeMessage}</p></body></html>`;
 }
 
@@ -151,8 +162,10 @@ const server = http.createServer(async (req, res) => {
       if (!cfg.githubEnabled) {
         return html(res, 503, renderAuthResultPage({ ok: false, message: "GitHub OAuth is not configured on this deployment." }));
       }
+      const mode = (url.searchParams.get("mode") || "signin").trim().toLowerCase();
+      const humanId = (url.searchParams.get("humanId") || "").trim();
       const state = crypto.randomUUID();
-      githubAuthStates.set(state, Date.now());
+      githubAuthStates.set(state, { createdAt: Date.now(), mode, humanId });
       const redirectUri = `${cfg.publicBaseUrl}/auth/github/callback`;
       const authUrl = new URL("https://github.com/login/oauth/authorize");
       authUrl.searchParams.set("client_id", cfg.githubClientId);
@@ -169,19 +182,52 @@ const server = http.createServer(async (req, res) => {
       }
       const code = url.searchParams.get("code") || "";
       const state = url.searchParams.get("state") || "";
-      if (!githubAuthStates.has(state)) {
+      const authState = githubAuthStates.get(state);
+      if (!authState) {
         return html(res, 400, renderAuthResultPage({ ok: false, message: "GitHub auth state is invalid or expired." }));
       }
       githubAuthStates.delete(state);
       const accessToken = await exchangeGitHubCode(code);
       const profile = await fetchGitHubProfile(accessToken);
-      const human = await framework.identity.upsertGitHubHuman(profile);
+      const human = authState.mode === "link" && authState.humanId
+        ? await framework.identity.linkGitHubHuman({ humanId: authState.humanId, ...profile })
+        : await framework.identity.upsertGitHubHuman(profile);
       return html(res, 200, renderAuthResultPage({ ok: true, humanId: human.humanId, message: `Signed in as ${human.humanId}` }));
+    }
+
+    if (req.method === "GET" && path === "/auth/verify-email") {
+      const token = url.searchParams.get("token") || "";
+      const human = await framework.identity.verifyEmailToken(token);
+      return html(res, 200, renderEmailVerifyResultPage({ ok: true, message: `Email verified for ${human.humanId}` }));
     }
 
     if (req.method === "POST" && path === "/api/humans/register") {
       const body = await readJson(req);
       return json(res, 200, await framework.identity.registerHuman(body));
+    }
+
+    if (req.method === "POST" && path === "/api/auth/email/send-verification") {
+      const body = await readJson(req);
+      const issued = await framework.identity.issueEmailVerification(body);
+      const cfg = oauthConfig();
+      const verifyUrl = `${cfg.publicBaseUrl}/auth/verify-email?token=${encodeURIComponent(issued.token)}`;
+      await emailService.sendVerificationEmail({
+        to: issued.human.email,
+        displayName: issued.human.displayName,
+        verifyUrl,
+        humanId: issued.human.humanId
+      });
+      return json(res, 200, {
+        delivered: true,
+        humanId: issued.human.humanId,
+        email: issued.human.email,
+        expiresAt: issued.expiresAt
+      });
+    }
+
+    if (req.method === "POST" && path === "/api/auth/github/unlink") {
+      const body = await readJson(req);
+      return json(res, 200, await framework.identity.unlinkGitHubHuman(body));
     }
 
     if (req.method === "POST" && path === "/api/agents/register") {

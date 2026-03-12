@@ -332,3 +332,34 @@ test("local auth should accept email and password after registration", async () 
   assert.equal(auth.email, "auth@example.com");
   assert.equal(auth.passwordHash, undefined);
 });
+
+test("email verification and github link management should update human identity", async () => {
+  const root = await mkdtemp(join(tmpdir(), "open-world-identity-management-"));
+  const world = await new OpenWorldFramework({
+    stateFile: join(root, "state.json"),
+    projectsRoot: join(root, "projects")
+  }).init();
+
+  await world.identity.registerHuman({
+    humanId: "human.manage",
+    email: "manage@example.com",
+    password: "secret-456"
+  });
+
+  const issued = await world.identity.issueEmailVerification({ humanId: "human.manage", ttlMs: 60_000 });
+  assert.equal(issued.human.emailVerified, false);
+  const verified = await world.identity.verifyEmailToken(issued.token);
+  assert.equal(verified.emailVerified, true);
+
+  const linked = await world.identity.linkGitHubHuman({
+    humanId: "human.manage",
+    githubLogin: "peterpan42388",
+    displayName: "Manager"
+  });
+  assert.equal(linked.githubLogin, "peterpan42388");
+  assert.ok(linked.authMethods.includes("github"));
+
+  const unlinked = await world.identity.unlinkGitHubHuman({ humanId: "human.manage" });
+  assert.equal(unlinked.githubLogin, "");
+  assert.ok(!unlinked.authMethods.includes("github"));
+});
