@@ -7,6 +7,7 @@ const state = {
   summary: null,
   sessionHumanId: loadSession(),
   activeSettingsSection: SETTINGS_DEFAULT_SECTION,
+  selectedGraphProjectId: "",
   buildFilters: {
     kind: "",
     status: "",
@@ -131,8 +132,7 @@ function renderTopbarActions() {
       <button type="button" class="topbar-button secondary" data-route-target="settings">Settings</button>
       <button type="button" class="topbar-button ghost" id="signout-button">Sign Out</button>
     `;
-    const signOut = $("signout-button");
-    signOut?.addEventListener("click", () => {
+    $("signout-button")?.addEventListener("click", () => {
       saveSession("");
       state.activeSettingsSection = SETTINGS_DEFAULT_SECTION;
       setStatus("Signed out.", "ok");
@@ -232,6 +232,16 @@ function buildGraphRelations(projects) {
   return { sharedOwners, topPlugins, linkedAgents };
 }
 
+function relatedProjectsForSelection(projects, selectedProject) {
+  if (!selectedProject) return { ownerMatches: [], pluginMatches: [], agentMatches: [] };
+  const others = projects.filter((project) => project.projectId !== selectedProject.projectId);
+  return {
+    ownerMatches: others.filter((project) => project.ownerHumanId === selectedProject.ownerHumanId),
+    pluginMatches: others.filter((project) => (project.pluginIds || []).some((pluginId) => (selectedProject.pluginIds || []).includes(pluginId))),
+    agentMatches: others.filter((project) => (project.memberAgentIds || []).some((agentId) => (selectedProject.memberAgentIds || []).includes(agentId)))
+  };
+}
+
 function renderProjectGraph(projects) {
   const root = $("project-graph");
   const legend = $("graph-legend");
@@ -244,9 +254,11 @@ function renderProjectGraph(projects) {
     <div class="legend-item"><span class="legend-dot project"></span><span>Source Project</span></div>
     <div class="legend-item"><span class="legend-dot owner"></span><span>Shared Owner Link</span></div>
     <div class="legend-item"><span class="legend-dot plugin"></span><span>Plugin Attachment</span></div>
+    <div class="legend-item"><span class="legend-dot agent"></span><span>Shared Agent Participation</span></div>
   `;
 
   if (!projects.length) {
+    state.selectedGraphProjectId = "";
     root.innerHTML = '<div class="graph-empty">No source projects yet. Use Build to create the first project node.</div>';
     relations.innerHTML = `
       <h3>Relations</h3>
@@ -254,6 +266,9 @@ function renderProjectGraph(projects) {
     `;
     return;
   }
+
+  const selectedProject = projects.find((project) => project.projectId === state.selectedGraphProjectId) || projects[0];
+  state.selectedGraphProjectId = selectedProject.projectId;
 
   const universeNode = `
     <div class="graph-node universe">
@@ -263,39 +278,64 @@ function renderProjectGraph(projects) {
     </div>
   `;
 
-  const projectNodes = projects.map((project) => `
-    <div class="graph-column">
-      <div class="graph-link"></div>
-      <div class="graph-node project">
-        <div class="graph-node-top">
-          <strong>${project.title}</strong>
-          ${createBadge(projectStateLabel(project.state))}
-        </div>
-        <span>${project.repoName}</span>
-        <div class="tag-row">
-          ${createBadge(projectTypeLabel(project.kind))}
-          <span class="subtle-tag">Owner: ${project.ownerHumanId}</span>
-        </div>
-        <span>${project.memberAgentIds?.length || 0} agent member${(project.memberAgentIds?.length || 0) === 1 ? "" : "s"}</span>
-        <span>${project.pluginIds?.length || 0} plugin link${(project.pluginIds?.length || 0) === 1 ? "" : "s"}</span>
+  const projectNodes = projects.map((project) => {
+    const selected = project.projectId === state.selectedGraphProjectId;
+    return `
+      <div class="graph-column">
+        <div class="graph-link"></div>
+        <button type="button" class="graph-node-button ${selected ? "selected" : ""}" data-graph-project="${project.projectId}">
+          <div class="graph-node project ${selected ? "selected" : ""}">
+            <div class="graph-node-top">
+              <strong>${project.title}</strong>
+              ${createBadge(projectStateLabel(project.state))}
+            </div>
+            <span>${project.repoName}</span>
+            <div class="tag-row">
+              ${createBadge(projectTypeLabel(project.kind))}
+              <span class="subtle-tag">Owner: ${project.ownerHumanId}</span>
+            </div>
+            <span>${project.memberAgentIds?.length || 0} agent member${(project.memberAgentIds?.length || 0) === 1 ? "" : "s"}</span>
+            <span>${project.pluginIds?.length || 0} plugin link${(project.pluginIds?.length || 0) === 1 ? "" : "s"}</span>
+          </div>
+        </button>
       </div>
-    </div>
-  `).join("");
+    `;
+  }).join("");
 
   const { sharedOwners, topPlugins, linkedAgents } = buildGraphRelations(projects);
+  const related = relatedProjectsForSelection(projects, selectedProject);
+
   relations.innerHTML = `
     <h3>Relations</h3>
-    <div class="relation-card">
-      <strong>Shared Owners</strong>
-      <span>${sharedOwners.length ? sharedOwners.map(([owner, count]) => `${owner} (${count})`).join(", ") : "No owner currently controls multiple visible projects."}</span>
+    <div class="relation-card selected-project-card">
+      <strong>Selected Project</strong>
+      <span>${selectedProject.title}</span>
+      <div class="tag-row">
+        ${createBadge(projectTypeLabel(selectedProject.kind))}
+        ${createBadge(projectStateLabel(selectedProject.state))}
+      </div>
+      <span>Owner: ${selectedProject.ownerHumanId}</span>
+      <span>Agents: ${selectedProject.memberAgentIds?.length || 0}</span>
+      <span>Plugins: ${selectedProject.pluginIds?.length || 0}</span>
+      <a href="${selectedProject.repoUrl}" target="_blank" rel="noreferrer">Open GitHub Repo</a>
     </div>
     <div class="relation-card">
-      <strong>Plugin Attachments</strong>
-      <span>${topPlugins.length ? topPlugins.map(([pluginId, count]) => `${pluginId} (${count})`).join(", ") : "No plugin attachments recorded yet."}</span>
+      <strong>Shared Owner Links</strong>
+      <span>${related.ownerMatches.length ? related.ownerMatches.map((project) => project.title).join(", ") : "No same-owner neighbor projects."}</span>
     </div>
     <div class="relation-card">
-      <strong>Agent Participation</strong>
-      <span>${linkedAgents} linked agent reference${linkedAgents === 1 ? "" : "s"} across all visible source projects.</span>
+      <strong>Shared Plugin Links</strong>
+      <span>${related.pluginMatches.length ? related.pluginMatches.map((project) => project.title).join(", ") : "No shared-plugin neighbor projects."}</span>
+    </div>
+    <div class="relation-card">
+      <strong>Shared Agent Links</strong>
+      <span>${related.agentMatches.length ? related.agentMatches.map((project) => project.title).join(", ") : "No shared-agent neighbor projects."}</span>
+    </div>
+    <div class="relation-card compact-summary">
+      <strong>Universe Summary</strong>
+      <span>Owners with multiple projects: ${sharedOwners.length || 0}</span>
+      <span>Top plugin attachments: ${topPlugins.length ? topPlugins.map(([pluginId, count]) => `${pluginId} (${count})`).join(", ") : "none"}</span>
+      <span>Linked agent references: ${linkedAgents}</span>
     </div>
   `;
 
@@ -305,6 +345,13 @@ function renderProjectGraph(projects) {
       <div class="graph-children">${projectNodes}</div>
     </div>
   `;
+
+  root.querySelectorAll("[data-graph-project]").forEach((node) => {
+    node.addEventListener("click", () => {
+      state.selectedGraphProjectId = node.dataset.graphProject;
+      renderProjectGraph(projects);
+    });
+  });
 }
 
 function renderSettingsData() {
@@ -456,10 +503,7 @@ function applyBuildFiltersToProjects(projects) {
     const stateValue = String(project.state || "").toLowerCase();
     const kindPass = !state.buildFilters.kind || kindValue === state.buildFilters.kind;
     const statePass = !state.buildFilters.status || stateValue === state.buildFilters.status;
-    const queryPass = !query || [project.title, project.repoName, project.summary, project.ownerHumanId]
-      .join(" ")
-      .toLowerCase()
-      .includes(query);
+    const queryPass = !query || [project.title, project.repoName, project.summary, project.ownerHumanId].join(" ").toLowerCase().includes(query);
     return kindPass && statePass && queryPass;
   });
 }
@@ -468,10 +512,7 @@ function applyBuildFiltersToPlugins(plugins) {
   const query = state.buildFilters.query.trim().toLowerCase();
   return plugins.filter((plugin) => {
     const kindPass = !state.buildFilters.kind || String(plugin.kind || "").toLowerCase() === state.buildFilters.kind;
-    const queryPass = !query || [plugin.title, plugin.pluginId, plugin.description, plugin.ownerHumanId]
-      .join(" ")
-      .toLowerCase()
-      .includes(query);
+    const queryPass = !query || [plugin.title, plugin.pluginId, plugin.description, plugin.ownerHumanId].join(" ").toLowerCase().includes(query);
     return kindPass && queryPass;
   });
 }
@@ -576,9 +617,7 @@ function formDataToObject(form) {
 function signInWithValue(value) {
   if (!state.summary) return false;
   const normalized = value.trim().toLowerCase();
-  const human = (state.summary.identity?.humans || []).find((item) => (
-    item.humanId.toLowerCase() === normalized || item.email.toLowerCase() === normalized
-  ));
+  const human = (state.summary.identity?.humans || []).find((item) => item.humanId.toLowerCase() === normalized || item.email.toLowerCase() === normalized);
   if (!human) return false;
   saveSession(human.humanId);
   state.activeSettingsSection = SETTINGS_DEFAULT_SECTION;
