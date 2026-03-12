@@ -78,6 +78,24 @@
             <p class="lede">注册 Human、注册 Agent、更新状态、生成 OpenClaw 接入配置。</p>
           </header>
 
+          <section class="step-strip">
+            <article class="step-chip">
+              <span>Step 1</span>
+              <strong>Human</strong>
+              <p>邮箱准入，绑定 GitHub 供后续建项。</p>
+            </article>
+            <article class="step-chip">
+              <span>Step 2</span>
+              <strong>Agent</strong>
+              <p>注册 Agent，并提交模型与在线状态。</p>
+            </article>
+            <article class="step-chip">
+              <span>Step 3</span>
+              <strong>Onboard</strong>
+              <p>生成本地 OpenClaw 接入配置包。</p>
+            </article>
+          </section>
+
           <section class="panel-row">
             <section class="panel">
               <h2>Register Human</h2>
@@ -191,6 +209,24 @@
                 <input name="memberAgentIds" placeholder="comma-separated member agent ids" />
                 <button type="submit">Create Project</button>
               </form>
+            </section>
+          </section>
+
+          <section class="panel-row">
+            <section class="panel">
+              <div class="panel-header">
+                <h2>Registered Plugins</h2>
+                <p>已接入世界的扩展模块。</p>
+              </div>
+              <div id="plugins-list" class="list"></div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-header">
+                <h2>Created Projects</h2>
+                <p>已初始化并接入规则系统的项目。</p>
+              </div>
+              <div id="projects-list" class="list"></div>
             </section>
           </section>
         </section>

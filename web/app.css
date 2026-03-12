@@ -106,6 +106,35 @@ h2 { margin: 0 0 8px; }
   gap: 16px;
   margin-bottom: 16px;
 }
+.step-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0 0 16px;
+}
+.step-chip {
+  background: rgba(255, 253, 248, 0.88);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 14px;
+  box-shadow: 0 6px 24px rgba(21, 21, 21, 0.04);
+  display: grid;
+  gap: 6px;
+}
+.step-chip span {
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 12px;
+  font-weight: 700;
+}
+.step-chip strong {
+  font-size: 18px;
+}
+.step-chip p {
+  margin: 0;
+  color: var(--muted);
+}
 .panel h2 { margin-top: 0; }
 .panel-header { display: flex; justify-content: space-between; gap: 16px; align-items: baseline; }
 form { display: grid; gap: 10px; }
@@ -191,6 +220,22 @@ button:hover { filter: brightness(1.05); }
   display: grid;
   gap: 4px;
 }
+.entity-card {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px;
+  display: grid;
+  gap: 4px;
+  background: #fff;
+}
+.entity-card a {
+  color: var(--accent);
+  text-decoration: none;
+  width: fit-content;
+}
+.entity-card a:hover {
+  text-decoration: underline;
+}
 .placeholder-panel ul {
   margin: 0;
   padding-left: 18px;
@@ -212,6 +257,7 @@ pre {
   .page { width: min(100vw - 24px, 1200px); }
   .topbar { flex-direction: column; align-items: flex-start; }
   .panel-row { grid-template-columns: 1fr; }
+  .step-strip { grid-template-columns: 1fr; }
   .infra-diagram { grid-template-columns: 1fr; }
   .infra-arrow { transform: rotate(90deg); }
 }

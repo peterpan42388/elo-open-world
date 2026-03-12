@@ -54,6 +54,8 @@ function renderSummary(summary) {
   $("world-feed").textContent = JSON.stringify(summary, null, 2);
   renderInfrastructure(summary);
   renderAgents(summary.identity?.agents || []);
+  renderPlugins(summary.plugins || []);
+  renderProjects(summary.projects || []);
 }
 
 function renderInfrastructure(summary) {
@@ -92,6 +94,41 @@ function renderAgents(agents) {
       <span>${agent.label}</span>
       <span>model: ${agent.model || "unknown"}</span>
       <span>online: ${agent.online ? "yes" : "no"}</span>
+    </article>
+  `).join("");
+}
+
+function renderPlugins(plugins) {
+  const root = $("plugins-list");
+  if (!root) return;
+  if (!plugins.length) {
+    root.innerHTML = '<div class="empty">No plugins registered yet.</div>';
+    return;
+  }
+  root.innerHTML = plugins.map((plugin) => `
+    <article class="entity-card">
+      <strong>${plugin.title}</strong>
+      <span>${plugin.pluginId}</span>
+      <span>kind: ${plugin.kind}</span>
+      <span>owner: ${plugin.ownerHumanId}</span>
+    </article>
+  `).join("");
+}
+
+function renderProjects(projects) {
+  const root = $("projects-list");
+  if (!root) return;
+  if (!projects.length) {
+    root.innerHTML = '<div class="empty">No projects created yet.</div>';
+    return;
+  }
+  root.innerHTML = projects.map((project) => `
+    <article class="entity-card">
+      <strong>${project.title}</strong>
+      <span>${project.repoName}</span>
+      <span>state: ${project.state}</span>
+      <span>owner: ${project.ownerHumanId}</span>
+      <a href="${project.repoUrl}" target="_blank" rel="noreferrer">Open GitHub Repo</a>
     </article>
   `).join("");
 }
