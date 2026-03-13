@@ -35,11 +35,30 @@ function systemdPath(path) {
   return path.startsWith("~/") ? `%h/${path.slice(2)}` : path;
 }
 
+function buildRuntimeContract(cfg, world) {
+  return JSON.stringify({
+    contract: "elo-agent-onboarder.runtime-contract.v1",
+    runtime: cfg.runtime,
+    entrypoint: "openclaw-runtime.js",
+    healthPath: `${(cfg.endpoint || "http://127.0.0.1:18789").replace(/\/$/, "")}/health`,
+    statusApi: `${world.apiBaseUrl}/api/agents/status`,
+    expectedEnv: [
+      "ELO_OPEN_WORLD_API_BASE",
+      "ELO_OPEN_WORLD_HUMAN_ID",
+      "ELO_OPEN_WORLD_AGENT_ID",
+      "ELO_OPEN_WORLD_AGENT_MODEL",
+      "ELO_OPEN_WORLD_AGENT_ENDPOINT",
+      "OPENCLAW_INSTALL_ROOT"
+    ]
+  }, null, 2) + "\n";
+}
+
 function buildProfileTemplates(cfg, world) {
   const shellRoot = shellPath(cfg.installRoot);
   const systemdRoot = systemdPath(cfg.installRoot);
   if (cfg.profile === "macos-homebrew") {
     return {
+      "runtime-contract.json": buildRuntimeContract(cfg, world),
       "Brewfile": [
         'tap "homebrew/core"',
         'brew "node"',
@@ -62,6 +81,31 @@ curl -fsS "http://127.0.0.1:$PORT/health"
 curl -fsS "${world.apiBaseUrl}/api/universe/manifest" >/dev/null
 echo "macOS runtime health checks passed for $ROOT"
 `,
+      "report-status.sh": `#!/usr/bin/env sh
+set -eu
+ROOT="\${1:-${shellRoot}}"
+ENV_FILE="$ROOT/.env.local"
+
+if [ -f "$ENV_FILE" ]; then
+  set -a
+  . "$ENV_FILE"
+  set +a
+fi
+
+cat <<JSON | curl -fsS -X POST "${world.apiBaseUrl}/api/agents/status" \\
+  -H 'Content-Type: application/json' \\
+  --data-binary @-
+{
+  "agentId": "${cfg.agentId}",
+  "online": true,
+  "runtime": "${cfg.runtime}",
+  "endpoint": "${cfg.endpoint || "http://127.0.0.1:18789"}",
+  "model": "${cfg.model || ""}"
+}
+JSON
+echo
+echo "Reported status for ${cfg.agentId}"
+`,
       "stop-openclaw.sh": `#!/usr/bin/env sh
 set -eu
 pkill -f "openclaw-runtime.js" || true
@@ -80,11 +124,13 @@ fi
 mkdir -p "$ROOT"/{bin,config,logs,data}
 brew bundle --file "$SCRIPT_DIR/Brewfile"
 cp "$SCRIPT_DIR/.env.local" "$ROOT/.env.local"
+cp "$SCRIPT_DIR/runtime-contract.json" "$ROOT/runtime-contract.json"
 cp "$SCRIPT_DIR/healthcheck.sh" "$ROOT/healthcheck.sh"
+cp "$SCRIPT_DIR/report-status.sh" "$ROOT/report-status.sh"
 cp "$SCRIPT_DIR/stop-openclaw.sh" "$ROOT/stop-openclaw.sh"
 cp "$SCRIPT_DIR/start-openclaw.sh" "$ROOT/start-openclaw.sh"
 chmod +x "$ROOT/start-openclaw.sh"
-chmod +x "$ROOT/healthcheck.sh" "$ROOT/stop-openclaw.sh"
+chmod +x "$ROOT/healthcheck.sh" "$ROOT/report-status.sh" "$ROOT/stop-openclaw.sh"
 
 echo "macOS runtime scaffold prepared at $ROOT"
 echo "Next step: $ROOT/start-openclaw.sh"
@@ -120,6 +166,7 @@ exec node ./openclaw-runtime.js
 
   if (cfg.profile === "linux-systemd") {
     return {
+      "runtime-contract.json": buildRuntimeContract(cfg, world),
       "openclaw.env": `ELO_OPEN_WORLD_API_BASE=${world.apiBaseUrl}
 ELO_OPEN_WORLD_HUMAN_ID=${cfg.humanId}
 ELO_OPEN_WORLD_AGENT_ID=${cfg.agentId}
@@ -134,6 +181,29 @@ PORT="\${OPENCLAW_PORT:-18789}"
 curl -fsS "http://127.0.0.1:$PORT/health"
 test -f "$ROOT/openclaw.env"
 echo "linux-systemd runtime health checks passed for $ROOT"
+`,
+      "report-status.sh": `#!/usr/bin/env sh
+set -eu
+ROOT="\${1:-${shellRoot}}"
+if [ -f "$ROOT/openclaw.env" ]; then
+  set -a
+  . "$ROOT/openclaw.env"
+  set +a
+fi
+
+cat <<JSON | curl -fsS -X POST "${world.apiBaseUrl}/api/agents/status" \\
+  -H 'Content-Type: application/json' \\
+  --data-binary @-
+{
+  "agentId": "${cfg.agentId}",
+  "online": true,
+  "runtime": "${cfg.runtime}",
+  "endpoint": "${cfg.endpoint || "http://127.0.0.1:18789"}",
+  "model": "${cfg.model || ""}"
+}
+JSON
+echo
+echo "Reported status for ${cfg.agentId}"
 `,
       "stop-openclaw.sh": `#!/usr/bin/env sh
 set -eu
@@ -186,11 +256,13 @@ set -eu
 ROOT="\${1:-${shellRoot}}"
 mkdir -p "$ROOT" ~/.config/systemd/user
 cp openclaw.env "$ROOT/openclaw.env"
+cp runtime-contract.json "$ROOT/runtime-contract.json"
 cp start-openclaw.sh "$ROOT/start-openclaw.sh"
 cp healthcheck.sh "$ROOT/healthcheck.sh"
+cp report-status.sh "$ROOT/report-status.sh"
 cp stop-openclaw.sh "$ROOT/stop-openclaw.sh"
 chmod +x "$ROOT/start-openclaw.sh"
-chmod +x "$ROOT/healthcheck.sh" "$ROOT/stop-openclaw.sh"
+chmod +x "$ROOT/healthcheck.sh" "$ROOT/report-status.sh" "$ROOT/stop-openclaw.sh"
 cp openclaw.service ~/.config/systemd/user/openclaw.service
 systemctl --user daemon-reload
 systemctl --user enable --now openclaw.service
@@ -200,6 +272,7 @@ systemctl --user enable --now openclaw.service
 
   if (cfg.profile === "server-docker-compose") {
     return {
+      "runtime-contract.json": buildRuntimeContract(cfg, world),
       "docker-compose.yml": `services:
   openclaw:
     image: ghcr.io/example/openclaw:latest
@@ -242,15 +315,40 @@ docker compose ps
 docker compose exec -T openclaw curl -fsS "http://127.0.0.1:18789/health"
 echo "docker-compose runtime health checks passed for $ROOT"
 `,
+      "report-status.sh": `#!/usr/bin/env sh
+set -eu
+ROOT="\${1:-${shellRoot}}"
+if [ -f "$ROOT/.env" ]; then
+  set -a
+  . "$ROOT/.env"
+  set +a
+fi
+
+cat <<JSON | curl -fsS -X POST "${world.apiBaseUrl}/api/agents/status" \\
+  -H 'Content-Type: application/json' \\
+  --data-binary @-
+{
+  "agentId": "${cfg.agentId}",
+  "online": true,
+  "runtime": "${cfg.runtime}",
+  "endpoint": "${cfg.endpoint || "http://127.0.0.1:18789"}",
+  "model": "${cfg.model || ""}"
+}
+JSON
+echo
+echo "Reported status for ${cfg.agentId}"
+`,
       "bootstrap.sh": `#!/usr/bin/env sh
 set -eu
 ROOT="\${1:-${shellRoot}}"
 mkdir -p "$ROOT"/{data,logs,config}
+cp runtime-contract.json "$ROOT/runtime-contract.json"
 cp docker-compose.yml "$ROOT/docker-compose.yml"
 cp docker-compose.override.yml "$ROOT/docker-compose.override.yml"
 cp .env "$ROOT/.env"
 cp healthcheck.sh "$ROOT/healthcheck.sh"
-chmod +x "$ROOT/healthcheck.sh"
+cp report-status.sh "$ROOT/report-status.sh"
+chmod +x "$ROOT/healthcheck.sh" "$ROOT/report-status.sh"
 cd "$ROOT"
 docker compose pull
 docker compose up -d
