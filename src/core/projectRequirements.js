@@ -60,6 +60,8 @@ export class ProjectRequirementRegistry {
       acceptedByHumanId: "",
       rejectedByHumanId: "",
       reviewHistory: [],
+      refinementCount: 0,
+      agentRefinements: [],
       rereviewCount: 0,
       status: "drafted",
       linkedProjectId: "",
@@ -69,6 +71,40 @@ export class ProjectRequirementRegistry {
     };
 
     this.requirements.set(requirement.requirementId, requirement);
+    await this.onChange();
+    return { ...requirement };
+  }
+
+  async addRefinement({ requirementId, humanId, agentId, response }) {
+    const safeRequirementId = token("requirementId", requirementId, 128);
+    const safeHumanId = token("humanId", humanId, 128);
+    const safeAgentId = token("agentId", agentId, 128);
+    const requirement = this.requirements.get(safeRequirementId);
+    if (!requirement) throw new Error(`unknown requirementId: ${safeRequirementId}`);
+
+    const human = this.identityRegistry.getHuman(safeHumanId);
+    const agent = this.identityRegistry.getAgent(safeAgentId);
+    if (human.humanId !== requirement.ownerHumanId) {
+      throw new Error("only the requirement owner can persist agent refinements");
+    }
+    if (agent.humanId !== requirement.ownerHumanId) {
+      throw new Error("agentId must belong to the requirement owner");
+    }
+    const normalizedResponse = typeof response === "string"
+      ? { message: text("response", response, 8000) }
+      : response && typeof response === "object"
+        ? JSON.parse(JSON.stringify(response))
+        : { message: "" };
+
+    const entry = {
+      agentId: safeAgentId,
+      humanId: safeHumanId,
+      respondedAt: now(),
+      response: normalizedResponse
+    };
+    requirement.agentRefinements.push(entry);
+    requirement.refinementCount = requirement.agentRefinements.length;
+    requirement.updatedAt = entry.respondedAt;
     await this.onChange();
     return { ...requirement };
   }

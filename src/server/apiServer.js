@@ -522,6 +522,11 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, await framework.requirements.updateStatus(body));
     }
 
+    if (req.method === "POST" && path === "/api/requirements/refine") {
+      const body = await readJson(req);
+      return json(res, 200, await framework.requirements.addRefinement(body));
+    }
+
     return json(res, 404, { error: "not found" });
   } catch (error) {
     return json(res, 400, { error: error.message });

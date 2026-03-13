@@ -264,6 +264,11 @@ function buildProjectStarterPrompt(requirement) {
   ].join("\n");
 }
 
+function latestRequirementRefinement(requirement) {
+  const items = requirement?.agentRefinements || [];
+  return items.length ? items[items.length - 1] : null;
+}
+
 function bridgeStatusLabel() {
   if (!state.starterBridgeStatus) return "Not checked";
   if (!state.starterBridgeStatus.available) return "Plugin not detected";
@@ -309,11 +314,18 @@ async function sendStarterPromptToPrimaryAgent(requirement, extraContext = "") {
       tags: requirement.tags || []
     }
   });
-  state.latestStarterConversation = {
+  const conversation = {
     requestedAt: Date.now(),
     prompt,
     response: response?.result || response || {}
   };
+  await request("/api/requirements/refine", "POST", {
+    requirementId: requirement.requirementId,
+    humanId: requirement.ownerHumanId,
+    agentId: requirement.primaryAgentId,
+    response: conversation.response
+  });
+  state.latestStarterConversation = conversation;
   return state.latestStarterConversation;
 }
 
@@ -1177,12 +1189,14 @@ function renderSettingsData() {
     }
 
     if (starterResult) {
+      const persistedRefinement = latestRequirementRefinement(state.latestStarterRequirement);
       starterResult.innerHTML = state.latestStarterRequirement ? `
         <div class="detail-grid compact">
           <div class="detail-item"><span>Requirement</span><strong>${state.latestStarterRequirement.requirementId}</strong></div>
           <div class="detail-item"><span>Status</span><strong>${requirementStatusLabel(state.latestStarterRequirement.status)}</strong></div>
           <div class="detail-item"><span>Main Agent</span><strong>${state.latestStarterRequirement.primaryAgentId || "Not set"}</strong></div>
           <div class="detail-item"><span>Browser Bridge</span><strong>${bridgeStatusLabel()}</strong></div>
+          <div class="detail-item"><span>Refinements</span><strong>${state.latestStarterRequirement.refinementCount || 0}</strong></div>
         </div>
         <textarea id="starter-extra-context" placeholder="Optional extra context for your primary agent."></textarea>
         <div class="action-row">
@@ -1197,13 +1211,13 @@ function renderSettingsData() {
         <div class="copy-stack">
           <p class="note">Need the browser bridge first? Load the extension from the <code>elo-agent-web-plugin</code> repository and configure your local agent endpoint.</p>
         </div>
-        ${state.latestStarterConversation ? `
+        ${persistedRefinement ? `
           <div class="starter-conversation-panel">
             <div class="summary-row">
               <strong>Primary Agent Response</strong>
-              <span>${formatTimestamp(state.latestStarterConversation.requestedAt)}</span>
+              <span>${formatTimestamp(persistedRefinement.respondedAt)}</span>
             </div>
-            <pre class="code-block compact">${JSON.stringify(state.latestStarterConversation.response, null, 2)}</pre>
+            <pre class="code-block compact">${JSON.stringify(persistedRefinement.response, null, 2)}</pre>
           </div>
         ` : ""}
       ` : `
@@ -1260,7 +1274,7 @@ function renderSettingsData() {
         try {
           const extraContext = $("starter-extra-context")?.value || "";
           const conversation = await sendStarterPromptToPrimaryAgent(state.latestStarterRequirement, extraContext);
-          renderSettingsData();
+          await refresh();
           setStatus(`Primary agent responded at ${formatTimestamp(conversation.requestedAt)}`, "ok");
         } catch (error) {
           setStatus(error.message, "error");
@@ -1571,6 +1585,7 @@ function renderRequirements(requirements) {
           <div class="detail-item"><span>Owner Human</span><strong>${item.ownerHumanId}</strong></div>
           <div class="detail-item"><span>Primary Agent</span><strong>${item.primaryAgentId || "Not set"}</strong></div>
           <div class="detail-item"><span>Source</span><strong>${item.source || "manual"}</strong></div>
+          <div class="detail-item"><span>Refinements</span><strong>${item.refinementCount || 0}</strong></div>
           <div class="detail-item"><span>Reviewer</span><strong>${item.reviewerHumanId || "Not assigned"}</strong></div>
           <div class="detail-item"><span>Accepted By</span><strong>${item.acceptedByHumanId || "-"}</strong></div>
           <div class="detail-item"><span>Rejected By</span><strong>${item.rejectedByHumanId || "-"}</strong></div>
@@ -1590,6 +1605,17 @@ function renderRequirements(requirements) {
             </div>
           `).join("") : '<div class="empty">No review history yet.</div>'}
         </div>
+        ${(item.agentRefinements || []).length ? `
+          <div class="nested-list">
+            ${(item.agentRefinements || []).slice().reverse().slice(0, 3).map((entry) => `
+              <div class="nested-item">
+                <strong>${entry.agentId}</strong>
+                <span>${formatTimestamp(entry.respondedAt)}</span>
+                <span>${JSON.stringify(entry.response)}</span>
+              </div>
+            `).join("")}
+          </div>
+        ` : ""}
         <div class="tag-row action-row">
           ${item.status !== "implemented" ? `<button type="button" class="topbar-button secondary requirement-status-button" data-requirement-id="${item.requirementId}" data-requirement-status="accepted">Accept</button>` : ""}
           ${item.status !== "implemented" ? `<button type="button" class="topbar-button ghost requirement-status-button" data-requirement-id="${item.requirementId}" data-requirement-status="rejected">Reject</button>` : ""}

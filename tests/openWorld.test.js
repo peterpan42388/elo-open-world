@@ -800,3 +800,47 @@ test("requirements should require a valid reviewer for accept or reject", async 
   assert.equal(rereview.rereviewCount, 1);
   assert.equal(rereview.reviewHistory.at(-1).status, "rereview-requested");
 });
+
+test("requirements should persist primary-agent refinements for the owner", async () => {
+  const root = await mkdtemp(join(tmpdir(), "open-world-requirement-refine-"));
+  const world = await new OpenWorldFramework({
+    stateFile: join(root, "state.json"),
+    projectsRoot: join(root, "projects")
+  }).init();
+
+  await world.identity.registerHuman({
+    humanId: "human.refine",
+    email: "refine@example.com",
+    password: "secret-refine"
+  });
+
+  await world.identity.registerAgent({
+    agentId: "agent.refine.openclaw",
+    humanId: "human.refine",
+    label: "Refine Agent",
+    model: "gpt-5.1",
+    online: true
+  });
+
+  const requirement = await world.requirements.create({
+    title: "Starter flow",
+    createdByType: "human",
+    createdById: "human.refine",
+    primaryAgentId: "agent.refine.openclaw",
+    source: "project-starter"
+  });
+
+  const refined = await world.requirements.addRefinement({
+    requirementId: requirement.requirementId,
+    humanId: "human.refine",
+    agentId: "agent.refine.openclaw",
+    response: {
+      restatedRequirement: "Build a starter bridge",
+      milestones: ["wire prompt", "persist refinement"]
+    }
+  });
+
+  assert.equal(refined.refinementCount, 1);
+  assert.equal(refined.agentRefinements[0].agentId, "agent.refine.openclaw");
+  assert.equal(refined.agentRefinements[0].response.restatedRequirement, "Build a starter bridge");
+});
