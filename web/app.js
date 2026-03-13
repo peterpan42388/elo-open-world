@@ -211,12 +211,35 @@ function formatTimestamp(ts) {
   return date.toLocaleString();
 }
 
+function slugifyRepoName(input) {
+  return String(input || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .replace(/-{2,}/g, "-")
+    .slice(0, 48);
+}
+
+function buildProjectNameSuggestion(requirement) {
+  const summary = requirement?.latestRefinementSummary || {};
+  const preferredTitle = summary.restatedRequirement || requirement?.title || "ELO Open World Project";
+  const normalizedTitle = preferredTitle.length > 80 ? `${preferredTitle.slice(0, 77)}...` : preferredTitle;
+  const repoStem = slugifyRepoName(summary.projectDirection || summary.restatedRequirement || requirement?.title || "open-world-project");
+  const repoName = repoStem.startsWith("elo-") ? repoStem : `elo-${repoStem || "open-world-project"}`;
+  return {
+    title: normalizedTitle,
+    repoName
+  };
+}
+
 function loadRequirementIntoProjectForm(requirement) {
   const form = $("project-form");
   if (!requirement || !form) return;
+  const suggestion = buildProjectNameSuggestion(requirement);
   if (form.requirementId) form.requirementId.value = requirement.requirementId;
   if (form.kind && !form.kind.value) form.kind.value = requirement.desiredKind || "";
-  if (form.title && !form.title.value) form.title.value = requirement.title || "";
+  if (form.title && !form.title.value) form.title.value = suggestion.title;
+  if (form.repoName && !form.repoName.value) form.repoName.value = suggestion.repoName;
   if (form.summary && !form.summary.value) form.summary.value = buildProjectSummaryFromRequirement(requirement);
   if (form.tags && !form.tags.value) {
     const tagSet = new Set([...(requirement.tags || []), ...((requirement.latestRefinementSummary?.milestones || []).length ? ["agent-refined"] : [])]);
@@ -316,11 +339,16 @@ function renderProjectRequirementPreview(requirement) {
     root.innerHTML = '<p class="note">Select a requirement to preload its refined summary into the project form.</p>';
     return;
   }
+  const suggestion = buildProjectNameSuggestion(requirement);
   root.innerHTML = `
     <div class="starter-conversation-panel">
       <div class="summary-row">
         <strong>Requirement Preview</strong>
         <span>${requirement.requirementId}</span>
+      </div>
+      <div class="detail-grid compact">
+        <div class="detail-item"><span>Suggested Title</span><strong>${suggestion.title}</strong></div>
+        <div class="detail-item"><span>Suggested Repo</span><strong class="detail-code">${suggestion.repoName}</strong></div>
       </div>
       ${renderRefinementSummary(requirement.latestRefinementSummary)}
     </div>
