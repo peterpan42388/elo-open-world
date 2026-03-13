@@ -45,7 +45,7 @@ function renderAuthResultPage({ ok, message, humanId = "" }) {
   if (ok) {
     return `<!doctype html><html><body><script>
       localStorage.setItem('elo-open-world.session', '${safeHumanId}');
-      window.location.replace('/#settings');
+      window.location.replace('/?sessionHumanId=${encodeURIComponent(humanId || "")}#settings');
     </script><p>${safeMessage}</p></body></html>`;
   }
   return `<!doctype html><html><body><script>

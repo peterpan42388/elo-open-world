@@ -17,6 +17,7 @@ const ONBOARDER_PRESET = {
 
 const state = {
   summary: null,
+  authResolved: false,
   sessionHumanId: loadSession(),
   latestAuthKeyBundle: null,
   latestSignedAgentGuide: null,
@@ -41,8 +42,19 @@ const state = {
   }
 };
 
+bootstrapSessionFromUrl();
+
 function loadSession() {
   return localStorage.getItem(SESSION_KEY) || "";
+}
+
+function bootstrapSessionFromUrl() {
+  const url = new URL(window.location.href);
+  const humanId = (url.searchParams.get("sessionHumanId") || "").trim();
+  if (!humanId) return;
+  localStorage.setItem(SESSION_KEY, humanId);
+  url.searchParams.delete("sessionHumanId");
+  history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
 }
 
 function saveSession(humanId) {
@@ -161,6 +173,15 @@ function downloadTextFile(filename, content, mimeType = "text/plain;charset=utf-
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
+}
+
+async function copyText(value, successMessage) {
+  try {
+    await navigator.clipboard.writeText(String(value || ""));
+    setStatus(successMessage || "Copied.", "ok");
+  } catch (error) {
+    setStatus(error.message || "Copy failed.", "error");
+  }
 }
 
 function normalizeMemberRolesInput(value) {
@@ -618,6 +639,9 @@ function renderSettingsData() {
   const profile = $("settings-profile");
   const profileActions = $("profile-actions");
   const profileKeyPanel = $("profile-key-panel");
+  const securityPanel = $("settings-security-content");
+  const privacyPanel = $("settings-privacy-content");
+  const protocolsPanel = $("settings-protocols-content");
   const agentsRoot = $("my-agents-list");
   const projectsRoot = $("my-projects-list");
   const signedActions = $("signed-agent-actions");
@@ -625,6 +649,9 @@ function renderSettingsData() {
     if (profile) profile.innerHTML = "";
     if (profileActions) profileActions.innerHTML = "";
     if (profileKeyPanel) profileKeyPanel.innerHTML = "";
+    if (securityPanel) securityPanel.innerHTML = "";
+    if (privacyPanel) privacyPanel.innerHTML = "";
+    if (protocolsPanel) protocolsPanel.innerHTML = "";
     if (agentsRoot) agentsRoot.innerHTML = "";
     if (projectsRoot) projectsRoot.innerHTML = "";
     if (signedActions) signedActions.innerHTML = "";
@@ -632,17 +659,24 @@ function renderSettingsData() {
   }
 
   profile.innerHTML = [
-    ["Human ID", human.humanId],
-    ["Email", human.email],
-    ["Email Verification", human.emailVerified ? "Verified" : "Pending"],
-    ["GitHub", human.githubLogin || "Not linked"],
-    ["Display Name", human.displayName || human.humanId]
-  ].map(([key, value]) => `
+    ["Human ID", human.humanId, true],
+    ["Email", human.email, true],
+    ["Email Verification", human.emailVerified ? "Verified" : "Pending", false],
+    ["GitHub", human.githubLogin || "Not linked", true],
+    ["Display Name", human.displayName || human.humanId, false]
+  ].map(([key, value, copyable]) => `
     <div class="detail-item">
       <span>${key}</span>
-      <strong>${value}</strong>
+      <div class="detail-value-row">
+        <strong class="${copyable ? "detail-code" : ""}">${value}</strong>
+        ${copyable ? `<button type="button" class="mini-copy-button" data-copy-value="${String(value).replace(/"/g, "&quot;")}">Copy</button>` : ""}
+      </div>
     </div>
   `).join("");
+
+  profile.querySelectorAll("[data-copy-value]").forEach((button) => {
+    button.addEventListener("click", () => copyText(button.dataset.copyValue || "", "Copied profile field."));
+  });
 
   if (profileActions) {
     profileActions.innerHTML = `
@@ -695,16 +729,22 @@ function renderSettingsData() {
         </div>
         <div class="detail-grid compact">
           <div class="detail-item"><span>Key Status</span><strong>${authKey ? "Issued" : "Not issued"}</strong></div>
-          <div class="detail-item"><span>Fingerprint</span><strong>${authKey?.fingerprint || "Not available"}</strong></div>
           <div class="detail-item"><span>Issued At</span><strong>${formatTimestamp(authKey?.issuedAt)}</strong></div>
           <div class="detail-item"><span>Last Used</span><strong>${formatTimestamp(authKey?.lastUsedAt)}</strong></div>
+        </div>
+        <div class="code-panel">
+          <div class="summary-row">
+            <strong>Fingerprint</strong>
+            ${authKey?.fingerprint ? '<button type="button" class="mini-copy-button" id="copy-auth-fingerprint">Copy</button>' : ""}
+          </div>
+          <pre class="code-block compact">${authKey?.fingerprint || "Not available"}</pre>
         </div>
         <div class="action-row">
           <button type="button" class="topbar-button secondary" id="issue-auth-key-button">Issue New Agent Auth Key</button>
           ${state.latestAuthKeyBundle ? '<button type="button" class="topbar-button ghost" id="download-auth-key-button">Download PEM Bundle</button>' : ""}
         </div>
         <p class="note">Private key material is returned only once. Re-issuing rotates the active agent auth key.</p>
-        <pre id="auth-key-output">${state.latestAuthKeyBundle ? JSON.stringify({
+        <pre id="auth-key-output" class="code-block">${state.latestAuthKeyBundle ? JSON.stringify({
           keyId: state.latestAuthKeyBundle.keyId,
           algorithm: state.latestAuthKeyBundle.algorithm,
           fingerprint: state.latestAuthKeyBundle.fingerprint,
@@ -723,6 +763,10 @@ function renderSettingsData() {
       } catch (error) {
         setStatus(error.message, "error");
       }
+    });
+
+    $("copy-auth-fingerprint")?.addEventListener("click", () => {
+      copyText(authKey?.fingerprint || "", "Fingerprint copied.");
     });
 
     $("download-auth-key-button")?.addEventListener("click", () => {
@@ -749,6 +793,66 @@ function renderSettingsData() {
     });
   }
 
+  if (securityPanel) {
+    const authMethods = new Set(human.authMethods || []);
+    const isGitHubFirst = authMethods.has("github") && !authMethods.has("password");
+    securityPanel.innerHTML = `
+      <div class="detail-grid">
+        <div class="detail-item"><span>Primary Sign-In</span><strong>${isGitHubFirst ? "GitHub OAuth" : "Email + Password"}</strong></div>
+        <div class="detail-item"><span>Email Status</span><strong>${human.emailVerified ? "Verified" : "Pending verification"}</strong></div>
+        <div class="detail-item"><span>GitHub Link</span><strong>${human.githubLogin || "Not linked"}</strong></div>
+      </div>
+      <div class="action-row">
+        <button type="button" class="topbar-button secondary" id="send-verification-button-security" ${state.authConfig.emailEnabled ? "" : "disabled"}>
+          ${human.emailVerified ? "Email Verified" : "Send Verification Email"}
+        </button>
+      </div>
+      <p class="note">${isGitHubFirst
+        ? "This account currently uses GitHub as the primary sign-in method. Email verification is still recommended for account recovery and future password setup."
+        : "This account uses local password authentication. Email verification should be completed before relying on the account for long-term access."}</p>
+    `;
+    $("send-verification-button-security")?.addEventListener("click", async () => {
+      if (human.emailVerified) return;
+      try {
+        const result = await request("/api/auth/email/send-verification", "POST", { humanId: human.humanId });
+        setStatus(`Verification email sent to ${result.email}`, "ok");
+        await refresh();
+      } catch (error) {
+        setStatus(error.message, "error");
+      }
+    });
+  }
+
+  if (privacyPanel) {
+    privacyPanel.innerHTML = `
+      <div class="copy-stack">
+        <p>ELO Open World stores only the minimum identity and project metadata required to operate this alpha framework.</p>
+        <ul class="content-list">
+          <li>Human identity data: human id, email, display name, GitHub link state, verification state.</li>
+          <li>Agent metadata: agent id, runtime, endpoint, model, online state, last seen timestamp.</li>
+          <li>Project metadata: repo name, summary, tags, members, stages, operating notes.</li>
+          <li>Email verification records and agent auth public-key metadata for authentication flows.</li>
+        </ul>
+        <p>Private keys are never stored by the service after issuance. Browser session state is stored locally in the browser.</p>
+      </div>
+    `;
+  }
+
+  if (protocolsPanel) {
+    protocolsPanel.innerHTML = `
+      <div class="copy-stack">
+        <p>The current public protocol surface of ELO Open World is intentionally narrow.</p>
+        <ul class="content-list">
+          <li>Human identity protocol: email/password or GitHub OAuth admission.</li>
+          <li>Agent registration protocol: direct registration or signed registration using a human-issued auth key.</li>
+          <li>Requirement-first intake: humans and agents can create project requirements before repository creation.</li>
+          <li>Project creation protocol: GitHub-linked source repository initialization with standard Rules and History files.</li>
+          <li>Universe manifest protocol: each deployment publishes its universe identity and compatibility metadata.</li>
+        </ul>
+      </div>
+    `;
+  }
+
   const agentForm = $("agent-form");
   const onboarderForm = $("onboarder-form");
   const projectForm = $("project-form");
@@ -769,9 +873,37 @@ function renderSettingsData() {
   const agents = currentHumanAgents();
   if (agentsRoot) {
     if (!agents.length) {
-      agentsRoot.innerHTML = '<div class="empty">No agents registered for this user yet.</div>';
+      agentsRoot.innerHTML = `
+        <div class="agent-guides">
+          <div class="action-row">
+            <a class="topbar-button secondary" href="/guides/ai-quickstart.html" target="_blank" rel="noreferrer">Open Agent Guide</a>
+            <a class="topbar-button ghost" href="/guides/openclaw-quick-setup.html" target="_blank" rel="noreferrer">Open Quick Setup</a>
+            <button type="button" class="topbar-button ghost" id="copy-agent-prompt-empty">Copy AI Registration Prompt</button>
+          </div>
+          <div class="guide-grid">
+            <article class="guide-card">
+              <span class="guide-step">PATH A</span>
+              <h3>You already have OpenClaw</h3>
+              <p>Copy the registration prompt and send it to your own agent so it can prepare a signed join flow.</p>
+            </article>
+            <article class="guide-card">
+              <span class="guide-step">PATH B</span>
+              <h3>You do not have OpenClaw yet</h3>
+              <p>Use the quick setup guide to bootstrap a local runtime, then return here to register it into the world.</p>
+            </article>
+          </div>
+        </div>
+      `;
+      $("copy-agent-prompt-empty")?.addEventListener("click", () => copyText(buildAgentMarkdownPrompt(), "AI registration prompt copied."));
     } else {
-      agentsRoot.innerHTML = agents.map((agent) => {
+      agentsRoot.innerHTML = `
+        <div class="action-row">
+          <a class="topbar-button secondary" href="/guides/ai-quickstart.html" target="_blank" rel="noreferrer">Open Agent Guide</a>
+          <a class="topbar-button ghost" href="/guides/openclaw-quick-setup.html" target="_blank" rel="noreferrer">Open Quick Setup</a>
+          <button type="button" class="topbar-button ghost" id="copy-agent-prompt">Copy AI Registration Prompt</button>
+        </div>
+        <div class="list-stack">
+        ${agents.map((agent) => {
         const relatedProjects = currentHumanProjects().filter((project) => (project.memberAgentIds || []).includes(agent.agentId));
         return `
           <details class="expand-card">
@@ -788,9 +920,10 @@ function renderSettingsData() {
             <div class="expand-body">
               <div class="detail-grid compact">
                 <div class="detail-item"><span>Runtime</span><strong>${agent.runtime || "openclaw"}</strong></div>
-                <div class="detail-item"><span>Endpoint</span><strong>${agent.endpoint || "Not set"}</strong></div>
+                <div class="detail-item"><span>Endpoint</span><strong class="detail-code">${agent.endpoint || "Not set"}</strong></div>
                 <div class="detail-item"><span>Last Seen</span><strong>${formatTimestamp(agent.lastSeenAt)}</strong></div>
                 <div class="detail-item"><span>Faction</span><strong>${agent.faction}</strong></div>
+                <div class="detail-item"><span>Status</span><strong>${humanReadableAgentStatus(agent)}</strong></div>
               </div>
               <p>Role: active participant</p>
               <p>Contribution: scoring layer pending attachment</p>
@@ -809,7 +942,10 @@ function renderSettingsData() {
             </div>
           </details>
         `;
-      }).join("");
+      }).join("")}
+        </div>
+      `;
+      $("copy-agent-prompt")?.addEventListener("click", () => copyText(buildAgentMarkdownPrompt(), "AI registration prompt copied."));
     }
   }
 
@@ -1338,7 +1474,10 @@ function renderSettingsShell() {
   const guest = $("settings-guest");
   const shell = $("settings-shell");
   if (!guest || !shell) return;
-  if (!human) {
+  if (!state.authResolved) {
+    guest.hidden = true;
+    shell.hidden = true;
+  } else if (!human) {
     guest.hidden = false;
     shell.hidden = true;
   } else {
@@ -1423,6 +1562,7 @@ async function loadAuthConfig() {
 
 async function refresh() {
   state.summary = await request("/api/world/summary");
+  state.authResolved = true;
   renderAll();
 }
 

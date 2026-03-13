@@ -219,6 +219,19 @@ button:hover { filter: brightness(1.05); }
 
 .note { color: var(--muted); margin-top: 0; }
 
+.content-list {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--muted);
+  display: grid;
+  gap: 8px;
+}
+
+.copy-stack {
+  display: grid;
+  gap: 12px;
+}
+
 .quickstart-panel,
 .infrastructure,
 .world-graph-panel,
@@ -494,6 +507,42 @@ button:hover { filter: brightness(1.05); }
   font-size: 13px;
 }
 
+.detail-value-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.detail-code {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  word-break: break-all;
+}
+
+.mini-copy-button {
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 999px;
+  background: rgba(13, 107, 102, 0.12);
+  color: var(--accent);
+  border: 1px solid rgba(13, 107, 102, 0.15);
+  white-space: nowrap;
+}
+
+.code-panel {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.agent-guides,
+.list-stack {
+  display: grid;
+  gap: 16px;
+}
+
 .list { display: grid; gap: 10px; }
 
 .entity-card,
@@ -596,13 +645,24 @@ details.expand-card summary::-webkit-details-marker { display: none; }
 
 .empty { color: var(--muted); }
 
-pre {
+pre,
+.code-block {
   overflow: auto;
-  padding: 16px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  padding: 14px;
   margin: 0;
-  background: #111;
-  color: #f8f8f2;
+  background: #fbf8f2;
+  color: var(--text);
   border-radius: 14px;
+  border: 1px solid var(--border);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.code-block.compact {
+  max-height: 120px;
 }
 
 .settings-guest { display: grid; gap: 12px; }
@@ -656,6 +716,24 @@ pre {
   border: 0;
   box-shadow: none;
   background: transparent;
+}
+
+.advanced-tools-panel {
+  padding: 0;
+}
+
+.advanced-tools-panel > summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 18px;
+}
+
+.advanced-tools-panel > summary::-webkit-details-marker {
+  display: none;
+}
+
+.advanced-tools-panel > .expand-body {
+  padding: 0 18px 18px;
 }
 
 .oauth-block {

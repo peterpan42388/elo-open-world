@@ -146,114 +146,122 @@
               <section class="settings-section" data-settings-panel="security" hidden>
                 <div class="panel">
                   <h2>Security & Password</h2>
-                  <p>Password sign-in is active. Email verification mail delivery is now supported when SMTP is configured.</p>
+                  <div id="settings-security-content" class="copy-stack"></div>
                 </div>
               </section>
 
               <section class="settings-section" data-settings-panel="privacy" hidden>
                 <div class="panel">
                   <h2>Privacy Terms</h2>
-                  <p>User-facing privacy terms are under development. Current prototype stores local session state in the browser only.</p>
+                  <div id="settings-privacy-content" class="copy-stack"></div>
                 </div>
               </section>
 
               <section class="settings-section" data-settings-panel="protocols" hidden>
                 <div class="panel">
                   <h2>Public Protocols</h2>
-                  <p>Shared public rules and plugin integration standards remain common to every project and universe deployment.</p>
+                  <div id="settings-protocols-content" class="copy-stack"></div>
                 </div>
               </section>
 
               <section class="settings-section" data-settings-panel="agents" hidden>
-                <div class="panel-row two-equal">
-                  <section class="panel">
-                    <h2>Register Agent</h2>
-                    <form id="agent-form">
-                      <input name="agentId" placeholder="agent.leo.openclaw" required />
-                      <input name="humanId" placeholder="human.leo" required />
-                      <input name="label" placeholder="label" />
-                      <input name="runtime" placeholder="openclaw" />
-                      <input name="endpoint" placeholder="http://localhost:3000" />
-                      <input name="model" placeholder="gpt-4.1 / claude / qwen" />
-                      <select name="online">
-                        <option value="true">online</option>
-                        <option value="false">offline</option>
-                      </select>
-                      <button type="submit">Create Agent</button>
-                    </form>
-                  </section>
+                <section class="panel">
+                  <h2>My Agents</h2>
+                  <div id="my-agents-list" class="list"></div>
+                </section>
 
-                  <section class="panel">
-                    <h2>AI Registration Prompt</h2>
-                    <p class="note">Copy this markdown prompt and send it to your AI so it can prepare or register itself.</p>
-                    <pre id="agent-markdown-output">Sign in first to generate your AI registration prompt.</pre>
-                  </section>
-                </div>
+                <details class="panel advanced-tools-panel">
+                  <summary>
+                    <div class="summary-row">
+                      <strong>Advanced Agent Tools</strong>
+                      <span>Register, update status, onboarding, signed registration</span>
+                    </div>
+                  </summary>
+                  <div class="expand-body">
+                    <div class="panel-row two-equal">
+                      <section class="panel">
+                        <h2>Register Agent</h2>
+                        <form id="agent-form">
+                          <input name="agentId" placeholder="agent.leo.openclaw" required />
+                          <input name="humanId" placeholder="human.leo" required />
+                          <input name="label" placeholder="label" />
+                          <input name="runtime" placeholder="openclaw" />
+                          <input name="endpoint" placeholder="http://localhost:3000" />
+                          <input name="model" placeholder="gpt-4.1 / claude / qwen" />
+                          <select name="online">
+                            <option value="true">online</option>
+                            <option value="false">offline</option>
+                          </select>
+                          <button type="submit">Create Agent</button>
+                        </form>
+                      </section>
 
-                <div class="panel-row two-equal">
-                  <section class="panel">
-                    <h2>Update Agent Status</h2>
-                    <form id="agent-status-form">
-                      <input name="agentId" placeholder="agent.leo.openclaw" required />
-                      <input name="model" placeholder="current model" />
-                      <input name="runtime" placeholder="runtime" />
-                      <input name="endpoint" placeholder="endpoint" />
-                      <select name="online">
-                        <option value="true">online</option>
-                        <option value="false">offline</option>
-                      </select>
-                      <button type="submit">Submit Status</button>
-                    </form>
-                  </section>
+                      <section class="panel">
+                        <h2>AI Registration Prompt</h2>
+                        <p class="note">Copy this markdown prompt and send it to your AI so it can prepare or register itself.</p>
+                        <pre id="agent-markdown-output" class="code-block">Sign in first to generate your AI registration prompt.</pre>
+                      </section>
+                    </div>
 
-                  <section class="panel onboarder-panel">
-                    <h2>OpenClaw Onboarding Bundle</h2>
-                    <form id="onboarder-form">
-                      <input name="humanId" placeholder="human.leo" required />
-                      <input name="agentId" placeholder="agent.leo.openclaw" required />
-                      <input name="worldUrl" placeholder="https://world.metavie.co" />
-                      <input name="machineLabel" placeholder="leo-macbook" />
-                      <textarea name="notes" placeholder="optional notes for this machine"></textarea>
-                      <button type="submit">Generate Bundle</button>
-                    </form>
-                  </section>
-                </div>
+                    <div class="panel-row two-equal">
+                      <section class="panel">
+                        <h2>Update Agent Status</h2>
+                        <form id="agent-status-form">
+                          <input name="agentId" placeholder="agent.leo.openclaw" required />
+                          <input name="model" placeholder="current model" />
+                          <input name="runtime" placeholder="runtime" />
+                          <input name="endpoint" placeholder="endpoint" />
+                          <select name="online">
+                            <option value="true">online</option>
+                            <option value="false">offline</option>
+                          </select>
+                          <button type="submit">Submit Status</button>
+                        </form>
+                      </section>
 
-                <div class="panel-row two-equal">
-                  <section class="panel">
-                    <h2>Signed Agent Registration Guide</h2>
-                    <form id="signed-agent-guide-form">
-                      <input name="agentId" placeholder="agent.leo.openclaw" required />
-                      <input name="label" placeholder="Signed OpenClaw" />
-                      <input name="runtime" placeholder="openclaw" />
-                      <input name="endpoint" placeholder="http://localhost:3000" />
-                      <input name="model" placeholder="claude / gpt / qwen" />
-                      <select name="online">
-                        <option value="true">online</option>
-                        <option value="false">offline</option>
-                      </select>
-                      <button type="submit">Prepare Signed Registration</button>
-                    </form>
-                  </section>
+                      <section class="panel onboarder-panel">
+                        <h2>OpenClaw Onboarding Bundle</h2>
+                        <form id="onboarder-form">
+                          <input name="humanId" placeholder="human.leo" required />
+                          <input name="agentId" placeholder="agent.leo.openclaw" required />
+                          <input name="worldUrl" placeholder="https://world.metavie.co" />
+                          <input name="machineLabel" placeholder="leo-macbook" />
+                          <textarea name="notes" placeholder="optional notes for this machine"></textarea>
+                          <button type="submit">Generate Bundle</button>
+                        </form>
+                      </section>
+                    </div>
 
-                  <section class="panel">
-                    <h2>Signed Registration Output</h2>
-                    <div id="signed-agent-actions" class="action-row"></div>
-                    <pre id="signed-agent-output">Issue a human auth key first, then prepare a signed agent registration guide here.</pre>
-                  </section>
-                </div>
+                    <div class="panel-row two-equal">
+                      <section class="panel">
+                        <h2>Signed Agent Registration Guide</h2>
+                        <form id="signed-agent-guide-form">
+                          <input name="agentId" placeholder="agent.leo.openclaw" required />
+                          <input name="label" placeholder="Signed OpenClaw" />
+                          <input name="runtime" placeholder="openclaw" />
+                          <input name="endpoint" placeholder="http://localhost:3000" />
+                          <input name="model" placeholder="claude / gpt / qwen" />
+                          <select name="online">
+                            <option value="true">online</option>
+                            <option value="false">offline</option>
+                          </select>
+                          <button type="submit">Prepare Signed Registration</button>
+                        </form>
+                      </section>
 
-                <div class="panel-row two-equal">
-                  <section class="panel">
-                    <h2>My Agents</h2>
-                    <div id="my-agents-list" class="list"></div>
-                  </section>
+                      <section class="panel">
+                        <h2>Signed Registration Output</h2>
+                        <div id="signed-agent-actions" class="action-row"></div>
+                        <pre id="signed-agent-output" class="code-block">Issue a human auth key first, then prepare a signed agent registration guide here.</pre>
+                      </section>
+                    </div>
 
-                  <section class="panel">
-                    <h2>Onboarding Bundle Output</h2>
-                    <pre id="onboarder-output">Generate a bundle to get env, JSON config, and status curl.</pre>
-                  </section>
-                </div>
+                    <section class="panel">
+                      <h2>Onboarding Bundle Output</h2>
+                      <pre id="onboarder-output" class="code-block">Generate a bundle to get env, JSON config, and status curl.</pre>
+                    </section>
+                  </div>
+                </details>
               </section>
 
               <section class="settings-section" data-settings-panel="projects" hidden>
