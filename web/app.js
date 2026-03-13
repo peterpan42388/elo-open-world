@@ -146,6 +146,32 @@ function foundationToolDefaults() {
   };
 }
 
+function foundationPresetMap() {
+  return {
+    "macos-desktop": {
+      target: "local",
+      platform: "macos",
+      packageMode: "node",
+      installRoot: "~/elo-open-world",
+      machineLabel: "macbook-local"
+    },
+    "linux-desktop": {
+      target: "local",
+      platform: "linux",
+      packageMode: "node",
+      installRoot: "~/elo-open-world",
+      machineLabel: "linux-local"
+    },
+    "server-docker": {
+      target: "server",
+      platform: "linux",
+      packageMode: "docker",
+      installRoot: "/opt/elo-open-world",
+      machineLabel: "server-node"
+    }
+  };
+}
+
 function renderFoundationArtifactActions(project) {
   const artifact = state.latestFoundationArtifacts?.[project.projectId];
   if (!artifact?.result) return "";
@@ -171,6 +197,11 @@ function renderFoundationOperator(project, agents) {
       <div class="summary-row">
         <strong>Foundation Operator</strong>
         <span>Generate onboarding artifacts from EOW</span>
+      </div>
+      <div class="action-row foundation-preset-actions">
+        <button type="button" class="topbar-button ghost foundation-preset-button" data-project-id="${project.projectId}" data-foundation-preset="macos-desktop">macOS Desktop</button>
+        <button type="button" class="topbar-button ghost foundation-preset-button" data-project-id="${project.projectId}" data-foundation-preset="linux-desktop">Linux Desktop</button>
+        <button type="button" class="topbar-button ghost foundation-preset-button" data-project-id="${project.projectId}" data-foundation-preset="server-docker">Server Docker</button>
       </div>
       <form class="foundation-tool-form" data-project-id="${project.projectId}">
         <div class="form-grid compact-grid">
@@ -1593,6 +1624,20 @@ function renderSettingsData() {
             renderSettingsData();
             setStatus(error.message, 'error');
           }
+        });
+      });
+      foundationsRoot.querySelectorAll('.foundation-preset-button').forEach((node) => {
+        node.addEventListener('click', () => {
+          const preset = foundationPresetMap()[node.dataset.foundationPreset || ""];
+          const projectId = node.dataset.projectId || "";
+          const form = foundationsRoot.querySelector(`.foundation-tool-form[data-project-id="${projectId}"]`);
+          if (!preset || !form) return;
+          form.target.value = preset.target;
+          form.platform.value = preset.platform;
+          form.packageMode.value = preset.packageMode;
+          form.installRoot.value = preset.installRoot;
+          form.machineLabel.value = preset.machineLabel;
+          setStatus(`Applied ${node.textContent?.trim() || "foundation"} preset.`, "ok");
         });
       });
       foundationsRoot.querySelectorAll('.foundation-copy-json').forEach((node) => {
