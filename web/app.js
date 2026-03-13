@@ -189,6 +189,7 @@ function renderFoundationArtifactActions(project) {
     <div class="action-row foundation-artifact-actions">
       <button type="button" class="topbar-button ghost foundation-copy-json" data-project-id="${project.projectId}">Copy JSON</button>
       <button type="button" class="topbar-button ghost foundation-download-json" data-project-id="${project.projectId}">Download JSON</button>
+      ${artifact.result.artifactBundle ? `<button type="button" class="topbar-button ghost foundation-download-bundle" data-project-id="${project.projectId}">Download Artifact Bundle</button>` : ""}
       ${artifact.action === "setup-pack" && setupPack.readme ? `<button type="button" class="topbar-button ghost foundation-download-file" data-project-id="${project.projectId}" data-foundation-file="readme">Download README</button>` : ""}
       ${artifact.action === "setup-pack" && setupPack.registerScript ? `<button type="button" class="topbar-button ghost foundation-download-file" data-project-id="${project.projectId}" data-foundation-file="registerScript">Download Script</button>` : ""}
       ${artifact.action === "setup-pack" && setupPack.agentConfig ? `<button type="button" class="topbar-button ghost foundation-download-file" data-project-id="${project.projectId}" data-foundation-file="agentConfig">Download Config</button>` : ""}
@@ -1671,6 +1672,13 @@ function renderSettingsData() {
           const artifact = state.latestFoundationArtifacts?.[node.dataset.projectId || ''];
           if (!artifact?.result) return;
           downloadTextFile(`${node.dataset.projectId}.foundation.json`, JSON.stringify(artifact.result, null, 2), 'application/json;charset=utf-8');
+        });
+      });
+      foundationsRoot.querySelectorAll('.foundation-download-bundle').forEach((node) => {
+        node.addEventListener('click', () => {
+          const artifact = state.latestFoundationArtifacts?.[node.dataset.projectId || ''];
+          if (!artifact?.result?.artifactBundle) return;
+          downloadTextFile(`${node.dataset.projectId}.artifact-bundle.json`, JSON.stringify(artifact.result.artifactBundle, null, 2), 'application/json;charset=utf-8');
         });
       });
       foundationsRoot.querySelectorAll('.foundation-download-file').forEach((node) => {

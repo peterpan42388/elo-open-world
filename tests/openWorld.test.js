@@ -242,6 +242,8 @@ test("onboarder install-plan and bootstrap report should align with setup-pack c
   assert.equal(plan.target.runtimeMode, "homebrew");
   assert.ok(plan.templates.Brewfile);
   assert.ok(plan.templates["start-openclaw.sh"]);
+  assert.equal(plan.artifactBundle.contract, "elo-agent-onboarder.artifact-bundle.v1");
+  assert.ok(plan.artifactBundle.files["install-plan.json"]);
   assert.equal(plan.steps[0].id, "diagnose-environment");
   assert.equal(plan.steps[plan.steps.length - 1].id, "report-status");
   assert.ok(plan.steps.some((step) => step.id === "install-homebrew-runtime"));
@@ -261,6 +263,8 @@ test("onboarder install-plan and bootstrap report should align with setup-pack c
   assert.equal(report.plan.target.runtimeMode, "docker-compose");
   assert.ok(report.templates["docker-compose.yml"]);
   assert.ok(report.templates[".env"]);
+  assert.equal(report.artifactBundle.contract, "elo-agent-onboarder.artifact-bundle.v1");
+  assert.ok(report.artifactBundle.files["bootstrap-report.json"]);
   assert.equal(report.setupPack.readme.length > 0, true);
   assert.equal(report.diagnostics.checks.length, 2);
 });

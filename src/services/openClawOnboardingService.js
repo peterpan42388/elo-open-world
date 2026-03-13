@@ -93,6 +93,42 @@ ELO_OPEN_WORLD_AGENT_ENDPOINT=${cfg.endpoint || ''}
   return {};
 }
 
+
+
+function buildArtifactBundle({ action, identity, setupPack = null, plan = null, templates = {}, diagnostics = null }) {
+  const files = {};
+
+  if (action === "setup-pack" && setupPack) {
+    if (setupPack.readme) files["README.md"] = setupPack.readme;
+    if (setupPack.registerScript) files["register-agent.sh"] = setupPack.registerScript;
+    if (setupPack.agentConfig) files["agent.config.json"] = setupPack.agentConfig;
+  }
+
+  if (action === "install-plan" && plan) {
+    files["install-plan.json"] = JSON.stringify(plan, null, 2) + "\n";
+    for (const [name, value] of Object.entries(templates || {})) files[name] = value;
+  }
+
+  if (action === "bootstrap" && plan) {
+    files["bootstrap-report.json"] = JSON.stringify({
+      contract: "elo-agent-onboarder.bootstrap-report.v1",
+      identity,
+      plan,
+      diagnostics
+    }, null, 2) + "\n";
+    for (const [name, value] of Object.entries(templates || {})) files[name] = value;
+  }
+
+  return {
+    contract: "elo-agent-onboarder.artifact-bundle.v1",
+    generatedAt: Date.now(),
+    action,
+    identity,
+    fileCount: Object.keys(files).length,
+    files
+  };
+}
+
 export class OpenClawOnboardingService {
   constructor({ identityRegistry, defaultWorldUrl = "http://127.0.0.1:8788" }) {
     this.identityRegistry = identityRegistry;
@@ -155,6 +191,14 @@ export class OpenClawOnboardingService {
         agentConfig: setupPack.agentConfig
       },
       setupPack,
+      artifactBundle: buildArtifactBundle({
+        action: "setup-pack",
+        identity: {
+          humanId: human.humanId,
+          agentId: agent.agentId
+        },
+        setupPack
+      }),
       checklist: [
         "Prepare your OpenClaw runtime on your own machine.",
         "Copy the .env template into your local agent workspace.",
@@ -287,7 +331,16 @@ export class OpenClawOnboardingService {
       }
     );
 
-    return {
+    const templates = buildProfileTemplates({
+      humanId: bundle.identity.humanId,
+      agentId: bundle.identity.agentId,
+      profile: safeProfile || "custom",
+      installRoot: safeInstallRoot,
+      model: bundle.runtime.model,
+      endpoint: bundle.runtime.endpoint
+    }, bundle.world);
+
+    const plan = {
       contract: "elo-agent-onboarder.install-plan.v1",
       generatedAt: Date.now(),
       identity: bundle.identity,
@@ -303,14 +356,20 @@ export class OpenClawOnboardingService {
       world: bundle.world,
       setupPackContract: bundle.contract,
       steps,
-      templates: buildProfileTemplates({
-        humanId: bundle.identity.humanId,
-        agentId: bundle.identity.agentId,
-        profile: safeProfile || "custom",
-        installRoot: safeInstallRoot,
-        model: bundle.runtime.model,
-        endpoint: bundle.runtime.endpoint
-      }, bundle.world)
+      templates
+    };
+
+    return {
+      ...plan,
+      artifactBundle: buildArtifactBundle({
+        action: "install-plan",
+        identity: {
+          humanId: bundle.identity.humanId,
+          agentId: bundle.identity.agentId
+        },
+        plan,
+        templates
+      })
     };
   }
 
@@ -327,6 +386,29 @@ export class OpenClawOnboardingService {
       plan,
       setupPack: bundle.setupPack,
       templates: plan.templates,
+      artifactBundle: buildArtifactBundle({
+        action: "bootstrap",
+        identity: {
+          humanId: bundle.identity.humanId,
+          agentId: bundle.identity.agentId
+        },
+        plan,
+        templates: plan.templates,
+        diagnostics: {
+          checks: [
+            {
+              name: "runtime-health",
+              url: runtimeHealthUrl || "not-configured",
+              expected: "200 OK"
+            },
+            {
+              name: "universe-manifest",
+              url: `${bundle.world.apiBaseUrl}/api/universe/manifest`,
+              expected: "200 OK"
+            }
+          ]
+        }
+      }),
       diagnostics: {
         checks: [
           {
