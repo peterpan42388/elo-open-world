@@ -105,11 +105,11 @@ export class OpenClawOnboardingService {
     agentId,
     worldUrl = "",
     profile = "",
-    target = "local",
-    platform = "unknown",
-    packageMode = "node",
+    target = "",
+    platform = "",
+    packageMode = "",
     runtimeMode = "",
-    installRoot = "~/elo-open-world",
+    installRoot = "",
     machineLabel = ""
   }) {
     const safeProfile = token("profile", profile || "", 64).toLowerCase();

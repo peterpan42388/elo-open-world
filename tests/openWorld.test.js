@@ -236,6 +236,9 @@ test("onboarder install-plan and bootstrap report should align with setup-pack c
   assert.equal(plan.contract, "elo-agent-onboarder.install-plan.v1");
   assert.equal(plan.setupPackContract, "elo-agent-onboarder.setup-pack.v1");
   assert.equal(plan.target.profile, "macos-homebrew");
+  assert.equal(plan.target.target, "local");
+  assert.equal(plan.target.platform, "macos");
+  assert.equal(plan.target.packageMode, "node");
   assert.equal(plan.target.runtimeMode, "homebrew");
   assert.equal(plan.steps[0].id, "diagnose-environment");
   assert.equal(plan.steps[plan.steps.length - 1].id, "report-status");
@@ -250,6 +253,9 @@ test("onboarder install-plan and bootstrap report should align with setup-pack c
   assert.equal(report.contract, "elo-agent-onboarder.bootstrap-report.v1");
   assert.equal(report.plan.contract, "elo-agent-onboarder.install-plan.v1");
   assert.equal(report.plan.target.profile, "server-docker-compose");
+  assert.equal(report.plan.target.target, "server");
+  assert.equal(report.plan.target.platform, "linux");
+  assert.equal(report.plan.target.packageMode, "docker");
   assert.equal(report.plan.target.runtimeMode, "docker-compose");
   assert.equal(report.setupPack.readme.length > 0, true);
   assert.equal(report.diagnostics.checks.length, 2);
