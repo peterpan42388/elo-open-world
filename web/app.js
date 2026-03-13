@@ -138,9 +138,11 @@ function foundationWorkspace(project) {
 
 function foundationToolDefaults() {
   return {
+    profile: "",
     target: "local",
     platform: navigator.platform.toLowerCase().includes("mac") ? "macos" : "linux",
     packageMode: "node",
+    runtimeMode: "local-process",
     installRoot: "~/elo-open-world",
     machineLabel: "local-machine"
   };
@@ -148,26 +150,32 @@ function foundationToolDefaults() {
 
 function foundationPresetMap() {
   return {
-    "macos-desktop": {
+    "macos-homebrew": {
+      profile: "macos-homebrew",
       target: "local",
       platform: "macos",
       packageMode: "node",
+      runtimeMode: "homebrew",
       installRoot: "~/elo-open-world",
-      machineLabel: "macbook-local"
+      machineLabel: "macbook-homebrew"
     },
-    "linux-desktop": {
+    "linux-systemd": {
+      profile: "linux-systemd",
       target: "local",
       platform: "linux",
       packageMode: "node",
+      runtimeMode: "systemd",
       installRoot: "~/elo-open-world",
-      machineLabel: "linux-local"
+      machineLabel: "linux-systemd"
     },
-    "server-docker": {
+    "server-docker-compose": {
+      profile: "server-docker-compose",
       target: "server",
       platform: "linux",
       packageMode: "docker",
+      runtimeMode: "docker-compose",
       installRoot: "/opt/elo-open-world",
-      machineLabel: "server-node"
+      machineLabel: "server-docker-compose"
     }
   };
 }
@@ -199,12 +207,13 @@ function renderFoundationOperator(project, agents) {
         <span>Generate onboarding artifacts from EOW</span>
       </div>
       <div class="action-row foundation-preset-actions">
-        <button type="button" class="topbar-button ghost foundation-preset-button" data-project-id="${project.projectId}" data-foundation-preset="macos-desktop">macOS Desktop</button>
-        <button type="button" class="topbar-button ghost foundation-preset-button" data-project-id="${project.projectId}" data-foundation-preset="linux-desktop">Linux Desktop</button>
-        <button type="button" class="topbar-button ghost foundation-preset-button" data-project-id="${project.projectId}" data-foundation-preset="server-docker">Server Docker</button>
+        <button type="button" class="topbar-button ghost foundation-preset-button" data-project-id="${project.projectId}" data-foundation-preset="macos-homebrew">macOS Homebrew</button>
+        <button type="button" class="topbar-button ghost foundation-preset-button" data-project-id="${project.projectId}" data-foundation-preset="linux-systemd">Linux systemd</button>
+        <button type="button" class="topbar-button ghost foundation-preset-button" data-project-id="${project.projectId}" data-foundation-preset="server-docker-compose">Server Docker Compose</button>
       </div>
       <form class="foundation-tool-form" data-project-id="${project.projectId}">
         <div class="form-grid compact-grid">
+          <input type="hidden" name="profile" value="${defaults.profile}" />
           <label>
             <span>Agent</span>
             <select name="agentId" required>
@@ -233,6 +242,10 @@ function renderFoundationOperator(project, agents) {
               <option value="node">node</option>
               <option value="docker">docker</option>
             </select>
+          </label>
+          <label>
+            <span>Runtime Mode</span>
+            <input name="runtimeMode" value="${defaults.runtimeMode}" />
           </label>
           <label>
             <span>Install Root</span>
@@ -1610,10 +1623,12 @@ function renderSettingsData() {
               humanId: human.humanId,
               agentId,
               worldUrl: window.location.origin,
+              profile: form.profile.value,
               machineLabel: form.machineLabel.value,
               target: form.target.value,
               platform: form.platform.value,
               packageMode: form.packageMode.value,
+              runtimeMode: form.runtimeMode.value,
               installRoot: form.installRoot.value
             });
             state.latestFoundationArtifacts[projectId] = { action, result, agentId };
@@ -1632,9 +1647,11 @@ function renderSettingsData() {
           const projectId = node.dataset.projectId || "";
           const form = foundationsRoot.querySelector(`.foundation-tool-form[data-project-id="${projectId}"]`);
           if (!preset || !form) return;
+          form.profile.value = preset.profile;
           form.target.value = preset.target;
           form.platform.value = preset.platform;
           form.packageMode.value = preset.packageMode;
+          form.runtimeMode.value = preset.runtimeMode;
           form.installRoot.value = preset.installRoot;
           form.machineLabel.value = preset.machineLabel;
           setStatus(`Applied ${node.textContent?.trim() || "foundation"} preset.`, "ok");

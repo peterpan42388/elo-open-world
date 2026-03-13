@@ -370,6 +370,16 @@ const server = http.createServer(async (req, res) => {
           agentConfig: "json",
           installPlan: "json",
           bootstrapReport: "json"
+        },
+        profiles: [
+          "macos-homebrew",
+          "linux-systemd",
+          "server-docker-compose"
+        ],
+        profileDescriptions: {
+          "macos-homebrew": "Local macOS install using Homebrew-managed dependencies.",
+          "linux-systemd": "Local Linux install with a systemd user service.",
+          "server-docker-compose": "Server install using Docker Compose."
         }
       });
     }

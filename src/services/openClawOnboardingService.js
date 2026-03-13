@@ -1,5 +1,32 @@
 import { text, token } from "../lib/validation.js";
 
+const FOUNDATION_INSTALL_PROFILES = {
+  "macos-homebrew": {
+    target: "local",
+    platform: "macos",
+    packageMode: "node",
+    runtimeMode: "homebrew",
+    installRoot: "~/elo-open-world",
+    machineLabel: "macbook-homebrew"
+  },
+  "linux-systemd": {
+    target: "local",
+    platform: "linux",
+    packageMode: "node",
+    runtimeMode: "systemd",
+    installRoot: "~/elo-open-world",
+    machineLabel: "linux-systemd"
+  },
+  "server-docker-compose": {
+    target: "server",
+    platform: "linux",
+    packageMode: "docker",
+    runtimeMode: "docker-compose",
+    installRoot: "/opt/elo-open-world",
+    machineLabel: "server-docker-compose"
+  }
+};
+
 export class OpenClawOnboardingService {
   constructor({ identityRegistry, defaultWorldUrl = "http://127.0.0.1:8788" }) {
     this.identityRegistry = identityRegistry;
@@ -77,17 +104,23 @@ export class OpenClawOnboardingService {
     humanId,
     agentId,
     worldUrl = "",
+    profile = "",
     target = "local",
     platform = "unknown",
     packageMode = "node",
+    runtimeMode = "",
     installRoot = "~/elo-open-world",
     machineLabel = ""
   }) {
-    const bundle = this.generateBundle({ humanId, agentId, worldUrl, machineLabel });
-    const safeTarget = token("target", target || "local", 32).toLowerCase();
-    const safePlatform = token("platform", platform || "unknown", 32).toLowerCase();
-    const safePackageMode = token("packageMode", packageMode || "node", 32).toLowerCase();
-    const safeInstallRoot = text("installRoot", installRoot || "~/elo-open-world", 512);
+    const safeProfile = token("profile", profile || "", 64).toLowerCase();
+    const selected = FOUNDATION_INSTALL_PROFILES[safeProfile] || {};
+    const safeMachineLabel = text("machineLabel", machineLabel || selected.machineLabel || "", 128);
+    const bundle = this.generateBundle({ humanId, agentId, worldUrl, machineLabel: safeMachineLabel });
+    const safeTarget = token("target", target || selected.target || "local", 32).toLowerCase();
+    const safePlatform = token("platform", platform || selected.platform || "unknown", 32).toLowerCase();
+    const safePackageMode = token("packageMode", packageMode || selected.packageMode || "node", 32).toLowerCase();
+    const safeRuntimeMode = token("runtimeMode", runtimeMode || selected.runtimeMode || (safePackageMode === "docker" ? "docker-compose" : "local-process"), 64).toLowerCase();
+    const safeInstallRoot = text("installRoot", installRoot || selected.installRoot || "~/elo-open-world", 512);
 
     const steps = [
       {
@@ -111,7 +144,49 @@ export class OpenClawOnboardingService {
       }
     ];
 
-    if (safePackageMode === "docker") {
+    if (safeProfile === "macos-homebrew") {
+      steps.push({
+        id: "install-homebrew-runtime",
+        title: "Install runtime via Homebrew",
+        action: "homebrew-runtime",
+        command: "brew install node && brew install jq",
+        rationale: "Homebrew is the supported dependency path for macOS desktop installs."
+      });
+    } else if (safeProfile === "linux-systemd") {
+      steps.push(
+        {
+          id: "install-linux-runtime",
+          title: "Install Linux runtime dependencies",
+          action: "linux-runtime",
+          command: "install node and system packages using apt/yum/zypper",
+          rationale: "Linux desktop installs should prepare a long-running local service."
+        },
+        {
+          id: "write-systemd-unit",
+          title: "Write systemd user unit",
+          action: "systemd-unit",
+          command: "write ~/.config/systemd/user/openclaw.service",
+          rationale: "systemd user services provide restart and login persistence."
+        }
+      );
+    } else if (safeProfile === "server-docker-compose") {
+      steps.push(
+        {
+          id: "install-docker-compose",
+          title: "Install Docker Compose runtime",
+          action: "docker-compose-runtime",
+          command: "install docker engine and docker compose plugin",
+          rationale: "Server installs should prefer Docker Compose for repeatable operations."
+        },
+        {
+          id: "write-compose-stack",
+          title: "Write docker compose stack",
+          action: "docker-compose-stack",
+          command: "write docker-compose.yml and env files into install root",
+          rationale: "Compose files define the runtime shape and restart policy."
+        }
+      );
+    } else if (safePackageMode === "docker") {
       steps.push({
         id: "install-runtime",
         title: "Install runtime via Docker",
@@ -134,6 +209,7 @@ export class OpenClawOnboardingService {
         id: "start-runtime",
         title: "Start local runtime",
         action: "start-runtime",
+        command: safeProfile === "server-docker-compose" ? "docker compose up -d" : (safeProfile === "linux-systemd" ? "systemctl --user enable --now openclaw.service" : (safePackageMode === "docker" ? "docker run ..." : "start your local OpenClaw-compatible runtime")),
         rationale: "Bring the user-owned agent runtime online before reporting status."
       },
       {
@@ -151,9 +227,11 @@ export class OpenClawOnboardingService {
       identity: bundle.identity,
       runtime: bundle.runtime,
       target: {
+        profile: safeProfile || "custom",
         target: safeTarget,
         platform: safePlatform,
         packageMode: safePackageMode,
+        runtimeMode: safeRuntimeMode,
         installRoot: safeInstallRoot
       },
       world: bundle.world,
@@ -317,3 +395,6 @@ curl -sS -X POST "$WORLD_URL/api/agents/status" \
 `;
   }
 }
+
+
+export { FOUNDATION_INSTALL_PROFILES };
