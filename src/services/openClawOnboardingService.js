@@ -39,7 +39,8 @@ function buildRuntimeContract(cfg, world) {
   return JSON.stringify({
     contract: "elo-agent-onboarder.runtime-contract.v1",
     runtime: cfg.runtime,
-    entrypoint: "openclaw-runtime.js",
+    entrypoint: "bin/openclaw-runtime.js",
+    configPath: "config/openclaw-runtime.json",
     healthPath: `${(cfg.endpoint || "http://127.0.0.1:18789").replace(/\/$/, "")}/health`,
     statusApi: `${world.apiBaseUrl}/api/agents/status`,
     expectedEnv: [
@@ -53,12 +54,37 @@ function buildRuntimeContract(cfg, world) {
   }, null, 2) + "\n";
 }
 
+function buildRuntimeConfigTemplate(cfg, world) {
+  return JSON.stringify({
+    contract: "elo-agent-onboarder.runtime-config.example.v1",
+    runtime: cfg.runtime,
+    worldUrl: world.apiBaseUrl,
+    humanId: cfg.humanId,
+    agentId: cfg.agentId,
+    model: cfg.model || "",
+    endpoint: cfg.endpoint || "http://127.0.0.1:18789",
+    healthPath: `${(cfg.endpoint || "http://127.0.0.1:18789").replace(/\/$/, "")}/health`,
+    paths: {
+      installRoot: cfg.installRoot,
+      configFile: "config/openclaw-runtime.json",
+      runtimeEntrypoint: "bin/openclaw-runtime.js",
+      dataDir: "data",
+      logDir: "logs"
+    },
+    notes: [
+      "Copy this file to config/openclaw-runtime.json and adjust runtime-specific fields.",
+      "Provide a compatible OpenClaw runtime implementation before starting."
+    ]
+  }, null, 2) + "\n";
+}
+
 function buildProfileTemplates(cfg, world) {
   const shellRoot = shellPath(cfg.installRoot);
   const systemdRoot = systemdPath(cfg.installRoot);
   if (cfg.profile === "macos-homebrew") {
     return {
       "runtime-contract.json": buildRuntimeContract(cfg, world),
+      "config/openclaw-runtime.example.json": buildRuntimeConfigTemplate(cfg, world),
       "Brewfile": [
         'tap "homebrew/core"',
         'brew "node"',
@@ -125,6 +151,10 @@ mkdir -p "$ROOT"/{bin,config,logs,data}
 brew bundle --file "$SCRIPT_DIR/Brewfile"
 cp "$SCRIPT_DIR/.env.local" "$ROOT/.env.local"
 cp "$SCRIPT_DIR/runtime-contract.json" "$ROOT/runtime-contract.json"
+cp "$SCRIPT_DIR/config/openclaw-runtime.example.json" "$ROOT/config/openclaw-runtime.example.json"
+if [ ! -f "$ROOT/config/openclaw-runtime.json" ]; then
+  cp "$ROOT/config/openclaw-runtime.example.json" "$ROOT/config/openclaw-runtime.json"
+fi
 cp "$SCRIPT_DIR/healthcheck.sh" "$ROOT/healthcheck.sh"
 cp "$SCRIPT_DIR/report-status.sh" "$ROOT/report-status.sh"
 cp "$SCRIPT_DIR/stop-openclaw.sh" "$ROOT/stop-openclaw.sh"
@@ -139,6 +169,7 @@ echo "Next step: $ROOT/start-openclaw.sh"
 set -eu
 ROOT="\${1:-${shellRoot}}"
 ENV_FILE="$ROOT/.env.local"
+CONFIG_FILE="$ROOT/config/openclaw-runtime.json"
 
 if ! command -v node >/dev/null 2>&1; then
   echo "node is required but was not found in PATH"
@@ -153,13 +184,24 @@ fi
 
 cd "$ROOT"
 
-if [ ! -f "./openclaw-runtime.js" ]; then
-  echo "openclaw-runtime.js is missing in $ROOT"
+RUNTIME_FILE="$ROOT/bin/openclaw-runtime.js"
+if [ ! -f "$RUNTIME_FILE" ]; then
+  RUNTIME_FILE="$ROOT/openclaw-runtime.js"
+fi
+
+if [ ! -f "$RUNTIME_FILE" ]; then
+  echo "openclaw runtime entrypoint is missing in $ROOT/bin or $ROOT"
   echo "Place your OpenClaw-compatible runtime here before starting."
   exit 1
 fi
 
-exec node ./openclaw-runtime.js
+if [ ! -f "$CONFIG_FILE" ]; then
+  echo "runtime config is missing at $CONFIG_FILE"
+  exit 1
+fi
+
+export OPENCLAW_RUNTIME_CONFIG="$CONFIG_FILE"
+exec node "$RUNTIME_FILE"
 `
     };
   }
@@ -167,12 +209,14 @@ exec node ./openclaw-runtime.js
   if (cfg.profile === "linux-systemd") {
     return {
       "runtime-contract.json": buildRuntimeContract(cfg, world),
+      "config/openclaw-runtime.example.json": buildRuntimeConfigTemplate(cfg, world),
       "openclaw.env": `ELO_OPEN_WORLD_API_BASE=${world.apiBaseUrl}
 ELO_OPEN_WORLD_HUMAN_ID=${cfg.humanId}
 ELO_OPEN_WORLD_AGENT_ID=${cfg.agentId}
 ELO_OPEN_WORLD_AGENT_MODEL=${cfg.model || ""}
 ELO_OPEN_WORLD_AGENT_ENDPOINT=${cfg.endpoint || ""}
 OPENCLAW_INSTALL_ROOT=${shellRoot}
+OPENCLAW_RUNTIME_CONFIG=${shellRoot}/config/openclaw-runtime.json
 `,
       "healthcheck.sh": `#!/usr/bin/env sh
 set -eu
@@ -218,6 +262,7 @@ After=network-online.target
 [Service]
 WorkingDirectory=${systemdRoot}
 EnvironmentFile=${systemdRoot}/openclaw.env
+Environment=OPENCLAW_RUNTIME_CONFIG=${systemdRoot}/config/openclaw-runtime.json
 ExecStart=${systemdRoot}/start-openclaw.sh
 ExecReload=/bin/sh -lc 'systemctl --user restart openclaw.service'
 ExecStop=/bin/sh -lc 'pkill -f "${systemdRoot}/openclaw-runtime.js" || true'
@@ -230,6 +275,7 @@ WantedBy=default.target
       "start-openclaw.sh": `#!/usr/bin/env sh
 set -eu
 ROOT="${shellRoot}"
+CONFIG_FILE="$ROOT/config/openclaw-runtime.json"
 
 if ! command -v node >/dev/null 2>&1; then
   echo "node is required but was not found in PATH"
@@ -244,19 +290,34 @@ fi
 
 cd "$ROOT"
 
-if [ ! -f "./openclaw-runtime.js" ]; then
-  echo "openclaw-runtime.js is missing in $ROOT"
+RUNTIME_FILE="$ROOT/bin/openclaw-runtime.js"
+if [ ! -f "$RUNTIME_FILE" ]; then
+  RUNTIME_FILE="$ROOT/openclaw-runtime.js"
+fi
+
+if [ ! -f "$RUNTIME_FILE" ]; then
+  echo "openclaw runtime entrypoint is missing in $ROOT/bin or $ROOT"
   exit 1
 fi
 
-exec /usr/bin/env node "$ROOT/openclaw-runtime.js"
+if [ ! -f "$CONFIG_FILE" ]; then
+  echo "runtime config is missing at $CONFIG_FILE"
+  exit 1
+fi
+
+export OPENCLAW_RUNTIME_CONFIG="\${OPENCLAW_RUNTIME_CONFIG:-$CONFIG_FILE}"
+exec /usr/bin/env node "$RUNTIME_FILE"
 `,
       "install-systemd.sh": `#!/usr/bin/env sh
 set -eu
 ROOT="\${1:-${shellRoot}}"
-mkdir -p "$ROOT" ~/.config/systemd/user
+mkdir -p "$ROOT"/{bin,config,logs,data} ~/.config/systemd/user
 cp openclaw.env "$ROOT/openclaw.env"
 cp runtime-contract.json "$ROOT/runtime-contract.json"
+cp config/openclaw-runtime.example.json "$ROOT/config/openclaw-runtime.example.json"
+if [ ! -f "$ROOT/config/openclaw-runtime.json" ]; then
+  cp "$ROOT/config/openclaw-runtime.example.json" "$ROOT/config/openclaw-runtime.json"
+fi
 cp start-openclaw.sh "$ROOT/start-openclaw.sh"
 cp healthcheck.sh "$ROOT/healthcheck.sh"
 cp report-status.sh "$ROOT/report-status.sh"
@@ -273,6 +334,7 @@ systemctl --user enable --now openclaw.service
   if (cfg.profile === "server-docker-compose") {
     return {
       "runtime-contract.json": buildRuntimeContract(cfg, world),
+      "config/openclaw-runtime.example.json": buildRuntimeConfigTemplate(cfg, world),
       "docker-compose.yml": `services:
   openclaw:
     image: ghcr.io/example/openclaw:latest
@@ -304,6 +366,7 @@ OPENCLAW_INSTALL_ROOT=${shellRoot}
   openclaw:
     environment:
       OPENCLAW_LOG_LEVEL: info
+      OPENCLAW_RUNTIME_CONFIG: /app/config/openclaw-runtime.json
     volumes:
       - ./config:/app/config
 `,
@@ -343,6 +406,10 @@ set -eu
 ROOT="\${1:-${shellRoot}}"
 mkdir -p "$ROOT"/{data,logs,config}
 cp runtime-contract.json "$ROOT/runtime-contract.json"
+cp config/openclaw-runtime.example.json "$ROOT/config/openclaw-runtime.example.json"
+if [ ! -f "$ROOT/config/openclaw-runtime.json" ]; then
+  cp "$ROOT/config/openclaw-runtime.example.json" "$ROOT/config/openclaw-runtime.json"
+fi
 cp docker-compose.yml "$ROOT/docker-compose.yml"
 cp docker-compose.override.yml "$ROOT/docker-compose.override.yml"
 cp .env "$ROOT/.env"

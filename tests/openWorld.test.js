@@ -243,6 +243,7 @@ test("onboarder install-plan and bootstrap report should align with setup-pack c
   assert.equal(plan.target.runtimeMode, "homebrew");
   assert.ok(plan.templates.Brewfile);
   assert.ok(plan.templates["runtime-contract.json"]);
+  assert.ok(plan.templates["config/openclaw-runtime.example.json"]);
   assert.ok(plan.templates[".env.local"]);
   assert.ok(plan.templates["install-homebrew.sh"]);
   assert.ok(plan.templates["healthcheck.sh"]);
@@ -272,6 +273,7 @@ test("onboarder install-plan and bootstrap report should align with setup-pack c
   assert.equal(report.plan.target.runtimeMode, "docker-compose");
   assert.ok(report.templates["docker-compose.yml"]);
   assert.ok(report.templates["runtime-contract.json"]);
+  assert.ok(report.templates["config/openclaw-runtime.example.json"]);
   assert.ok(report.templates[".env"]);
   assert.ok(report.templates["docker-compose.override.yml"]);
   assert.ok(report.templates["healthcheck.sh"]);
