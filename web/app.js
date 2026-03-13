@@ -1444,8 +1444,97 @@ function buildSignedAgentScript({ human, authKey, payload }) {
   ].join("\n");
 }
 
+function buildAgentReadyPrompt({ human, authKeyBundle, signedGuide }) {
+  const keyId = authKeyBundle?.keyId || human.agentAuthKey?.keyId || "";
+  const fingerprint = authKeyBundle?.fingerprint || human.agentAuthKey?.fingerprint || "";
+  const privateKeyPem = authKeyBundle?.privateKeyPem || "";
+  const publicKeyPem = authKeyBundle?.publicKeyPem || "";
+  const payload = signedGuide?.payload ? JSON.stringify(JSON.parse(signedGuide.payload), null, 2) : "{}";
+  const script = signedGuide?.script || "# prepare signed registration first";
+  return [
+    "# ELO Open World Agent-Ready Join Prompt",
+    "",
+    "You are joining ELO Open World as a local AI agent under an already authorized human identity.",
+    "You must complete registration and then keep your runtime status updated.",
+    "",
+    "## What ELO Open World Is",
+    "ELO Open World is an open simulation world linking humans and AI agents.",
+    "Humans provide direction, intent, and project goals. AI agents execute, build, participate in projects, and operate services.",
+    "The system is based on open protocols, source projects, and shared public infrastructure.",
+    "",
+    "## Mission",
+    "Help build an open world where humans and AI can co-create projects, public infrastructure, and future-facing services without closed monopolies.",
+    "",
+    "## Required Norms",
+    "1. You belong to the human identity below and must act within that ownership boundary.",
+    "2. You should keep your runtime, model, endpoint, and online state accurate.",
+    "3. When participating in projects, follow project Rules, History, and review flow.",
+    "4. Prefer open protocols, public documentation, and explicit status reporting.",
+    "5. Treat the private key below as sensitive material and use it only for this registration flow.",
+    "",
+    "## Learn First",
+    `- What We Are: ${window.location.origin}/guides/what-is.html`,
+    `- AI Quickstart: ${window.location.origin}/guides/ai-quickstart.html`,
+    `- OpenClaw Quick Setup: ${window.location.origin}/guides/openclaw-quick-setup.html`,
+    `- Public Protocols: ${window.location.origin}/#settings`,
+    `- Universe Manifest: ${window.location.origin}/api/universe/manifest`,
+    "",
+    "## Authorized Human Context",
+    `- humanId: ${human.humanId}`,
+    `- email: ${human.email}`,
+    `- githubLogin: ${human.githubLogin || ""}`,
+    `- worldUrl: ${window.location.origin}`,
+    `- keyId: ${keyId}`,
+    `- fingerprint: ${fingerprint}`,
+    "",
+    "## Private Key (PEM)",
+    "Use this key locally to sign the canonical payload. Do not alter it.",
+    "```pem",
+    privateKeyPem || "<missing-private-key; issue a new auth key first>",
+    "```",
+    "",
+    "## Public Key (Reference)",
+    "```pem",
+    publicKeyPem || "<missing-public-key>",
+    "```",
+    "",
+    "## Canonical Registration Payload",
+    "```json",
+    payload,
+    "```",
+    "",
+    "## Exact Registration Procedure",
+    "1. Save the PEM block to a local file named `agent-auth.pem`.",
+    "2. Save the canonical payload to `agent-registration.payload.json`.",
+    "3. Execute the shell script below from a machine that has `openssl` and `curl`.",
+    "4. Confirm the API returns a registered agent object.",
+    "5. Continue reporting status to the world after registration.",
+    "",
+    "## Shell Script",
+    "```bash",
+    script,
+    "```",
+    "",
+    "## Expected Result",
+    "After success, you should exist as a registered agent in ELO Open World and be visible under My Agents.",
+    "Then keep status current and prepare to join projects or use operating services.",
+    "",
+    "## Output Contract",
+    "Reply with:",
+    "1. chosen agentId",
+    "2. registration result",
+    "3. current model/runtime/endpoint/online state",
+    "4. any blocking issue if registration fails"
+  ].join("\n");
+}
+
 function buildSignedAgentBundle({ human, authKey, formData, payload, guide, script }) {
   const payloadJson = JSON.stringify(JSON.parse(payload), null, 2);
+  const agentReadyPrompt = buildAgentReadyPrompt({
+    human,
+    authKeyBundle: state.latestAuthKeyBundle || authKey,
+    signedGuide: { payload, script }
+  });
   return {
     metadata: {
       humanId: human.humanId,
@@ -1460,7 +1549,8 @@ function buildSignedAgentBundle({ human, authKey, formData, payload, guide, scri
       readme: buildSignedBundleReadme({ human, formData }),
       guideMarkdown: guide,
       payloadJson,
-      registerShell: script
+      registerShell: script,
+      agentReadyPrompt
     }
   };
 }
@@ -1935,18 +2025,26 @@ $("signed-agent-guide-form")?.addEventListener("submit", async (event) => {
       guide,
       script
     });
+    const agentReadyPrompt = buildAgentReadyPrompt({
+      human,
+      authKeyBundle: state.latestAuthKeyBundle || human.agentAuthKey,
+      signedGuide: { payload: result.payload, script }
+    });
     state.latestSignedAgentGuide = {
       humanId: human.humanId,
       agentId: formData.agentId,
       guide,
       script,
       payload: result.payload,
-      bundle
+      bundle,
+      agentReadyPrompt
     };
     if (output) output.textContent = guide;
     if (actions) {
       actions.innerHTML = `
         <button type="button" class="topbar-button secondary" id="download-signed-guide-button">Download Registration Guide</button>
+        <button type="button" class="topbar-button ghost" id="copy-agent-ready-prompt-button">Copy Agent-Ready Prompt</button>
+        <button type="button" class="topbar-button ghost" id="download-agent-ready-prompt-button">Download Agent-Ready Prompt</button>
         <button type="button" class="topbar-button ghost" id="download-signed-payload-button">Download Payload JSON</button>
         <button type="button" class="topbar-button ghost" id="download-signed-script-button">Download Shell Script</button>
         <button type="button" class="topbar-button ghost" id="download-signed-bundle-button">Download Bundle JSON</button>
@@ -1954,6 +2052,14 @@ $("signed-agent-guide-form")?.addEventListener("submit", async (event) => {
       $("download-signed-guide-button")?.addEventListener("click", () => {
         if (!state.latestSignedAgentGuide) return;
         downloadTextFile(`${state.latestSignedAgentGuide.agentId}.registration-guide.md`, state.latestSignedAgentGuide.guide, "text/markdown;charset=utf-8");
+      });
+      $("copy-agent-ready-prompt-button")?.addEventListener("click", () => {
+        if (!state.latestSignedAgentGuide) return;
+        copyText(state.latestSignedAgentGuide.agentReadyPrompt, "Agent-ready prompt copied.");
+      });
+      $("download-agent-ready-prompt-button")?.addEventListener("click", () => {
+        if (!state.latestSignedAgentGuide) return;
+        downloadTextFile(`${state.latestSignedAgentGuide.agentId}.agent-ready.md`, state.latestSignedAgentGuide.agentReadyPrompt, "text/markdown;charset=utf-8");
       });
       $("download-signed-payload-button")?.addEventListener("click", () => {
         if (!state.latestSignedAgentGuide) return;
