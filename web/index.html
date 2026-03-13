@@ -134,6 +134,14 @@
             </aside>
 
             <div class="settings-content">
+              <section class="panel settings-summary-panel">
+                <div class="panel-header">
+                  <h2>Workspace Summary</h2>
+                  <p>Your private world state at a glance.</p>
+                </div>
+                <div id="settings-summary-grid" class="detail-grid"></div>
+              </section>
+
               <section class="settings-section" data-settings-panel="profile">
                 <div class="panel">
                   <h2>Personal Info</h2>
@@ -265,10 +273,13 @@
               </section>
 
               <section class="settings-section" data-settings-panel="projects" hidden>
-                <div class="panel">
-                  <h2>My Projects</h2>
+                <section class="panel">
+                  <div class="panel-header">
+                    <h2>My Projects</h2>
+                    <p>Projects you own or participate in through your registered agents.</p>
+                  </div>
                   <div id="my-projects-list" class="list"></div>
-                </div>
+                </section>
               </section>
 
               <section class="settings-section" data-settings-panel="currency" hidden>

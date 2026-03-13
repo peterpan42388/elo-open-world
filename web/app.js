@@ -639,6 +639,7 @@ function renderSettingsData() {
   const profile = $("settings-profile");
   const profileActions = $("profile-actions");
   const profileKeyPanel = $("profile-key-panel");
+  const settingsSummaryGrid = $("settings-summary-grid");
   const securityPanel = $("settings-security-content");
   const privacyPanel = $("settings-privacy-content");
   const protocolsPanel = $("settings-protocols-content");
@@ -649,6 +650,7 @@ function renderSettingsData() {
     if (profile) profile.innerHTML = "";
     if (profileActions) profileActions.innerHTML = "";
     if (profileKeyPanel) profileKeyPanel.innerHTML = "";
+    if (settingsSummaryGrid) settingsSummaryGrid.innerHTML = "";
     if (securityPanel) securityPanel.innerHTML = "";
     if (privacyPanel) privacyPanel.innerHTML = "";
     if (protocolsPanel) protocolsPanel.innerHTML = "";
@@ -656,6 +658,29 @@ function renderSettingsData() {
     if (projectsRoot) projectsRoot.innerHTML = "";
     if (signedActions) signedActions.innerHTML = "";
     return;
+  }
+
+  const agents = currentHumanAgents();
+  const projects = currentHumanProjects();
+  const ownedProjects = projects.filter((project) => project.ownerHumanId === human.humanId);
+  const participatingProjects = projects.filter((project) => project.ownerHumanId !== human.humanId);
+  const operatingProjects = projects.filter((project) => String(project.stage || "").toLowerCase() === "operating");
+  const linkedGitHubStatus = human.githubLogin ? "Linked" : "Not linked";
+
+  if (settingsSummaryGrid) {
+    settingsSummaryGrid.innerHTML = [
+      ["Human", human.displayName || human.humanId],
+      ["GitHub", linkedGitHubStatus],
+      ["Agents", agents.length],
+      ["Projects", projects.length],
+      ["Owned Projects", ownedProjects.length],
+      ["Operating", operatingProjects.length]
+    ].map(([label, value]) => `
+      <div class="detail-item">
+        <span>${label}</span>
+        <strong>${value}</strong>
+      </div>
+    `).join("");
   }
 
   profile.innerHTML = [
@@ -870,7 +895,6 @@ function renderSettingsData() {
     if (requirementForm.reviewerHumanId && !requirementForm.reviewerHumanId.value) requirementForm.reviewerHumanId.value = human.humanId;
   }
 
-  const agents = currentHumanAgents();
   if (agentsRoot) {
     if (!agents.length) {
       agentsRoot.innerHTML = `
@@ -949,12 +973,38 @@ function renderSettingsData() {
     }
   }
 
-  const projects = currentHumanProjects();
   if (projectsRoot) {
     if (!projects.length) {
-      projectsRoot.innerHTML = '<div class="empty">No projects linked to this user yet.</div>';
+      projectsRoot.innerHTML = `
+        <div class="guide-grid">
+          <article class="guide-card">
+            <span class="guide-step">BUILD</span>
+            <h3>No Projects Yet</h3>
+            <p>You do not own or participate in any source project yet. Start from Build to create a requirement or a source repository.</p>
+            <button type="button" class="topbar-button secondary" data-route-target="build">Open Build</button>
+          </article>
+          <article class="guide-card">
+            <span class="guide-step">NEXT</span>
+            <h3>What This Page Will Become</h3>
+            <p>This workspace will evolve into project membership, governance, and contribution management. The current version focuses on visibility and project identity.</p>
+          </article>
+        </div>
+      `;
+      projectsRoot.querySelectorAll("[data-route-target]").forEach((node) => {
+        node.addEventListener("click", () => goToRoute(node.dataset.routeTarget));
+      });
     } else {
-      projectsRoot.innerHTML = projects.map((project) => `
+      projectsRoot.innerHTML = `
+        <div class="project-workspace-summary">
+          <div class="detail-grid compact">
+            <div class="detail-item"><span>All Projects</span><strong>${projects.length}</strong></div>
+            <div class="detail-item"><span>Owned</span><strong>${ownedProjects.length}</strong></div>
+            <div class="detail-item"><span>Participating</span><strong>${participatingProjects.length}</strong></div>
+            <div class="detail-item"><span>Operating</span><strong>${operatingProjects.length}</strong></div>
+          </div>
+        </div>
+        <div class="list-stack">
+        ${projects.map((project) => `
         <details class="expand-card">
           <summary>
             <div class="summary-row">
@@ -968,11 +1018,18 @@ function renderSettingsData() {
           </summary>
           <div class="expand-body">
             <p>Purpose: ${project.summary || "Not specified"}</p>
+            <div class="tag-row">
+              ${createBadge(project.stage === "operating" ? "Operating Service" : "Source Project")}
+              ${(project.tags || []).map((tag) => `<span class="subtle-tag">${tag}</span>`).join("")}
+            </div>
             <div class="detail-grid compact">
               <div class="detail-item"><span>Owner</span><strong>${project.ownerHumanId}</strong></div>
+              <div class="detail-item"><span>Relation</span><strong>${project.ownerHumanId === human.humanId ? "Owner" : "Participant"}</strong></div>
               <div class="detail-item"><span>Agents</span><strong>${project.memberAgentIds?.length || 0}</strong></div>
               <div class="detail-item"><span>Plugins</span><strong>${project.pluginIds?.length || 0}</strong></div>
               <div class="detail-item"><span>Repository</span><strong>${project.repoName}</strong></div>
+              <div class="detail-item"><span>Stage</span><strong>${project.stage || "source"}</strong></div>
+              <div class="detail-item"><span>State</span><strong>${projectStateLabel(project.state)}</strong></div>
             </div>
             <div class="nested-list">
               ${(project.memberAgentIds || []).length ? (project.memberAgentIds || []).map((agentId) => `
@@ -984,11 +1041,17 @@ function renderSettingsData() {
             </div>
             <div class="tag-row action-row">
           <button type="button" class="topbar-button secondary edit-project-button" data-edit-project="${project.projectId}">Edit Metadata</button>
+          <button type="button" class="topbar-button ghost" data-route-target="build">Open In Build</button>
           <a href="${project.repoUrl}" target="_blank" rel="noreferrer">Open GitHub Repo</a>
         </div>
           </div>
         </details>
-      `).join("");
+      `).join("")}
+        </div>
+      `;
+      projectsRoot.querySelectorAll("[data-route-target]").forEach((node) => {
+        node.addEventListener("click", () => goToRoute(node.dataset.routeTarget));
+      });
     }
   }
 }

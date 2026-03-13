@@ -736,6 +736,16 @@ pre,
   padding: 0 18px 18px;
 }
 
+.settings-summary-panel {
+  margin-bottom: 16px;
+}
+
+.project-workspace-summary {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
 .oauth-block {
   margin-top: 14px;
   display: grid;
