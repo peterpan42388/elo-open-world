@@ -811,3 +811,17 @@ pre,
   color: var(--muted);
   line-height: 1.6;
 }
+
+
+.vertical-stack {
+  display: grid;
+  gap: 12px;
+}
+
+.agent-guides .guide-grid {
+  grid-template-columns: 1fr;
+}
+
+.advanced-tools-panel .panel-header {
+  align-items: start;
+}

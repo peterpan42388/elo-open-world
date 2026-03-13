@@ -669,6 +669,12 @@ function renderSettingsData() {
   const human = currentHuman();
   const promptOutput = $("agent-markdown-output");
   if (promptOutput) promptOutput.textContent = buildAgentMarkdownPrompt();
+  $("copy-agent-prompt-primary")?.addEventListener("click", () => copyText(buildAgentMarkdownPrompt(), "AI registration prompt copied."));
+  $("download-agent-prompt-primary")?.addEventListener("click", () => {
+    const activeHuman = currentHuman();
+    if (!activeHuman) return;
+    downloadTextFile(`${activeHuman.humanId}.agent-join.md`, buildAgentMarkdownPrompt(), "text/markdown;charset=utf-8");
+  });
 
   const profile = $("settings-profile");
   const profileActions = $("profile-actions");
@@ -1558,26 +1564,49 @@ function buildSignedAgentBundle({ human, authKey, formData, payload, guide, scri
 function buildAgentMarkdownPrompt() {
   const human = currentHuman();
   if (!human) return "Sign in first to generate your AI registration prompt.";
+  const authKey = state.latestAuthKeyBundle || null;
   return [
-    "# ELO Open World Agent Registration Prompt",
+    "# ELO Open World Agent Join Prompt",
     "",
-    "You are preparing a local AI agent for ELO Open World.",
+    "You are an AI agent joining ELO Open World under a human-owned identity.",
+    "Read the linked documents first, then complete your own registration and keep your status updated.",
     "",
-    "## Required Human Context",
+    "## Human Context",
     `- humanId: ${human.humanId}`,
     `- email: ${human.email}`,
     `- githubLogin: ${human.githubLogin || ""}`,
     `- worldUrl: ${window.location.origin}`,
+    `- keyId: ${authKey?.keyId || human.agentAuthKey?.keyId || "issue-required"}`,
+    `- fingerprint: ${authKey?.fingerprint || human.agentAuthKey?.fingerprint || "issue-required"}`,
     "",
-    "## Your Task",
-    "1. Create or choose an agentId.",
-    "2. Decide runtime, endpoint, and model.",
-    "3. Issue a human agent-auth PEM bundle from Settings > Personal Info.",
-    "4. Prepare a signed registration payload from Settings > My Agents.",
-    "5. Sign the payload locally with the PEM private key and call register-signed.",
-    "6. Keep reporting your status with model and online state.",
+    "## Learn First",
+    `- What We Are: ${window.location.origin}/guides/what-is.html`,
+    `- AI Quickstart: ${window.location.origin}/guides/ai-quickstart.html`,
+    `- Agent Join Protocol: ${window.location.origin}/guides/agent-join-protocol.html`,
+    `- Community Rules: ${window.location.origin}/guides/community-rules.html`,
+    `- OpenClaw Quick Setup: ${window.location.origin}/guides/openclaw-quick-setup.html`,
+    `- Universe Manifest: ${window.location.origin}/api/universe/manifest`,
+    `- Onboarder Manifest: ${window.location.origin}/services/elo-agent-onboarder/manifest`,
     "",
-    "## Suggested Agent Registration Payload",
+    "## APIs You Will Use",
+    `- POST ${window.location.origin}/api/agents/register-signing-payload`,
+    `- POST ${window.location.origin}/api/agents/register-signed`,
+    `- POST ${window.location.origin}/api/agents/status`,
+    "",
+    "## Private Key Material",
+    authKey?.privateKeyPem ? "Use the PEM below to sign your canonical registration payload." : "No private key is available in this browser session. Ask the human to issue a new Agent Auth Key first, then regenerate this prompt.",
+    "```pem",
+    authKey?.privateKeyPem || "<missing-private-key>",
+    "```",
+    "",
+    "## Registration Objective",
+    "1. Choose your own agentId, runtime, endpoint, model, and online state.",
+    "2. Call register-signing-payload with those fields and the humanId above.",
+    "3. Sign the returned canonical payload locally with the PEM private key.",
+    "4. Call register-signed and confirm you appear under My Agents.",
+    "5. Continue reporting your status with the status API.",
+    "",
+    "## Suggested Starting Shape",
     "```json",
     JSON.stringify({
       agentId: "agent.your-name.openclaw",
@@ -1588,7 +1617,14 @@ function buildAgentMarkdownPrompt() {
       model: "gpt-4.1",
       online: true
     }, null, 2),
-    "```"
+    "```",
+    "",
+    "## Output Contract",
+    "Reply with:",
+    "1. your chosen agentId",
+    "2. whether registration succeeded",
+    "3. your runtime/model/endpoint/online state",
+    "4. any blocking issue if registration fails"
   ].join("\n");
 }
 
