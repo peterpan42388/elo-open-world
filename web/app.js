@@ -217,8 +217,12 @@ function loadRequirementIntoProjectForm(requirement) {
   if (form.requirementId) form.requirementId.value = requirement.requirementId;
   if (form.kind && !form.kind.value) form.kind.value = requirement.desiredKind || "";
   if (form.title && !form.title.value) form.title.value = requirement.title || "";
-  if (form.summary && !form.summary.value) form.summary.value = requirement.summary || "";
-  if (form.tags && !form.tags.value) form.tags.value = (requirement.tags || []).join(", ");
+  if (form.summary && !form.summary.value) form.summary.value = buildProjectSummaryFromRequirement(requirement);
+  if (form.tags && !form.tags.value) {
+    const tagSet = new Set([...(requirement.tags || []), ...((requirement.latestRefinementSummary?.milestones || []).length ? ["agent-refined"] : [])]);
+    form.tags.value = [...tagSet].join(", ");
+  }
+  renderProjectRequirementPreview(requirement);
 }
 
 function buildProjectStarterPrompt(requirement) {
@@ -289,6 +293,36 @@ function renderRefinementSummary(summary) {
         <strong>Open Questions</strong>
         <ul class="content-list">${questions}</ul>
       </div>
+    </div>
+  `;
+}
+
+function buildProjectSummaryFromRequirement(requirement) {
+  const summary = requirement?.latestRefinementSummary || {};
+  const parts = [
+    requirement?.summary || "",
+    summary.restatedRequirement ? `Restated requirement:\n${summary.restatedRequirement}` : "",
+    summary.projectDirection ? `Project direction:\n${summary.projectDirection}` : "",
+    (summary.milestones || []).length ? `Initial milestones:\n- ${(summary.milestones || []).join("\n- ")}` : "",
+    (summary.questions || []).length ? `Open questions:\n- ${(summary.questions || []).join("\n- ")}` : ""
+  ].filter(Boolean);
+  return parts.join("\n\n");
+}
+
+function renderProjectRequirementPreview(requirement) {
+  const root = $("project-requirement-preview");
+  if (!root) return;
+  if (!requirement) {
+    root.innerHTML = '<p class="note">Select a requirement to preload its refined summary into the project form.</p>';
+    return;
+  }
+  root.innerHTML = `
+    <div class="starter-conversation-panel">
+      <div class="summary-row">
+        <strong>Requirement Preview</strong>
+        <span>${requirement.requirementId}</span>
+      </div>
+      ${renderRefinementSummary(requirement.latestRefinementSummary)}
     </div>
   `;
 }
@@ -1701,6 +1735,8 @@ function renderRequirementSelect(requirements) {
   if (available.some((item) => item.requirementId === current)) {
     select.value = current;
   }
+  const selected = available.find((item) => item.requirementId === select.value);
+  renderProjectRequirementPreview(selected || null);
 }
 
 function buildSignedAgentGuide({ human, authKey, formData, payload }) {
@@ -2392,6 +2428,16 @@ $("agent-status-form")?.addEventListener("submit", (event) => handleSubmit(event
 $("plugin-form")?.addEventListener("submit", (event) => handleSubmit(event, "/api/plugins/register", (result) => `Plugin created: ${result.pluginId}`, "build"));
 $("project-form")?.addEventListener("submit", (event) => handleSubmit(event, "/api/projects/create", (result) => `Project created: ${result.projectId} -> ${result.repoFullName}`, "build"));
 $("project-edit-form")?.addEventListener("submit", (event) => handleSubmit(event, "/api/projects/update", (result) => `Project updated: ${result.projectId}`, "build"));
+$("project-requirement-select")?.addEventListener("change", (event) => {
+  const requirementId = event.currentTarget.value;
+  const requirement = (state.summary?.requirements || []).find((item) => item.requirementId === requirementId);
+  if (requirement) {
+    loadRequirementIntoProjectForm(requirement);
+    setStatus(`Requirement ${requirement.requirementId} preloaded into the project form.`, "ok");
+  } else {
+    renderProjectRequirementPreview(null);
+  }
+});
 
 $("preset-onboarder-button")?.addEventListener("click", () => {
   const form = $("project-form");
