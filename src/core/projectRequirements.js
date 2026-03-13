@@ -12,6 +12,8 @@ export class ProjectRequirementRegistry {
     summary = "",
     desiredKind = "other",
     tags = [],
+    source = "manual",
+    primaryAgentId = "",
     createdByType,
     createdById,
     ownerHumanId = "",
@@ -30,6 +32,16 @@ export class ProjectRequirementRegistry {
         throw new Error("agent ownerHumanId does not match provided ownerHumanId");
       }
     }
+    const safePrimaryAgentId = primaryAgentId ? token("primaryAgentId", primaryAgentId, 128) : "";
+    if (safePrimaryAgentId) {
+      const agent = this.identityRegistry.getAgent(safePrimaryAgentId);
+      const effectiveOwnerHumanId = safeCreatedByType === "human"
+        ? safeCreatedById
+        : safeOwnerHumanId || this.identityRegistry.getAgent(safeCreatedById).humanId;
+      if (agent.humanId !== effectiveOwnerHumanId) {
+        throw new Error("primaryAgentId must belong to the requirement owner");
+      }
+    }
     if (reviewerHumanId) this.identityRegistry.getHuman(token("reviewerHumanId", reviewerHumanId, 128));
 
     const requirement = {
@@ -38,6 +50,8 @@ export class ProjectRequirementRegistry {
       summary: text("summary", summary, 2000),
       desiredKind: token("desiredKind", desiredKind, 64).toLowerCase(),
       tags: csvArray(tags, "tag", 64),
+      source: token("source", source || "manual", 64).toLowerCase(),
+      primaryAgentId: safePrimaryAgentId,
       createdByType: safeCreatedByType,
       createdById: safeCreatedById,
       ownerHumanId: safeCreatedByType === "human" ? safeCreatedById : safeOwnerHumanId || this.identityRegistry.getAgent(safeCreatedById).humanId,

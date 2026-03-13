@@ -657,16 +657,28 @@ test("requirements should be creatable by humans and linked into project creatio
     password: "secret-req"
   });
 
+  await world.identity.registerAgent({
+    agentId: "agent.req.openclaw",
+    humanId: "human.req",
+    label: "Req Agent",
+    model: "gpt-5.1",
+    online: true
+  });
+
   const requirement = await world.requirements.create({
     title: "Create onboarding skill",
     summary: "Need a project that helps new users configure OpenClaw and join the world.",
     desiredKind: "app",
     tags: ["onboarding", "skill"],
+    source: "project-starter",
+    primaryAgentId: "agent.req.openclaw",
     createdByType: "human",
     createdById: "human.req"
   });
 
   assert.equal(requirement.status, "drafted");
+  assert.equal(requirement.source, "project-starter");
+  assert.equal(requirement.primaryAgentId, "agent.req.openclaw");
 
   const project = await world.projects.create({
     ownerHumanId: "human.req",

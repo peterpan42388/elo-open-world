@@ -219,6 +219,49 @@ function loadRequirementIntoProjectForm(requirement) {
   if (form.tags && !form.tags.value) form.tags.value = (requirement.tags || []).join(", ");
 }
 
+function buildProjectStarterPrompt(requirement) {
+  if (!requirement) return "Create a starter requirement first.";
+  const origin = window.location.origin;
+  return [
+    "# ELO Open World Project Starter Brief",
+    "",
+    "You are the primary agent selected by your human for a new ELO Open World project.",
+    "",
+    "## World Context",
+    `- World URL: ${origin}`,
+    `- Requirement ID: ${requirement.requirementId}`,
+    `- Primary Agent ID: ${requirement.primaryAgentId || "not-recorded"}`,
+    `- Owner Human ID: ${requirement.ownerHumanId}`,
+    `- Desired Kind: ${requirement.desiredKind || "other"}`,
+    `- Source: ${requirement.source || "manual"}`,
+    "",
+    "## Requirement",
+    `- Title: ${requirement.title}`,
+    `- Summary: ${requirement.summary || "No summary provided."}`,
+    `- Tags: ${(requirement.tags || []).join(", ") || "none"}`,
+    "",
+    "## Learn Before Acting",
+    `- What We Are: ${origin}/guides/what-is.html`,
+    `- AI Quickstart: ${origin}/guides/ai-quickstart.html`,
+    `- Community Rules: ${origin}/guides/community-rules.html`,
+    `- Agent Join Protocol: ${origin}/guides/agent-join-protocol.html`,
+    `- Universe Manifest: ${origin}/api/universe/manifest`,
+    "",
+    "## Your Task",
+    "1. Understand the requirement and restate it clearly for the human.",
+    "2. Propose a first implementation direction under EOW project rules.",
+    "3. When ready, tell the human to continue in Build with this requirement.",
+    "4. Once a source project exists, participate under the assigned project role.",
+    "",
+    "## Output Format",
+    "- Restated requirement",
+    "- Suggested project direction",
+    "- First implementation milestones",
+    "- Any open questions for the human",
+    ""
+  ].join("\n");
+}
+
 function downloadTextFile(filename, content, mimeType = "text/plain;charset=utf-8") {
   const blob = new Blob([content], { type: mimeType });
   const url = URL.createObjectURL(blob);
@@ -1088,6 +1131,8 @@ function renderSettingsData() {
         <div class="action-row">
           <button type="button" class="topbar-button secondary" id="starter-open-build-link">Open Build With Requirement</button>
           <button type="button" class="topbar-button ghost" id="starter-copy-requirement-id">Copy Requirement ID</button>
+          <button type="button" class="topbar-button ghost" id="starter-copy-agent-brief">Copy Agent Brief</button>
+          <button type="button" class="topbar-button ghost" id="starter-download-agent-brief">Download Agent Brief</button>
         </div>
         <p class="note">The starter requirement is ready. Continue in Build when you want to create the GitHub source project.</p>
       ` : `
@@ -1113,6 +1158,17 @@ function renderSettingsData() {
         if (state.latestStarterRequirement?.requirementId) {
           copyText(state.latestStarterRequirement.requirementId, "Requirement ID copied.");
         }
+      });
+      $("starter-copy-agent-brief")?.addEventListener("click", () => {
+        copyText(buildProjectStarterPrompt(state.latestStarterRequirement), "Project starter brief copied.");
+      });
+      $("starter-download-agent-brief")?.addEventListener("click", () => {
+        if (!state.latestStarterRequirement) return;
+        downloadTextFile(
+          `${state.latestStarterRequirement.requirementId}.starter-brief.md`,
+          buildProjectStarterPrompt(state.latestStarterRequirement),
+          "text/markdown;charset=utf-8"
+        );
       });
     }
 
@@ -1417,6 +1473,8 @@ function renderRequirements(requirements) {
         <div class="detail-grid compact">
           <div class="detail-item"><span>Created By</span><strong>${item.createdByType}: ${item.createdById}</strong></div>
           <div class="detail-item"><span>Owner Human</span><strong>${item.ownerHumanId}</strong></div>
+          <div class="detail-item"><span>Primary Agent</span><strong>${item.primaryAgentId || "Not set"}</strong></div>
+          <div class="detail-item"><span>Source</span><strong>${item.source || "manual"}</strong></div>
           <div class="detail-item"><span>Reviewer</span><strong>${item.reviewerHumanId || "Not assigned"}</strong></div>
           <div class="detail-item"><span>Accepted By</span><strong>${item.acceptedByHumanId || "-"}</strong></div>
           <div class="detail-item"><span>Rejected By</span><strong>${item.rejectedByHumanId || "-"}</strong></div>
@@ -2147,6 +2205,8 @@ $("project-starter-form")?.addEventListener("submit", async (event) => {
       ].join("\n"),
       desiredKind: form.desiredKind.value || "app",
       tags: [form.tags.value, "starter"].filter(Boolean).join(", "),
+      source: "project-starter",
+      primaryAgentId: form.primaryAgentId.value,
       createdByType: "human",
       createdById: human.humanId,
       ownerHumanId: human.humanId,
