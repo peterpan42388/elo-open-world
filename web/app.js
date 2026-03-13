@@ -131,6 +131,10 @@ function foundationProjects() {
   return (state.summary.projects || []).filter((project) => preferredRepos.has(project.repoFullName));
 }
 
+function foundationWorkspace(project) {
+  return FOUNDATION_PROJECT_WORKSPACES[project.repoFullName] || { focus: "Foundation project.", docs: [] };
+}
+
 function filterProjectsByScope(projects, humanId) {
   const scope = state.settingsProjectScope || "all";
   if (scope === "owned") return projects.filter((project) => project.ownerHumanId === humanId);
@@ -1415,34 +1419,62 @@ function renderSettingsData() {
     }
 
     if (foundationsRoot) {
-      foundationsRoot.innerHTML = foundations.length ? foundations.map((project) => `
-        <details class="expand-card" open>
-          <summary>
-            <div class="summary-row">
-              <strong>${project.title}</strong>
-              <div class="tag-row">
-                ${createBadge(projectTypeLabel(project.kind))}
-                ${createBadge(projectStateLabel(project.state))}
+      foundationsRoot.innerHTML = foundations.length ? foundations.map((project) => {
+        const workspace = foundationWorkspace(project);
+        const docs = workspace.docs || [];
+        const serviceEndpoint = project.serviceEndpoint || "";
+        const serviceLinks = serviceEndpoint ? `
+          <a href="${serviceEndpoint}" target="_blank" rel="noreferrer">Open Service</a>
+          <a href="${serviceEndpoint}/health" target="_blank" rel="noreferrer">Health</a>
+          <a href="${serviceEndpoint}/manifest" target="_blank" rel="noreferrer">Manifest</a>
+        ` : "";
+        return `
+          <details class="expand-card foundation-card" open>
+            <summary>
+              <div class="summary-row">
+                <strong>${project.title}</strong>
+                <div class="tag-row">
+                  ${createBadge(projectTypeLabel(project.kind))}
+                  ${createBadge(projectStateLabel(project.state))}
+                </div>
+              </div>
+              <span>${project.repoName}</span>
+            </summary>
+            <div class="expand-body">
+              <p>${project.summary || "No summary provided."}</p>
+              <p class="note"><strong>Development Focus:</strong> ${workspace.focus}</p>
+              <div class="tag-row">${(project.tags || []).map((tag) => `<span class="subtle-tag">${tag}</span>`).join("")}</div>
+              <div class="detail-grid compact">
+                <div class="detail-item"><span>Repository</span><strong>${project.repoFullName}</strong></div>
+                <div class="detail-item"><span>Stage</span><strong>${project.stage || "source"}</strong></div>
+                <div class="detail-item"><span>State</span><strong>${projectStateLabel(project.state)}</strong></div>
+                <div class="detail-item"><span>Service</span><strong class="detail-code">${serviceEndpoint || "Not exposed yet"}</strong></div>
+              </div>
+              ${docs.length ? `
+                <div class="copy-stack foundation-docs">
+                  <strong>Workspace Docs</strong>
+                  <div class="action-row">
+                    ${docs.map((item) => `<a href="${item.href}" target="_blank" rel="noreferrer">${item.label}</a>`).join("")}
+                  </div>
+                </div>
+              ` : ""}
+              <div class="action-row">
+                <a href="${project.repoUrl}" target="_blank" rel="noreferrer">Open GitHub Repo</a>
+                ${serviceLinks}
+                <button type="button" class="topbar-button ghost foundation-open-project" data-project-id="${project.projectId}">Open In My Projects</button>
               </div>
             </div>
-            <span>${project.repoName}</span>
-          </summary>
-          <div class="expand-body">
-            <p>${project.summary || "No summary provided."}</p>
-            <div class="tag-row">${(project.tags || []).map((tag) => `<span class="subtle-tag">${tag}</span>`).join("")}</div>
-            <div class="detail-grid compact">
-              <div class="detail-item"><span>Repository</span><strong>${project.repoFullName}</strong></div>
-              <div class="detail-item"><span>Stage</span><strong>${project.stage || "source"}</strong></div>
-              <div class="detail-item"><span>State</span><strong>${projectStateLabel(project.state)}</strong></div>
-              <div class="detail-item"><span>Service</span><strong class="detail-code">${project.serviceEndpoint || "Not exposed yet"}</strong></div>
-            </div>
-            <div class="action-row">
-              <a href="${project.repoUrl}" target="_blank" rel="noreferrer">Open GitHub Repo</a>
-              ${project.serviceEndpoint ? `<a href="${project.serviceEndpoint}" target="_blank" rel="noreferrer">Open Service</a>` : ""}
-            </div>
-          </div>
-        </details>
-      `).join("") : '<div class="empty">Foundation projects will appear here after registration into the universe.</div>';
+          </details>
+        `;
+      }).join("") : '<div class="empty">Foundation projects will appear here after registration into the universe.</div>';
+      foundationsRoot.querySelectorAll('.foundation-open-project').forEach((node) => {
+        node.addEventListener('click', () => {
+          state.settingsProjectScope = 'all';
+          renderSettingsData();
+          const target = document.querySelector(`[data-project-card="${node.dataset.projectId}"]`);
+          if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+      });
     }
 
     const scopedProjects = filterProjectsByScope(projects, human.humanId);

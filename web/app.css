@@ -878,3 +878,13 @@ pre,
   color: var(--accent-strong);
   word-break: break-all;
 }
+
+
+.foundation-card .action-row a,
+.foundation-card .action-row button {
+  margin-right: 8px;
+}
+
+.foundation-docs .action-row {
+  flex-wrap: wrap;
+}
