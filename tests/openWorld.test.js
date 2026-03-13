@@ -247,6 +247,7 @@ test("onboarder install-plan and bootstrap report should align with setup-pack c
   assert.ok(plan.templates["install-homebrew.sh"]);
   assert.ok(plan.templates["healthcheck.sh"]);
   assert.ok(plan.templates["report-status.sh"]);
+  assert.match(plan.templates["report-status.sh"], /"runtime": "openclaw"/);
   assert.ok(plan.templates["stop-openclaw.sh"]);
   assert.ok(plan.templates["start-openclaw.sh"]);
   assert.equal(plan.artifactBundle.contract, "elo-agent-onboarder.artifact-bundle.v1");

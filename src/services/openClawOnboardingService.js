@@ -603,6 +603,7 @@ export class OpenClawOnboardingService {
       agentId: bundle.identity.agentId,
       profile: safeProfile || "custom",
       installRoot: safeInstallRoot,
+      runtime: bundle.runtime.runtime,
       model: bundle.runtime.model,
       endpoint: bundle.runtime.endpoint
     }, bundle.world);
