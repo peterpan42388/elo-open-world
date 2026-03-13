@@ -255,6 +255,19 @@ button:hover { filter: brightness(1.05); }
 .guide-card h3 { font-size: 20px; }
 .guide-card p { margin: 0; color: var(--muted); }
 
+.starter-note-card,
+.starter-conversation-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.starter-conversation-panel {
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 16px;
+  padding: 14px;
+}
+
 .guide-step {
   display: inline-flex;
   width: fit-content;

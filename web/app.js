@@ -48,7 +48,9 @@ const state = {
     githubEnabled: false
   },
   latestStarterRequirement: null,
-  starterRequirementId: ""
+  starterRequirementId: "",
+  starterBridgeStatus: null,
+  latestStarterConversation: null
 };
 
 bootstrapSessionFromUrl();
@@ -260,6 +262,59 @@ function buildProjectStarterPrompt(requirement) {
     "- Any open questions for the human",
     ""
   ].join("\n");
+}
+
+function bridgeStatusLabel() {
+  if (!state.starterBridgeStatus) return "Not checked";
+  if (!state.starterBridgeStatus.available) return "Plugin not detected";
+  if (!state.starterBridgeStatus.configured) return "Plugin detected, configuration incomplete";
+  return "Ready";
+}
+
+async function inspectStarterBridge() {
+  if (!window.ELOAgentBridge || typeof window.ELOAgentBridge.getConfig !== "function") {
+    state.starterBridgeStatus = {
+      available: false,
+      configured: false,
+      config: null
+    };
+    return state.starterBridgeStatus;
+  }
+  const response = await window.ELOAgentBridge.getConfig();
+  const config = response?.config || {};
+  state.starterBridgeStatus = {
+    available: true,
+    configured: Boolean(config.enabled && config.agentId && config.agentEndpoint),
+    config
+  };
+  return state.starterBridgeStatus;
+}
+
+async function sendStarterPromptToPrimaryAgent(requirement, extraContext = "") {
+  if (!window.ELOAgentBridge || typeof window.ELOAgentBridge.sendPrompt !== "function") {
+    throw new Error("Browser bridge is not available. Load elo-agent-web-plugin first.");
+  }
+  const prompt = [
+    buildProjectStarterPrompt(requirement),
+    extraContext.trim() ? `## Extra Human Context\n${extraContext.trim()}` : ""
+  ].filter(Boolean).join("\n\n");
+  const response = await window.ELOAgentBridge.sendPrompt({
+    prompt,
+    context: {
+      mode: "project-starter",
+      requirementId: requirement.requirementId,
+      primaryAgentId: requirement.primaryAgentId || "",
+      ownerHumanId: requirement.ownerHumanId,
+      desiredKind: requirement.desiredKind || "other",
+      tags: requirement.tags || []
+    }
+  });
+  state.latestStarterConversation = {
+    requestedAt: Date.now(),
+    prompt,
+    response: response?.result || response || {}
+  };
+  return state.latestStarterConversation;
 }
 
 function downloadTextFile(filename, content, mimeType = "text/plain;charset=utf-8") {
@@ -1127,14 +1182,30 @@ function renderSettingsData() {
           <div class="detail-item"><span>Requirement</span><strong>${state.latestStarterRequirement.requirementId}</strong></div>
           <div class="detail-item"><span>Status</span><strong>${requirementStatusLabel(state.latestStarterRequirement.status)}</strong></div>
           <div class="detail-item"><span>Main Agent</span><strong>${state.latestStarterRequirement.primaryAgentId || "Not set"}</strong></div>
+          <div class="detail-item"><span>Browser Bridge</span><strong>${bridgeStatusLabel()}</strong></div>
         </div>
+        <textarea id="starter-extra-context" placeholder="Optional extra context for your primary agent."></textarea>
         <div class="action-row">
           <button type="button" class="topbar-button secondary" id="starter-open-build-link">Open Build With Requirement</button>
           <button type="button" class="topbar-button ghost" id="starter-copy-requirement-id">Copy Requirement ID</button>
           <button type="button" class="topbar-button ghost" id="starter-copy-agent-brief">Copy Agent Brief</button>
           <button type="button" class="topbar-button ghost" id="starter-download-agent-brief">Download Agent Brief</button>
+          <button type="button" class="topbar-button ghost" id="starter-check-bridge">Check Browser Bridge</button>
+          <button type="button" class="topbar-button secondary" id="starter-send-to-agent">Ask Primary Agent</button>
         </div>
-        <p class="note">The starter requirement is ready. Continue in Build when you want to create the GitHub source project.</p>
+        <p class="note">The starter requirement is ready. Continue in Build when you want to create the GitHub source project. If the browser plugin is configured, you can ask your primary agent to refine the idea first.</p>
+        <div class="copy-stack">
+          <p class="note">Need the browser bridge first? Load the extension from the <code>elo-agent-web-plugin</code> repository and configure your local agent endpoint.</p>
+        </div>
+        ${state.latestStarterConversation ? `
+          <div class="starter-conversation-panel">
+            <div class="summary-row">
+              <strong>Primary Agent Response</strong>
+              <span>${formatTimestamp(state.latestStarterConversation.requestedAt)}</span>
+            </div>
+            <pre class="code-block compact">${JSON.stringify(state.latestStarterConversation.response, null, 2)}</pre>
+          </div>
+        ` : ""}
       ` : `
         <div class="guide-card starter-note-card">
           <span class="guide-step">START</span>
@@ -1169,6 +1240,31 @@ function renderSettingsData() {
           buildProjectStarterPrompt(state.latestStarterRequirement),
           "text/markdown;charset=utf-8"
         );
+      });
+      $("starter-check-bridge")?.addEventListener("click", async () => {
+        try {
+          await inspectStarterBridge();
+          renderSettingsData();
+          const config = state.starterBridgeStatus?.config || {};
+          setStatus(
+            state.starterBridgeStatus?.configured
+              ? `Browser bridge ready for agent ${config.agentId || "unknown"}`
+              : "Browser bridge detected but not fully configured.",
+            state.starterBridgeStatus?.configured ? "ok" : "error"
+          );
+        } catch (error) {
+          setStatus(error.message, "error");
+        }
+      });
+      $("starter-send-to-agent")?.addEventListener("click", async () => {
+        try {
+          const extraContext = $("starter-extra-context")?.value || "";
+          const conversation = await sendStarterPromptToPrimaryAgent(state.latestStarterRequirement, extraContext);
+          renderSettingsData();
+          setStatus(`Primary agent responded at ${formatTimestamp(conversation.requestedAt)}`, "ok");
+        } catch (error) {
+          setStatus(error.message, "error");
+        }
       });
     }
 
