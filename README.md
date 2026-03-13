@@ -148,3 +148,5 @@ The Web UI now includes `ELO OpenClaw Onboarding Assistant`:
 - `docs/PARALLEL_UNIVERSE.md`
 - `docs/WHAT_IS_ELO_OPEN_WORLD.md`
 - `docs/AI_QUICKSTART.md`
+- `docs/EOW_REGRESSION_ARCHIVE_2026-03-12.md`
+- `docs/GITHUB_AUTH_MANUAL_CHECKLIST.md`
