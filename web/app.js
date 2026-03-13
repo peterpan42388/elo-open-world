@@ -23,6 +23,11 @@ const state = {
   latestSignedAgentGuide: null,
   activeSettingsSection: SETTINGS_DEFAULT_SECTION,
   settingsProjectScope: "all",
+  settingsProjectFilters: {
+    kind: "",
+    state: "",
+    tag: ""
+  },
   selectedGraphProjectId: "",
   buildFilters: {
     kind: "",
@@ -118,6 +123,17 @@ function filterProjectsByScope(projects, humanId) {
   if (scope === "participating") return projects.filter((project) => project.ownerHumanId !== humanId);
   if (scope === "operating") return projects.filter((project) => String(project.stage || "").toLowerCase() === "operating");
   return projects;
+}
+
+function filterSettingsProjects(projects) {
+  const tag = state.settingsProjectFilters.tag.trim().toLowerCase();
+  return projects.filter((project) => {
+    const kindPass = !state.settingsProjectFilters.kind || String(project.kind || "").toLowerCase() === state.settingsProjectFilters.kind;
+    const statePass = !state.settingsProjectFilters.state || String(project.state || "").toLowerCase() === state.settingsProjectFilters.state;
+    const tags = (project.tags || []).map((item) => String(item).toLowerCase());
+    const tagPass = !tag || tags.some((item) => item.includes(tag));
+    return kindPass && statePass && tagPass;
+  });
 }
 
 function projectMemberRole(project, agentId) {
@@ -676,6 +692,10 @@ function renderSettingsData() {
   const operatingProjects = projects.filter((project) => String(project.stage || "").toLowerCase() === "operating");
   const linkedGitHubStatus = human.githubLogin ? "Linked" : "Not linked";
   const authMethodLabel = (human.authMethods || []).length ? human.authMethods.join(" + ") : human.admissionMethod || "unknown";
+  const onlineAgents = agents.filter((agent) => agent.online).length;
+  const workingAgents = agents.filter((agent) => agent.online && agent.model).length;
+  const idleAgents = agents.filter((agent) => !agent.online && agent.model).length;
+  const offlineAgents = agents.filter((agent) => !agent.online && !agent.model).length;
 
   if (settingsSummaryGrid) {
     settingsSummaryGrid.innerHTML = [
@@ -932,6 +952,13 @@ function renderSettingsData() {
       $("copy-agent-prompt-empty")?.addEventListener("click", () => copyText(buildAgentMarkdownPrompt(), "AI registration prompt copied."));
     } else {
       agentsRoot.innerHTML = `
+        <div class="detail-grid compact agent-summary-grid">
+          <div class="detail-item"><span>All Agents</span><strong>${agents.length}</strong></div>
+          <div class="detail-item"><span>Online</span><strong>${onlineAgents}</strong></div>
+          <div class="detail-item"><span>Working</span><strong>${workingAgents}</strong></div>
+          <div class="detail-item"><span>Idle</span><strong>${idleAgents}</strong></div>
+          <div class="detail-item"><span>Offline</span><strong>${offlineAgents}</strong></div>
+        </div>
         <div class="action-row">
           <a class="topbar-button secondary" href="/guides/ai-quickstart.html" target="_blank" rel="noreferrer">Open Agent Guide</a>
           <a class="topbar-button ghost" href="/guides/openclaw-quick-setup.html" target="_blank" rel="noreferrer">Open Quick Setup</a>
@@ -986,6 +1013,7 @@ function renderSettingsData() {
 
   if (projectsRoot) {
     const scopedProjects = filterProjectsByScope(projects, human.humanId);
+    const visibleProjects = filterSettingsProjects(scopedProjects);
     if (!projects.length) {
       projectsRoot.innerHTML = `
         <div class="guide-grid">
@@ -1021,8 +1049,15 @@ function renderSettingsData() {
           <button type="button" class="topbar-button ${state.settingsProjectScope === "participating" ? "secondary" : "ghost"}" data-project-scope="participating">Participating</button>
           <button type="button" class="topbar-button ${state.settingsProjectScope === "operating" ? "secondary" : "ghost"}" data-project-scope="operating">Operating</button>
         </div>
+        <div class="filter-summary">
+          ${[
+            state.settingsProjectFilters.kind ? `type: ${projectTypeLabel(state.settingsProjectFilters.kind)}` : "",
+            state.settingsProjectFilters.state ? `state: ${projectStateLabel(state.settingsProjectFilters.state)}` : "",
+            state.settingsProjectFilters.tag ? `tag: ${state.settingsProjectFilters.tag}` : ""
+          ].filter(Boolean).join(" | ") || "No active project filters."}
+        </div>
         <div class="list-stack">
-        ${scopedProjects.length ? scopedProjects.map((project) => `
+        ${visibleProjects.length ? visibleProjects.map((project) => `
         <details class="expand-card">
           <summary>
             <div class="summary-row">
@@ -1064,7 +1099,7 @@ function renderSettingsData() {
         </div>
           </div>
         </details>
-      `).join("") : '<div class="empty">No projects match the current scope.</div>'}
+      `).join("") : '<div class="empty">No projects match the current scope and filter.</div>'}
         </div>
       `;
       projectsRoot.querySelectorAll("[data-project-scope]").forEach((node) => {
@@ -1891,6 +1926,21 @@ $("market-filter-query")?.addEventListener("input", (event) => {
 $("market-sort")?.addEventListener("change", (event) => {
   state.marketFilters.sort = event.currentTarget.value;
   renderAll();
+});
+
+$("settings-project-filter-kind")?.addEventListener("change", (event) => {
+  state.settingsProjectFilters.kind = event.currentTarget.value.trim().toLowerCase();
+  renderSettingsData();
+});
+
+$("settings-project-filter-state")?.addEventListener("change", (event) => {
+  state.settingsProjectFilters.state = event.currentTarget.value.trim().toLowerCase();
+  renderSettingsData();
+});
+
+$("settings-project-filter-tag")?.addEventListener("input", (event) => {
+  state.settingsProjectFilters.tag = event.currentTarget.value.trim();
+  renderSettingsData();
 });
 
 $("github-auth-button")?.addEventListener("click", () => {

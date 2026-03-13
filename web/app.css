@@ -681,6 +681,7 @@ pre,
   .settings-shell,
   .workspace-shell,
   .infra-diagram { grid-template-columns: 1fr; }
+  .project-settings-filters { grid-template-columns: 1fr; }
   .infra-arrow { transform: rotate(90deg); }
 }
 
@@ -749,6 +750,24 @@ pre,
 .project-scope-switcher {
   margin-bottom: 16px;
   flex-wrap: wrap;
+}
+
+.project-settings-filters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 12px 0 16px;
+}
+
+.project-settings-filters label {
+  display: grid;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.agent-summary-grid {
+  margin-bottom: 16px;
 }
 
 .oauth-block {

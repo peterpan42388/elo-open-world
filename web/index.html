@@ -288,6 +288,33 @@
                     <h2>My Projects</h2>
                     <p>Projects you own or participate in through your registered agents. Use the scope switcher to focus the list.</p>
                   </div>
+                  <div class="project-settings-filters">
+                    <label>
+                      <span>Type</span>
+                      <select id="settings-project-filter-kind">
+                        <option value="">All</option>
+                        <option value="protocol">Protocol</option>
+                        <option value="skill">Skill</option>
+                        <option value="workflow">Workflow</option>
+                        <option value="app">App</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </label>
+                    <label>
+                      <span>State</span>
+                      <select id="settings-project-filter-state">
+                        <option value="">All</option>
+                        <option value="initialized">Initialized</option>
+                        <option value="developing">Developing</option>
+                        <option value="operating">Operating</option>
+                        <option value="paused">Paused</option>
+                      </select>
+                    </label>
+                    <label>
+                      <span>Tag</span>
+                      <input id="settings-project-filter-tag" placeholder="tag" />
+                    </label>
+                  </div>
                   <div id="my-projects-list" class="list"></div>
                 </section>
               </section>
