@@ -126,6 +126,76 @@ server.listen(port, "0.0.0.0", () => {
 `;
 }
 
+function buildBootstrapRunnerTemplate(cfg) {
+  const shellRoot = shellPath(cfg.installRoot);
+  if (cfg.profile === "server-docker-compose") {
+    return `#!/usr/bin/env sh
+set -eu
+ROOT="\${1:-${shellRoot}}"
+cd "$ROOT"
+
+echo "[1/3] Bootstrapping docker compose runtime"
+./bootstrap.sh "$ROOT"
+
+echo "[2/3] Running health checks"
+./healthcheck.sh "$ROOT"
+
+echo "[3/3] Reporting agent status to EOW"
+./report-status.sh "$ROOT"
+
+echo
+echo "Bootstrap execution completed for ${cfg.agentId}"
+`;
+  }
+
+  if (cfg.profile === "linux-systemd") {
+    return `#!/usr/bin/env sh
+set -eu
+ROOT="\${1:-${shellRoot}}"
+cd "$ROOT"
+
+echo "[1/4] Installing systemd runtime scaffold"
+./install-systemd.sh "$ROOT"
+
+echo "[2/4] Waiting for service boot"
+sleep 3
+
+echo "[3/4] Running health checks"
+./healthcheck.sh "$ROOT"
+
+echo "[4/4] Reporting agent status to EOW"
+./report-status.sh "$ROOT"
+
+echo
+echo "Bootstrap execution completed for ${cfg.agentId}"
+`;
+  }
+
+  return `#!/usr/bin/env sh
+set -eu
+ROOT="\${1:-${shellRoot}}"
+cd "$ROOT"
+
+echo "[1/4] Installing local runtime scaffold"
+./install-homebrew.sh "$ROOT"
+
+echo "[2/4] Starting local runtime"
+./start-openclaw.sh "$ROOT" >"$ROOT/logs/openclaw.stdout.log" 2>"$ROOT/logs/openclaw.stderr.log" &
+RUNTIME_PID=$!
+echo "$RUNTIME_PID" > "$ROOT/openclaw.pid"
+sleep 3
+
+echo "[3/4] Running health checks"
+./healthcheck.sh "$ROOT"
+
+echo "[4/4] Reporting agent status to EOW"
+./report-status.sh "$ROOT"
+
+echo
+echo "Bootstrap execution completed for ${cfg.agentId}. Runtime pid: $RUNTIME_PID"
+`;
+}
+
 function buildProfileTemplates(cfg, world) {
   const shellRoot = shellPath(cfg.installRoot);
   const systemdRoot = systemdPath(cfg.installRoot);
@@ -134,6 +204,7 @@ function buildProfileTemplates(cfg, world) {
       "runtime-contract.json": buildRuntimeContract(cfg, world),
       "config/openclaw-runtime.example.json": buildRuntimeConfigTemplate(cfg, world),
       "bin/openclaw-runtime.example.js": buildRuntimeStubTemplate(cfg, world),
+      "run-bootstrap.sh": buildBootstrapRunnerTemplate(cfg),
       "Brewfile": [
         'tap "homebrew/core"',
         'brew "node"',
@@ -212,8 +283,9 @@ cp "$SCRIPT_DIR/healthcheck.sh" "$ROOT/healthcheck.sh"
 cp "$SCRIPT_DIR/report-status.sh" "$ROOT/report-status.sh"
 cp "$SCRIPT_DIR/stop-openclaw.sh" "$ROOT/stop-openclaw.sh"
 cp "$SCRIPT_DIR/start-openclaw.sh" "$ROOT/start-openclaw.sh"
+cp "$SCRIPT_DIR/run-bootstrap.sh" "$ROOT/run-bootstrap.sh"
 chmod +x "$ROOT/start-openclaw.sh"
-chmod +x "$ROOT/healthcheck.sh" "$ROOT/report-status.sh" "$ROOT/stop-openclaw.sh"
+chmod +x "$ROOT/run-bootstrap.sh" "$ROOT/healthcheck.sh" "$ROOT/report-status.sh" "$ROOT/stop-openclaw.sh"
 
 echo "macOS runtime scaffold prepared at $ROOT"
 echo "Next step: $ROOT/start-openclaw.sh"
@@ -264,6 +336,7 @@ exec node "$RUNTIME_FILE"
       "runtime-contract.json": buildRuntimeContract(cfg, world),
       "config/openclaw-runtime.example.json": buildRuntimeConfigTemplate(cfg, world),
       "bin/openclaw-runtime.example.js": buildRuntimeStubTemplate(cfg, world),
+      "run-bootstrap.sh": buildBootstrapRunnerTemplate(cfg),
       "openclaw.env": `ELO_OPEN_WORLD_API_BASE=${world.apiBaseUrl}
 ELO_OPEN_WORLD_HUMAN_ID=${cfg.humanId}
 ELO_OPEN_WORLD_AGENT_ID=${cfg.agentId}
@@ -377,11 +450,12 @@ if [ ! -f "$ROOT/config/openclaw-runtime.json" ]; then
   cp "$ROOT/config/openclaw-runtime.example.json" "$ROOT/config/openclaw-runtime.json"
 fi
 cp start-openclaw.sh "$ROOT/start-openclaw.sh"
+cp run-bootstrap.sh "$ROOT/run-bootstrap.sh"
 cp healthcheck.sh "$ROOT/healthcheck.sh"
 cp report-status.sh "$ROOT/report-status.sh"
 cp stop-openclaw.sh "$ROOT/stop-openclaw.sh"
 chmod +x "$ROOT/start-openclaw.sh"
-chmod +x "$ROOT/healthcheck.sh" "$ROOT/report-status.sh" "$ROOT/stop-openclaw.sh"
+chmod +x "$ROOT/run-bootstrap.sh" "$ROOT/healthcheck.sh" "$ROOT/report-status.sh" "$ROOT/stop-openclaw.sh"
 cp openclaw.service ~/.config/systemd/user/openclaw.service
 systemctl --user daemon-reload
 systemctl --user enable --now openclaw.service
@@ -394,6 +468,7 @@ systemctl --user enable --now openclaw.service
       "runtime-contract.json": buildRuntimeContract(cfg, world),
       "config/openclaw-runtime.example.json": buildRuntimeConfigTemplate(cfg, world),
       "bin/openclaw-runtime.example.js": buildRuntimeStubTemplate(cfg, world),
+      "run-bootstrap.sh": buildBootstrapRunnerTemplate(cfg),
       "docker-compose.yml": `services:
   openclaw:
     image: ghcr.io/example/openclaw:latest
@@ -478,9 +553,10 @@ fi
 cp docker-compose.yml "$ROOT/docker-compose.yml"
 cp docker-compose.override.yml "$ROOT/docker-compose.override.yml"
 cp .env "$ROOT/.env"
+cp run-bootstrap.sh "$ROOT/run-bootstrap.sh"
 cp healthcheck.sh "$ROOT/healthcheck.sh"
 cp report-status.sh "$ROOT/report-status.sh"
-chmod +x "$ROOT/healthcheck.sh" "$ROOT/report-status.sh"
+chmod +x "$ROOT/run-bootstrap.sh" "$ROOT/healthcheck.sh" "$ROOT/report-status.sh"
 cd "$ROOT"
 docker compose pull
 docker compose up -d
