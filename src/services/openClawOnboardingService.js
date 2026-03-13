@@ -27,9 +27,17 @@ const FOUNDATION_INSTALL_PROFILES = {
   }
 };
 
+function shellPath(path) {
+  return path.startsWith("~/") ? `\${HOME}/${path.slice(2)}` : path;
+}
 
+function systemdPath(path) {
+  return path.startsWith("~/") ? `%h/${path.slice(2)}` : path;
+}
 
 function buildProfileTemplates(cfg, world) {
+  const shellRoot = shellPath(cfg.installRoot);
+  const systemdRoot = systemdPath(cfg.installRoot);
   if (cfg.profile === "macos-homebrew") {
     return {
       "Brewfile": [
@@ -43,12 +51,12 @@ ELO_OPEN_WORLD_HUMAN_ID=${cfg.humanId}
 ELO_OPEN_WORLD_AGENT_ID=${cfg.agentId}
 ELO_OPEN_WORLD_AGENT_MODEL=${cfg.model || ""}
 ELO_OPEN_WORLD_AGENT_ENDPOINT=${cfg.endpoint || ""}
-OPENCLAW_INSTALL_ROOT=${cfg.installRoot}
+OPENCLAW_INSTALL_ROOT=${shellRoot}
 OPENCLAW_PORT=18789
 `,
       "install-homebrew.sh": `#!/usr/bin/env sh
 set -eu
-ROOT="\${1:-${cfg.installRoot}}"
+ROOT="\${1:-${shellRoot}}"
 SCRIPT_DIR="$(CDPATH= cd -- "$(dirname "$0")" && pwd)"
 
 if ! command -v brew >/dev/null 2>&1; then
@@ -67,7 +75,7 @@ echo "Next step: $ROOT/start-openclaw.sh"
 `,
       "start-openclaw.sh": `#!/usr/bin/env sh
 set -eu
-ROOT="\${1:-${cfg.installRoot}}"
+ROOT="\${1:-${shellRoot}}"
 ENV_FILE="$ROOT/.env.local"
 
 if ! command -v node >/dev/null 2>&1; then
@@ -101,18 +109,18 @@ ELO_OPEN_WORLD_HUMAN_ID=${cfg.humanId}
 ELO_OPEN_WORLD_AGENT_ID=${cfg.agentId}
 ELO_OPEN_WORLD_AGENT_MODEL=${cfg.model || ""}
 ELO_OPEN_WORLD_AGENT_ENDPOINT=${cfg.endpoint || ""}
-OPENCLAW_INSTALL_ROOT=${cfg.installRoot}
+OPENCLAW_INSTALL_ROOT=${shellRoot}
 `,
       "openclaw.service": `[Unit]
 Description=OpenClaw runtime for ${cfg.agentId}
 After=network-online.target
 
 [Service]
-WorkingDirectory=${cfg.installRoot}
-EnvironmentFile=${cfg.installRoot}/openclaw.env
-ExecStart=${cfg.installRoot}/start-openclaw.sh
+WorkingDirectory=${systemdRoot}
+EnvironmentFile=${systemdRoot}/openclaw.env
+ExecStart=${systemdRoot}/start-openclaw.sh
 ExecReload=/bin/sh -lc 'systemctl --user restart openclaw.service'
-ExecStop=/bin/sh -lc 'pkill -f "${cfg.installRoot}/openclaw-runtime.js" || true'
+ExecStop=/bin/sh -lc 'pkill -f "${systemdRoot}/openclaw-runtime.js" || true'
 Restart=always
 RestartSec=5
 
@@ -121,7 +129,7 @@ WantedBy=default.target
 `,
       "start-openclaw.sh": `#!/usr/bin/env sh
 set -eu
-ROOT="${cfg.installRoot}"
+ROOT="${shellRoot}"
 
 if ! command -v node >/dev/null 2>&1; then
   echo "node is required but was not found in PATH"
@@ -145,7 +153,7 @@ exec /usr/bin/env node "$ROOT/openclaw-runtime.js"
 `,
       "install-systemd.sh": `#!/usr/bin/env sh
 set -eu
-ROOT="\${1:-${cfg.installRoot}}"
+ROOT="\${1:-${shellRoot}}"
 mkdir -p "$ROOT" ~/.config/systemd/user
 cp openclaw.env "$ROOT/openclaw.env"
 cp start-openclaw.sh "$ROOT/start-openclaw.sh"
@@ -184,11 +192,11 @@ ELO_OPEN_WORLD_HUMAN_ID=${cfg.humanId}
 ELO_OPEN_WORLD_AGENT_ID=${cfg.agentId}
 ELO_OPEN_WORLD_AGENT_MODEL=${cfg.model || ''}
 ELO_OPEN_WORLD_AGENT_ENDPOINT=${cfg.endpoint || ''}
-OPENCLAW_INSTALL_ROOT=${cfg.installRoot}
+OPENCLAW_INSTALL_ROOT=${shellRoot}
 `,
       "bootstrap.sh": `#!/usr/bin/env sh
 set -eu
-ROOT="\${1:-${cfg.installRoot}}"
+ROOT="\${1:-${shellRoot}}"
 mkdir -p "$ROOT"/{data,logs}
 cp docker-compose.yml "$ROOT/docker-compose.yml"
 cp .env "$ROOT/.env"
