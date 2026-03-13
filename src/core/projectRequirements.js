@@ -125,7 +125,7 @@ export class ProjectRequirementRegistry {
     return { ...requirement };
   }
 
-  async addRefinement({ requirementId, humanId, agentId, response }) {
+  async addRefinement({ requirementId, humanId, agentId, response, prompt = "", promptedAt = 0 }) {
     const safeRequirementId = token("requirementId", requirementId, 128);
     const safeHumanId = token("humanId", humanId, 128);
     const safeAgentId = token("agentId", agentId, 128);
@@ -140,6 +140,8 @@ export class ProjectRequirementRegistry {
     if (agent.humanId !== requirement.ownerHumanId) {
       throw new Error("agentId must belong to the requirement owner");
     }
+    const normalizedPrompt = text("prompt", prompt || "", 20000);
+    const safePromptedAt = Number(promptedAt) > 0 ? Number(promptedAt) : now();
     const normalizedResponse = typeof response === "string"
       ? { message: text("response", response, 8000) }
       : response && typeof response === "object"
@@ -149,7 +151,9 @@ export class ProjectRequirementRegistry {
     const entry = {
       agentId: safeAgentId,
       humanId: safeHumanId,
+      promptedAt: safePromptedAt,
       respondedAt: now(),
+      prompt: normalizedPrompt,
       response: normalizedResponse,
       summary: normalizeRefinementSummary(normalizedResponse)
     };
@@ -157,6 +161,21 @@ export class ProjectRequirementRegistry {
     requirement.refinementCount = requirement.agentRefinements.length;
     requirement.latestRefinementSummary = entry.summary;
     requirement.updatedAt = entry.respondedAt;
+    if (normalizedPrompt) {
+      requirement.conversationTimeline.push({
+        timelineId: uid("evt"),
+        type: "human-starter-message",
+        actorType: "human",
+        actorId: safeHumanId,
+        summary: normalizedPrompt.slice(0, 240),
+        details: {
+          prompt: normalizedPrompt,
+          requirementId: safeRequirementId,
+          primaryAgentId: safeAgentId
+        },
+        createdAt: safePromptedAt
+      });
+    }
     requirement.conversationTimeline.push(buildTimelineEntry({
       type: "agent-refinement",
       actorType: "agent",
@@ -167,6 +186,7 @@ export class ProjectRequirementRegistry {
         projectDirection: entry.summary.projectDirection,
         milestones: entry.summary.milestones,
         questions: entry.summary.questions,
+        prompt: normalizedPrompt,
         response: normalizedResponse
       }
     }));

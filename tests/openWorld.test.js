@@ -834,11 +834,12 @@ test("requirements should persist primary-agent refinements for the owner", asyn
     requirementId: requirement.requirementId,
     humanId: "human.refine",
     agentId: "agent.refine.openclaw",
+    prompt: "Please refine this starter requirement and suggest milestones.",
+    promptedAt: 1700000000000,
     response: {
       restatedRequirement: "Build a starter bridge",
       projectDirection: "Use the browser plugin as the transport layer.",
-      milestones: ["wire prompt", "persist refinement"]
-      ,
+      milestones: ["wire prompt", "persist refinement"],
       questions: ["Should the bridge persist chat history?"]
     }
   });
@@ -850,9 +851,11 @@ test("requirements should persist primary-agent refinements for the owner", asyn
   assert.equal(refined.latestRefinementSummary.projectDirection, "Use the browser plugin as the transport layer.");
   assert.equal(refined.latestRefinementSummary.milestones.length, 2);
   assert.equal(refined.latestRefinementSummary.questions[0], "Should the bridge persist chat history?");
-  assert.equal(refined.conversationTimeline.length, 2);
+  assert.equal(refined.conversationTimeline.length, 3);
   assert.equal(refined.conversationTimeline[0].type, "requirement-created");
-  assert.equal(refined.conversationTimeline[1].type, "agent-refinement");
+  assert.equal(refined.conversationTimeline[1].type, "human-starter-message");
+  assert.equal(refined.conversationTimeline[2].type, "agent-refinement");
+  assert.equal(refined.agentRefinements[0].prompt, "Please refine this starter requirement and suggest milestones.");
 });
 
 test("requirements should track review and implementation timeline events", async () => {

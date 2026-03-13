@@ -330,18 +330,28 @@ function renderConversationTimeline(requirement, limit = 6) {
   if (!items.length) return '<div class="empty">No starter timeline yet.</div>';
   return `
     <div class="timeline-list">
-      ${items.slice(-limit).map((entry) => `
-        <div class="timeline-item">
-          <div class="timeline-meta">
-            <strong>${formatTimelineType(entry.type)}</strong>
-            <span>${formatTimestamp(entry.createdAt)}</span>
+      ${items.slice(-limit).map((entry) => {
+        const prompt = entry?.details?.prompt || "";
+        const response = entry?.details?.response;
+        const detailBlock = prompt
+          ? `<pre class="code-block compact">${escapeHtml(prompt)}</pre>`
+          : response
+            ? `<pre class="code-block compact">${escapeHtml(JSON.stringify(response, null, 2))}</pre>`
+            : "";
+        return `
+          <div class="timeline-item">
+            <div class="timeline-meta">
+              <strong>${formatTimelineType(entry.type)}</strong>
+              <span>${formatTimestamp(entry.createdAt)}</span>
+            </div>
+            <div class="timeline-body">
+              <span class="timeline-actor">${entry.actorType}${entry.actorId ? `: ${entry.actorId}` : ""}</span>
+              <p>${entry.summary || "No summary."}</p>
+              ${detailBlock}
+            </div>
           </div>
-          <div class="timeline-body">
-            <span class="timeline-actor">${entry.actorType}${entry.actorId ? `: ${entry.actorId}` : ""}</span>
-            <p>${entry.summary || "No summary."}</p>
-          </div>
-        </div>
-      `).join("")}
+        `;
+      }).join("")}
     </div>
   `;
 }
@@ -435,6 +445,8 @@ async function sendStarterPromptToPrimaryAgent(requirement, extraContext = "") {
     requirementId: requirement.requirementId,
     humanId: requirement.ownerHumanId,
     agentId: requirement.primaryAgentId,
+    prompt,
+    promptedAt: conversation.requestedAt,
     response: conversation.response
   });
   state.latestStarterConversation = conversation;
