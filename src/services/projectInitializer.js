@@ -112,7 +112,7 @@ ${title} was initialized from the ELO Open World framework as part of the shared
 `;
 }
 
-function membersMd({ ownerHuman, memberAgents, memberRoles = {} }) {
+function membersMd({ ownerHuman, memberAgents, memberRoles = {}, memberInvites = [], memberHistory = [] }) {
   const lines = [
     "# Members",
     "",
@@ -128,6 +128,22 @@ function membersMd({ ownerHuman, memberAgents, memberRoles = {} }) {
   } else {
     for (const agent of memberAgents) {
       lines.push(`- ${agent.agentId} | role=${memberRoles[agent.agentId] || "builder"} | model=${agent.model || "unknown"} | online=${agent.online ? "yes" : "no"}`);
+    }
+  }
+  lines.push("", "## Pending Invites");
+  if (!memberInvites.length) {
+    lines.push("- No pending invites.");
+  } else {
+    for (const invite of memberInvites) {
+      lines.push(`- ${invite.agentId} | role=${invite.role} | status=${invite.status} | createdAt=${invite.createdAt}`);
+    }
+  }
+  lines.push("", "## Membership History");
+  if (!memberHistory.length) {
+    lines.push("- No membership history yet.");
+  } else {
+    for (const entry of memberHistory) {
+      lines.push(`- ${entry.type} | agent=${entry.agentId || "-"} | role=${entry.role || "-"} | actor=${entry.actorHumanId || "-"} | at=${entry.at}`);
     }
   }
   return `${lines.join("\n")}\n`;
@@ -183,7 +199,7 @@ export class ProjectInitializer {
     this.githubRepoService = githubRepoService;
   }
 
-  async initialize({ projectId, repoName, title, summary, ownerHuman, memberAgents, memberRoles = {}, pluginIds, visibility = "public" }) {
+  async initialize({ projectId, repoName, title, summary, ownerHuman, memberAgents, memberRoles = {}, memberHistory = [], memberInvites = [], pluginIds, visibility = "public" }) {
     const localPath = join(this.projectsRoot, repoName);
     const repoSeed = { owner: ownerHuman.githubLogin, repo: repoName, sourceDir: localPath, visibility };
 
@@ -209,6 +225,8 @@ export class ProjectInitializer {
       ownerHuman,
       memberAgents,
       memberRoles,
+      memberHistory,
+      memberInvites,
       pluginIds
     });
 
@@ -223,7 +241,7 @@ export class ProjectInitializer {
     };
   }
 
-  async #writeProjectFiles({ localPath, title, summary, projectId, repoName, repoFullName, ownerHuman, memberAgents, memberRoles, pluginIds }) {
+  async #writeProjectFiles({ localPath, title, summary, projectId, repoName, repoFullName, ownerHuman, memberAgents, memberRoles, memberHistory, memberInvites, pluginIds }) {
     const writes = [
       [join(localPath, "README.md"), projectReadme({ title, summary, projectId, rulesPath: "./Rules" })],
       [join(localPath, "Rules", "README.md"), rulesIndex()],
@@ -236,12 +254,20 @@ export class ProjectInitializer {
       [join(localPath, "History", "README.md"), historyReadme()],
       [join(localPath, "History", "History.md"), historyMd()],
       [join(localPath, "History", "MindJourney.md"), mindJourneyMd(title)],
-      [join(localPath, "History", "Members.md"), membersMd({ ownerHuman, memberAgents, memberRoles })],
+      [join(localPath, "History", "Members.md"), membersMd({ ownerHuman, memberAgents, memberRoles, memberHistory, memberInvites })],
       [join(localPath, "openworld.plugin.json"), `${pluginManifest({ projectId, repoName, title, summary, pluginIds })}\n`],
       [join(localPath, "openworld.healthcheck.json"), `${healthcheckManifest({ repoName })}\n`],
       [join(localPath, "elo-init.md"), eloInitMd({ projectId, repoName, repoFullName, pluginIds, ownerHuman, memberAgents })]
     ];
     await Promise.all(writes.map(([file, content]) => writeFile(file, content, "utf8")));
+  }
+
+  async syncMembershipDocs({ localPath, ownerHuman, memberAgents, memberRoles = {}, memberInvites = [], memberHistory = [] }) {
+    await writeFile(
+      join(localPath, "History", "Members.md"),
+      membersMd({ ownerHuman, memberAgents, memberRoles, memberInvites, memberHistory }),
+      "utf8"
+    );
   }
 
   async #initGit(localPath) {

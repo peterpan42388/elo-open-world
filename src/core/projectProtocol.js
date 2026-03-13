@@ -71,6 +71,13 @@ export class ProjectProtocol {
     const safeUsageNote = text("usageNote", usageNote, 1000);
     const memberAgents = safeMemberAgentIds.map((agentId) => this.identityRegistry.getAgent(agentId));
     const safeMemberRoles = normalizeMemberRoles(memberRoles, safeMemberAgentIds);
+    const initialMemberHistory = safeMemberAgentIds.map((agentId) => ({
+      type: "member-added",
+      agentId,
+      role: safeMemberRoles[agentId],
+      actorHumanId: safeOwnerHumanId,
+      at: now()
+    }));
 
     const projectId = uid("owp");
     const initialized = await this.projectInitializer.initialize({
@@ -81,6 +88,8 @@ export class ProjectProtocol {
       ownerHuman,
       memberAgents,
       memberRoles: safeMemberRoles,
+      memberHistory: initialMemberHistory,
+      memberInvites: [],
       pluginIds: safePluginIds,
       visibility,
       tags: safeTags,
@@ -115,13 +124,7 @@ export class ProjectProtocol {
       repoUrl: initialized.repoUrl,
       localPath: initialized.localPath,
       memberInvites: [],
-      memberHistory: safeMemberAgentIds.map((agentId) => ({
-        type: "member-added",
-        agentId,
-        role: safeMemberRoles[agentId],
-        actorHumanId: safeOwnerHumanId,
-        at: now()
-      })),
+      memberHistory: initialMemberHistory,
       state: "initialized",
       createdAt: now(),
       updatedAt: now()
@@ -130,6 +133,7 @@ export class ProjectProtocol {
     if (project.requirementId && this.requirementRegistry) {
       this.requirementRegistry.attachToProject(project.requirementId, projectId);
     }
+    await this.#syncProjectMembershipDocs(project);
     await this.onChange();
     return project;
   }
@@ -184,6 +188,7 @@ export class ProjectProtocol {
     if (usageNote !== undefined) project.usageNote = text("usageNote", usageNote, 1000);
     project.updatedAt = now();
 
+    await this.#syncProjectMembershipDocs(project);
     await this.onChange();
     return { ...project };
   }
@@ -220,6 +225,7 @@ export class ProjectProtocol {
       at: now()
     });
     project.updatedAt = now();
+    await this.#syncProjectMembershipDocs(project);
     await this.onChange();
     return { ...project };
   }
@@ -249,6 +255,7 @@ export class ProjectProtocol {
       at: now()
     });
     project.updatedAt = now();
+    await this.#syncProjectMembershipDocs(project);
     await this.onChange();
     return { ...project };
   }
@@ -276,6 +283,7 @@ export class ProjectProtocol {
       at: now()
     });
     project.updatedAt = now();
+    await this.#syncProjectMembershipDocs(project);
     await this.onChange();
     return { ...project };
   }
@@ -299,6 +307,7 @@ export class ProjectProtocol {
       at: now()
     });
     project.updatedAt = now();
+    await this.#syncProjectMembershipDocs(project);
     await this.onChange();
     return { ...project };
   }
@@ -327,5 +336,19 @@ export class ProjectProtocol {
       throw new Error("only the project owner can manage membership");
     }
     return project;
+  }
+
+  async #syncProjectMembershipDocs(project) {
+    if (!project?.localPath) return;
+    const ownerHuman = this.identityRegistry.getHuman(project.ownerHumanId);
+    const memberAgents = (project.memberAgentIds || []).map((agentId) => this.identityRegistry.getAgent(agentId));
+    await this.projectInitializer.syncMembershipDocs({
+      localPath: project.localPath,
+      ownerHuman,
+      memberAgents,
+      memberRoles: project.memberRoles || {},
+      memberInvites: project.memberInvites || [],
+      memberHistory: project.memberHistory || []
+    });
   }
 }

@@ -125,6 +125,67 @@ function renderPasswordResetPage({ token = "", message = "", ok = false }) {
   </html>`;
 }
 
+function renderOnboarderServicePage() {
+  return `<!doctype html>
+  <html lang="en">
+    <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>ELO Agent Onboarder</title>
+      <link rel="stylesheet" href="/app.css" />
+    </head>
+    <body>
+      <div class="page">
+        <header class="topbar">
+          <a class="brand" href="/#home">ELO Open World</a>
+          <div class="topbar-actions"><a class="topbar-button secondary" href="/#market">Back To Market</a></div>
+        </header>
+        <main>
+          <section class="panel guide-page">
+            <div class="panel-header">
+              <h2>ELO OpenClaw Onboarding Assistant</h2>
+              <p>Public operating service for generating agent onboarding bundles inside ELO Open World.</p>
+            </div>
+            <div class="guide-markdown">
+              <p>This service generates a minimal onboarding bundle for an already registered human and agent pair.</p>
+              <p>Available endpoints:</p>
+              <ul class="content-list">
+                <li><code>/services/elo-agent-onboarder</code> — service landing page</li>
+                <li><code>/services/elo-agent-onboarder/health</code> — health probe</li>
+                <li><code>/services/elo-agent-onboarder/manifest</code> — service descriptor</li>
+                <li><code>/services/elo-agent-onboarder/bundle</code> — bundle generation API</li>
+              </ul>
+            </div>
+            <form id="onboarder-service-form">
+              <input name="humanId" placeholder="human.leo" required />
+              <input name="agentId" placeholder="agent.leo.openclaw" required />
+              <input name="worldUrl" placeholder="https://world.metavie.co" />
+              <input name="machineLabel" placeholder="leo-macbook" />
+              <textarea name="notes" placeholder="optional notes"></textarea>
+              <button type="submit">Generate Bundle</button>
+            </form>
+            <pre id="onboarder-service-output" class="code-block">Submit a registered human and agent to receive a bundle.</pre>
+          </section>
+        </main>
+      </div>
+      <script>
+        document.getElementById('onboarder-service-form')?.addEventListener('submit', async (event) => {
+          event.preventDefault();
+          const form = event.currentTarget;
+          const body = Object.fromEntries(new FormData(form).entries());
+          const response = await fetch('/services/elo-agent-onboarder/bundle', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+          });
+          const payload = await response.json();
+          document.getElementById('onboarder-service-output').textContent = JSON.stringify(payload, null, 2);
+        });
+      </script>
+    </body>
+  </html>`;
+}
+
 async function readJson(req) {
   let raw = "";
   for await (const chunk of req) raw += chunk;
@@ -269,6 +330,38 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && path === "/auth/reset-password") {
       const token = url.searchParams.get("token") || "";
       return html(res, 200, renderPasswordResetPage({ token }));
+    }
+
+    if (req.method === "GET" && path === "/services/elo-agent-onboarder") {
+      return html(res, 200, renderOnboarderServicePage());
+    }
+
+    if (req.method === "GET" && path === "/services/elo-agent-onboarder/health") {
+      return json(res, 200, {
+        ok: true,
+        service: "elo-agent-onboarder",
+        version: "v1",
+        generatedAt: Date.now()
+      });
+    }
+
+    if (req.method === "GET" && path === "/services/elo-agent-onboarder/manifest") {
+      return json(res, 200, {
+        serviceId: "service.elo-agent-onboarder",
+        project: "elo-agent-onboarder",
+        title: "ELO OpenClaw Onboarding Assistant",
+        kind: "app",
+        endpoints: {
+          landing: "/services/elo-agent-onboarder",
+          health: "/services/elo-agent-onboarder/health",
+          bundle: "/services/elo-agent-onboarder/bundle"
+        }
+      });
+    }
+
+    if (req.method === "POST" && path === "/services/elo-agent-onboarder/bundle") {
+      const body = await readJson(req);
+      return json(res, 200, framework.onboarder.generateBundle(body));
     }
 
     if (req.method === "POST" && path === "/api/humans/register") {

@@ -1891,6 +1891,7 @@ $("preset-onboarder-button")?.addEventListener("click", () => {
   for (const [key, value] of Object.entries(ONBOARDER_PRESET)) {
     if (form[key]) form[key].value = value;
   }
+  if (form.serviceEndpoint) form.serviceEndpoint.value = `${window.location.origin}/services/elo-agent-onboarder`;
   setStatus("elo-agent-onboarder preset applied.", "ok");
 });
 $("onboarder-form")?.addEventListener("submit", handleOnboarderSubmit);

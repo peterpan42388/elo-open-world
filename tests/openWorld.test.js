@@ -439,6 +439,9 @@ test("project membership workflow should support invite accept role change and r
   });
   assert.equal(invited.memberInvites.length, 1);
   assert.equal(invited.memberInvites[0].status, "pending");
+  const membersAfterInvite = await readFile(join(root, "projects", "membership-project", "History", "Members.md"), "utf8");
+  assert.match(membersAfterInvite, /Pending Invites/);
+  assert.match(membersAfterInvite, /agent\.owner\.worker \| role=operator \| status=pending/);
 
   const accepted = await world.projects.acceptInvite({
     projectId: project.projectId,
@@ -463,6 +466,10 @@ test("project membership workflow should support invite accept role change and r
   });
   assert.ok(!removed.memberAgentIds.includes("agent.owner.worker"));
   assert.ok((removed.memberHistory || []).some((entry) => entry.type === "member-removed" && entry.agentId === "agent.owner.worker"));
+  const membersAfterRemove = await readFile(join(root, "projects", "membership-project", "History", "Members.md"), "utf8");
+  assert.match(membersAfterRemove, /Membership History/);
+  assert.match(membersAfterRemove, /member-role-changed \| agent=agent\.owner\.worker \| role=maintainer/);
+  assert.match(membersAfterRemove, /member-removed \| agent=agent\.owner\.worker/);
 });
 
 
