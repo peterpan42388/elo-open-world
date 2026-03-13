@@ -23,10 +23,11 @@ function fingerprintPublicKey(publicKeyPem) {
 }
 
 export class IdentityRegistry {
-  constructor({ factions = DEFAULT_FACTIONS, humans = [], agents = [], onChange = async () => {} } = {}) {
+  constructor({ factions = DEFAULT_FACTIONS, humans = [], agents = [], joinTokens = [], onChange = async () => {} } = {}) {
     this.factions = factions;
     this.humans = new Map(humans.map((human) => [human.humanId, { ...human }]));
     this.agents = new Map(agents.map((agent) => [agent.agentId, { ...agent }]));
+    this.joinTokens = new Map(joinTokens.map((joinToken) => [joinToken.tokenId, { ...joinToken }]));
     this.worldProfiles = new Map();
     this.onChange = onChange;
   }
@@ -237,6 +238,43 @@ export class IdentityRegistry {
     };
   }
 
+  async issueAgentJoinToken({ humanId, ttlMs = 1000 * 60 * 15 }) {
+    const human = this.getHuman(humanId);
+    const record = {
+      tokenId: `ajt_${crypto.randomUUID()}`,
+      token: `ajt_${crypto.randomBytes(24).toString("hex")}`,
+      humanId: human.humanId,
+      issuedAt: now(),
+      expiresAt: now() + ttlMs,
+      consumedAt: 0,
+      issuedBy: human.humanId
+    };
+    this.joinTokens.set(record.tokenId, record);
+    human.updatedAt = now();
+    await this.onChange();
+    return {
+      tokenId: record.tokenId,
+      token: record.token,
+      humanId: record.humanId,
+      issuedAt: record.issuedAt,
+      expiresAt: record.expiresAt
+    };
+  }
+
+  async registerAgentWithJoinToken({ joinToken, agent }) {
+    const safeJoinToken = text("joinToken", joinToken, 512);
+    const tokenRecord = [...this.joinTokens.values()].find((item) => item.token === safeJoinToken);
+    if (!tokenRecord) throw new Error("join token is invalid");
+    if (tokenRecord.consumedAt) throw new Error("join token has already been used");
+    if (tokenRecord.expiresAt < now()) throw new Error("join token has expired");
+    const created = await this.registerAgent({ ...agent, humanId: tokenRecord.humanId });
+    tokenRecord.consumedAt = now();
+    const human = this.getHuman(tokenRecord.humanId);
+    human.updatedAt = now();
+    await this.onChange();
+    return { ...created, joinTokenId: tokenRecord.tokenId };
+  }
+
   async registerAgentSigned({ humanId, keyId = "", signature, agent }) {
     const human = this.getHuman(humanId);
     if (!human.agentAuthKey?.publicKeyPem) throw new Error("human has no issued agent auth key");
@@ -340,7 +378,8 @@ export class IdentityRegistry {
   snapshot() {
     return {
       humans: [...this.humans.values()],
-      agents: [...this.agents.values()]
+      agents: [...this.agents.values()],
+      joinTokens: [...this.joinTokens.values()]
     };
   }
 
@@ -392,8 +431,21 @@ export class IdentityRegistry {
             lastUsedAt: human.agentAuthKey.lastUsedAt || 0
           }
         : null,
+      activeJoinToken: this.#activeJoinTokenSummary(human.humanId),
       createdAt: human.createdAt,
       updatedAt: human.updatedAt || human.createdAt
+    };
+  }
+
+  #activeJoinTokenSummary(humanId) {
+    const active = [...this.joinTokens.values()]
+      .filter((item) => item.humanId === humanId && !item.consumedAt && item.expiresAt >= now())
+      .sort((a, b) => b.issuedAt - a.issuedAt)[0];
+    if (!active) return null;
+    return {
+      tokenId: active.tokenId,
+      issuedAt: active.issuedAt,
+      expiresAt: active.expiresAt
     };
   }
 

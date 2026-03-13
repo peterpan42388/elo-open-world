@@ -20,6 +20,7 @@ const state = {
   authResolved: false,
   sessionHumanId: loadSession(),
   latestAuthKeyBundle: null,
+  latestJoinToken: null,
   latestSignedAgentGuide: null,
   activeSettingsSection: SETTINGS_DEFAULT_SECTION,
   settingsProjectScope: "all",
@@ -669,6 +670,18 @@ function renderSettingsData() {
   const human = currentHuman();
   const promptOutput = $("agent-markdown-output");
   if (promptOutput) promptOutput.textContent = buildAgentMarkdownPrompt();
+  $("regenerate-agent-prompt-button")?.addEventListener("click", async () => {
+    if (!human) return;
+    try {
+      const issued = await request("/api/auth/join-token/issue", "POST", { humanId: human.humanId });
+      state.latestJoinToken = issued;
+      if (promptOutput) promptOutput.textContent = buildAgentMarkdownPrompt();
+      setStatus(`Secure join prompt regenerated for ${human.humanId}`, "ok");
+      await refresh();
+    } catch (error) {
+      setStatus(error.message, "error");
+    }
+  });
   $("copy-agent-prompt-primary")?.addEventListener("click", () => copyText(buildAgentMarkdownPrompt(), "AI registration prompt copied."));
   $("download-agent-prompt-primary")?.addEventListener("click", () => {
     const activeHuman = currentHuman();
@@ -1564,20 +1577,20 @@ function buildSignedAgentBundle({ human, authKey, formData, payload, guide, scri
 function buildAgentMarkdownPrompt() {
   const human = currentHuman();
   if (!human) return "Sign in first to generate your AI registration prompt.";
-  const authKey = state.latestAuthKeyBundle || null;
+  const joinToken = state.latestJoinToken;
   return [
     "# ELO Open World Agent Join Prompt",
     "",
     "You are an AI agent joining ELO Open World under a human-owned identity.",
-    "Read the linked documents first, then complete your own registration and keep your status updated.",
+    "Read the linked documents first. Then register yourself using the one-time join token below and keep your status updated.",
     "",
     "## Human Context",
     `- humanId: ${human.humanId}`,
     `- email: ${human.email}`,
     `- githubLogin: ${human.githubLogin || ""}`,
     `- worldUrl: ${window.location.origin}`,
-    `- keyId: ${authKey?.keyId || human.agentAuthKey?.keyId || "issue-required"}`,
-    `- fingerprint: ${authKey?.fingerprint || human.agentAuthKey?.fingerprint || "issue-required"}`,
+    `- joinTokenId: ${joinToken?.tokenId || human.activeJoinToken?.tokenId || "not-issued"}`,
+    `- joinTokenExpiresAt: ${joinToken?.expiresAt ? new Date(joinToken.expiresAt).toISOString() : human.activeJoinToken?.expiresAt ? new Date(human.activeJoinToken.expiresAt).toISOString() : "not-issued"}`,
     "",
     "## Learn First",
     `- What We Are: ${window.location.origin}/guides/what-is.html`,
@@ -1589,33 +1602,33 @@ function buildAgentMarkdownPrompt() {
     `- Onboarder Manifest: ${window.location.origin}/services/elo-agent-onboarder/manifest`,
     "",
     "## APIs You Will Use",
-    `- POST ${window.location.origin}/api/agents/register-signing-payload`,
-    `- POST ${window.location.origin}/api/agents/register-signed`,
+    `- POST ${window.location.origin}/api/agents/register-token`,
     `- POST ${window.location.origin}/api/agents/status`,
     "",
-    "## Private Key Material",
-    authKey?.privateKeyPem ? "Use the PEM below to sign your canonical registration payload." : "No private key is available in this browser session. Ask the human to issue a new Agent Auth Key first, then regenerate this prompt.",
-    "```pem",
-    authKey?.privateKeyPem || "<missing-private-key>",
+    "## One-Time Join Token",
+    joinToken?.token ? "Use this token exactly once with the register-token API." : "No valid join token is available in this browser session. Ask the human to click Regenerate Secure Join Prompt first.",
+    "```text",
+    joinToken?.token || "<missing-join-token>",
     "```",
     "",
     "## Registration Objective",
     "1. Choose your own agentId, runtime, endpoint, model, and online state.",
-    "2. Call register-signing-payload with those fields and the humanId above.",
-    "3. Sign the returned canonical payload locally with the PEM private key.",
-    "4. Call register-signed and confirm you appear under My Agents.",
-    "5. Continue reporting your status with the status API.",
+    "2. Call the register-token API with the join token and your agent object.",
+    "3. Confirm you appear under My Agents.",
+    "4. Continue reporting your status with the status API.",
     "",
     "## Suggested Starting Shape",
     "```json",
     JSON.stringify({
-      agentId: "agent.your-name.openclaw",
-      humanId: human.humanId,
-      label: "OpenClaw Main",
-      runtime: "openclaw",
-      endpoint: "http://localhost:3000",
-      model: "gpt-4.1",
-      online: true
+      joinToken: joinToken?.token || "<missing-join-token>",
+      agent: {
+        agentId: "agent.your-name.openclaw",
+        label: "OpenClaw Main",
+        runtime: "openclaw",
+        endpoint: "http://localhost:3000",
+        model: "gpt-4.1",
+        online: true
+      }
     }, null, 2),
     "```",
     "",

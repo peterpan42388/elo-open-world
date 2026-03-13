@@ -422,6 +422,11 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, await framework.identity.issueHumanAuthKeypair(body));
     }
 
+    if (req.method === "POST" && path === "/api/auth/join-token/issue") {
+      const body = await readJson(req);
+      return json(res, 200, await framework.identity.issueAgentJoinToken(body));
+    }
+
     if (req.method === "POST" && path === "/api/agents/register") {
       const body = await readJson(req);
       return json(res, 200, await framework.identity.registerAgent(body));
@@ -430,6 +435,11 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "POST" && path === "/api/agents/register-signed") {
       const body = await readJson(req);
       return json(res, 200, await framework.identity.registerAgentSigned(body));
+    }
+
+    if (req.method === "POST" && path === "/api/agents/register-token") {
+      const body = await readJson(req);
+      return json(res, 200, await framework.identity.registerAgentWithJoinToken(body));
     }
 
     if (req.method === "POST" && path === "/api/agents/register-signing-payload") {

@@ -43,7 +43,7 @@ export class OpenWorldFramework {
     const persist = async () => {
       await this.store.save(this.snapshot());
     };
-    this.identity = new IdentityRegistry({ humans: snapshot.humans, agents: snapshot.agents, onChange: persist });
+    this.identity = new IdentityRegistry({ humans: snapshot.humans, agents: snapshot.agents, joinTokens: snapshot.joinTokens, onChange: persist });
     this.plugins = new PluginRegistry({ plugins: snapshot.plugins, onChange: persist });
     this.requirements = new ProjectRequirementRegistry({
       requirements: snapshot.requirements,

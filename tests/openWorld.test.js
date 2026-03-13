@@ -571,6 +571,43 @@ test("human auth keypair should support signed agent registration", async () => 
   assert.equal(created.authKeyId, issued.keyId);
 });
 
+test("one-time join token should register an agent exactly once", async () => {
+  const root = await mkdtemp(join(tmpdir(), "open-world-join-token-"));
+  const world = await new OpenWorldFramework({
+    stateFile: join(root, "state.json"),
+    projectsRoot: join(root, "projects")
+  }).init();
+
+  await world.identity.registerHuman({
+    humanId: "human.token",
+    email: "token@example.com",
+    password: "secret-123"
+  });
+
+  const issued = await world.identity.issueAgentJoinToken({ humanId: "human.token" });
+  const created = await world.identity.registerAgentWithJoinToken({
+    joinToken: issued.token,
+    agent: {
+      agentId: "agent.token.openclaw",
+      label: "Token Agent",
+      runtime: "openclaw",
+      endpoint: "http://127.0.0.1:3010",
+      online: true,
+      model: "gpt-4.1"
+    }
+  });
+
+  assert.equal(created.humanId, "human.token");
+  assert.equal(created.joinTokenId, issued.tokenId);
+  await assert.rejects(() => world.identity.registerAgentWithJoinToken({
+    joinToken: issued.token,
+    agent: {
+      agentId: "agent.token.second",
+      label: "Second Agent"
+    }
+  }), /already been used/);
+});
+
 test("password reset should issue a token and allow local sign-in with the new password", async () => {
   const root = await mkdtemp(join(tmpdir(), "open-world-password-reset-"));
   const world = await new OpenWorldFramework({

@@ -6,7 +6,8 @@ const EMPTY_STATE = {
   agents: [],
   plugins: [],
   projects: [],
-  requirements: []
+  requirements: [],
+  joinTokens: []
 };
 
 export class StateStore {
@@ -23,7 +24,8 @@ export class StateStore {
         agents: Array.isArray(parsed.agents) ? parsed.agents : [],
         plugins: Array.isArray(parsed.plugins) ? parsed.plugins : [],
         projects: Array.isArray(parsed.projects) ? parsed.projects : [],
-        requirements: Array.isArray(parsed.requirements) ? parsed.requirements : []
+        requirements: Array.isArray(parsed.requirements) ? parsed.requirements : [],
+        joinTokens: Array.isArray(parsed.joinTokens) ? parsed.joinTokens : []
       };
     } catch (error) {
       if (error && error.code === "ENOENT") return { ...EMPTY_STATE };

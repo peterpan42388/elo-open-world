@@ -199,8 +199,9 @@
                       <a class="topbar-button ghost" href="/guides/agent-join-protocol.html" target="_blank" rel="noreferrer">Open Agent Join Protocol</a>
                       <a class="topbar-button ghost" href="/guides/community-rules.html" target="_blank" rel="noreferrer">Open Community Rules</a>
                     </div>
-                    <p class="note">This prompt is user-specific. If a fresh agent auth key was issued in this browser session, the prompt will include the private key material and direct API instructions. Otherwise it will tell the agent that a new key must be issued first.</p>
+                    <p class="note">This prompt is user-specific. Regenerate a secure prompt to issue a one-time join token, then copy the prompt to your agent. The prompt points the agent to docs, protocol references, and the exact registration API it should use.</p>
                     <div class="action-row">
+                      <button type="button" class="topbar-button secondary" id="regenerate-agent-prompt-button">Regenerate Secure Join Prompt</button>
                       <button type="button" class="topbar-button secondary" id="copy-agent-prompt-primary">Copy Agent Join Prompt</button>
                       <button type="button" class="topbar-button ghost" id="download-agent-prompt-primary">Download Agent Join Prompt</button>
                     </div>
