@@ -73,6 +73,124 @@ export class OpenClawOnboardingService {
     };
   }
 
+  generateInstallPlan({
+    humanId,
+    agentId,
+    worldUrl = "",
+    target = "local",
+    platform = "unknown",
+    packageMode = "node",
+    installRoot = "~/elo-open-world",
+    machineLabel = ""
+  }) {
+    const bundle = this.generateBundle({ humanId, agentId, worldUrl, machineLabel });
+    const safeTarget = token("target", target || "local", 32).toLowerCase();
+    const safePlatform = token("platform", platform || "unknown", 32).toLowerCase();
+    const safePackageMode = token("packageMode", packageMode || "node", 32).toLowerCase();
+    const safeInstallRoot = text("installRoot", installRoot || "~/elo-open-world", 512);
+
+    const steps = [
+      {
+        id: "diagnose-environment",
+        title: "Diagnose local environment",
+        action: "run-diagnostics",
+        rationale: "Confirm the local runtime endpoint and the selected EOW universe are reachable."
+      },
+      {
+        id: "prepare-install-root",
+        title: "Prepare install root",
+        action: "prepare-directory",
+        command: `mkdir -p ${safeInstallRoot}`,
+        rationale: "Create a stable workspace for the user-owned runtime and onboarding files."
+      },
+      {
+        id: "generate-setup-pack",
+        title: "Generate onboarding setup pack",
+        action: "consume-setup-pack",
+        rationale: "Use the EOW-provided setup pack as the canonical onboarding payload."
+      }
+    ];
+
+    if (safePackageMode === "docker") {
+      steps.push({
+        id: "install-runtime",
+        title: "Install runtime via Docker",
+        action: "docker-runtime",
+        command: "docker pull ghcr.io/example/openclaw:latest",
+        rationale: "Container mode is the safest repeatable option for server-style installs."
+      });
+    } else {
+      steps.push({
+        id: "install-runtime",
+        title: "Install runtime dependencies",
+        action: "node-runtime",
+        command: safePlatform === "macos" ? "brew install node" : "install node using your system package manager",
+        rationale: "Node mode keeps the bootstrap path simple for desktop users."
+      });
+    }
+
+    steps.push(
+      {
+        id: "start-runtime",
+        title: "Start local runtime",
+        action: "start-runtime",
+        rationale: "Bring the user-owned agent runtime online before reporting status."
+      },
+      {
+        id: "report-status",
+        title: "Report status to EOW",
+        action: "report-status",
+        command: bundle.world.agentStatusUrl,
+        rationale: "Make the local agent visible in EOW after the runtime is up."
+      }
+    );
+
+    return {
+      contract: "elo-agent-onboarder.install-plan.v1",
+      generatedAt: Date.now(),
+      identity: bundle.identity,
+      runtime: bundle.runtime,
+      target: {
+        target: safeTarget,
+        platform: safePlatform,
+        packageMode: safePackageMode,
+        installRoot: safeInstallRoot
+      },
+      world: bundle.world,
+      setupPackContract: bundle.contract,
+      steps
+    };
+  }
+
+  generateBootstrapReport(input) {
+    const plan = this.generateInstallPlan(input);
+    const bundle = this.generateBundle(input);
+    const runtimeHealthUrl = `${String(bundle.runtime.endpoint || "").replace(/\/$/, "")}/health`;
+    return {
+      contract: "elo-agent-onboarder.bootstrap-report.v1",
+      generatedAt: Date.now(),
+      identity: bundle.identity,
+      runtime: bundle.runtime,
+      world: bundle.world,
+      plan,
+      setupPack: bundle.setupPack,
+      diagnostics: {
+        checks: [
+          {
+            name: "runtime-health",
+            url: runtimeHealthUrl || "not-configured",
+            expected: "200 OK"
+          },
+          {
+            name: "universe-manifest",
+            url: `${bundle.world.apiBaseUrl}/api/universe/manifest`,
+            expected: "200 OK"
+          }
+        ]
+      }
+    };
+  }
+
   #envTemplate({ human, agent, safeWorldUrl, safeMachineLabel }) {
     return [
       `ELO_OPEN_WORLD_API_BASE=${safeWorldUrl}`,

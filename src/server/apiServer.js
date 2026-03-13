@@ -154,6 +154,8 @@ function renderOnboarderServicePage() {
                 <li><code>/services/elo-agent-onboarder/health</code> — health probe</li>
                 <li><code>/services/elo-agent-onboarder/manifest</code> — service descriptor</li>
                 <li><code>/services/elo-agent-onboarder/setup-pack</code> — setup pack API</li>
+                <li><code>/services/elo-agent-onboarder/install-plan</code> — install plan API</li>
+                <li><code>/services/elo-agent-onboarder/bootstrap</code> — bootstrap report API</li>
                 <li><code>/services/elo-agent-onboarder/bundle</code> — legacy compatibility alias</li>
               </ul>
             </div>
@@ -358,12 +360,16 @@ const server = http.createServer(async (req, res) => {
           health: "/services/elo-agent-onboarder/health",
           manifest: "/services/elo-agent-onboarder/manifest",
           setupPack: "/services/elo-agent-onboarder/setup-pack",
+          installPlan: "/services/elo-agent-onboarder/install-plan",
+          bootstrap: "/services/elo-agent-onboarder/bootstrap",
           bundle: "/services/elo-agent-onboarder/bundle"
         },
         outputs: {
           readme: "markdown",
           registerScript: "shell",
-          agentConfig: "json"
+          agentConfig: "json",
+          installPlan: "json",
+          bootstrapReport: "json"
         }
       });
     }
@@ -371,6 +377,16 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "POST" && path === "/services/elo-agent-onboarder/setup-pack") {
       const body = await readJson(req);
       return json(res, 200, framework.onboarder.generateBundle(body));
+    }
+
+    if (req.method === "POST" && path === "/services/elo-agent-onboarder/install-plan") {
+      const body = await readJson(req);
+      return json(res, 200, framework.onboarder.generateInstallPlan(body));
+    }
+
+    if (req.method === "POST" && path === "/services/elo-agent-onboarder/bootstrap") {
+      const body = await readJson(req);
+      return json(res, 200, framework.onboarder.generateBootstrapReport(body));
     }
 
     if (req.method === "POST" && path === "/services/elo-agent-onboarder/bundle") {
@@ -469,6 +485,16 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "POST" && path === "/api/onboarder/setup-pack") {
       const body = await readJson(req);
       return json(res, 200, framework.onboarder.generateBundle(body));
+    }
+
+    if (req.method === "POST" && path === "/api/onboarder/install-plan") {
+      const body = await readJson(req);
+      return json(res, 200, framework.onboarder.generateInstallPlan(body));
+    }
+
+    if (req.method === "POST" && path === "/api/onboarder/bootstrap") {
+      const body = await readJson(req);
+      return json(res, 200, framework.onboarder.generateBootstrapReport(body));
     }
 
     if (req.method === "POST" && path === "/api/onboarder/bundle") {

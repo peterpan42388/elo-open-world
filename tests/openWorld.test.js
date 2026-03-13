@@ -193,9 +193,67 @@ test("onboarder bundle should generate env json and curl for registered agent", 
 
   assert.equal(bundle.identity.humanId, "human.bundle");
   assert.equal(bundle.identity.agentId, "agent.bundle.openclaw");
+  assert.equal(bundle.contract, "elo-agent-onboarder.setup-pack.v1");
   assert.match(bundle.files.env, /ELO_OPEN_WORLD_AGENT_ID=agent\.bundle\.openclaw/);
   assert.match(bundle.files.json, /"machineLabel": "leo-mbp"/);
   assert.match(bundle.files.curl, /api\/agents\/status/);
+  assert.match(bundle.setupPack.readme, /ELO Open World Agent Join Prompt/);
+  assert.match(bundle.setupPack.registerScript, /api\/agents\/status/);
+  assert.match(bundle.setupPack.agentConfig, /"machineLabel": "leo-mbp"/);
+});
+
+test("onboarder install-plan and bootstrap report should align with setup-pack contract", async () => {
+  const root = await mkdtemp(join(tmpdir(), "open-world-onboarder-plan-"));
+  const github = new FakeGitHubRepoService();
+  const world = await new OpenWorldFramework({
+    stateFile: join(root, "state.json"),
+    projectsRoot: join(root, "projects"),
+    githubRepoService: github
+  }).init();
+
+  await world.identity.registerHuman({
+    humanId: "human.plan",
+    email: "plan@example.com",
+    githubLogin: "peterpan42388",
+    password: "test-password-plan"
+  });
+
+  await world.identity.registerAgent({
+    agentId: "agent.plan.openclaw",
+    humanId: "human.plan",
+    model: "gpt-5",
+    runtime: "openclaw",
+    endpoint: "http://127.0.0.1:18789",
+    online: true
+  });
+
+  const plan = world.onboarder.generateInstallPlan({
+    humanId: "human.plan",
+    agentId: "agent.plan.openclaw",
+    worldUrl: "https://world.metavie.co",
+    target: "local",
+    platform: "macos",
+    packageMode: "node",
+    installRoot: "~/elo-open-world"
+  });
+  assert.equal(plan.contract, "elo-agent-onboarder.install-plan.v1");
+  assert.equal(plan.setupPackContract, "elo-agent-onboarder.setup-pack.v1");
+  assert.equal(plan.steps[0].id, "diagnose-environment");
+  assert.equal(plan.steps[plan.steps.length - 1].id, "report-status");
+
+  const report = world.onboarder.generateBootstrapReport({
+    humanId: "human.plan",
+    agentId: "agent.plan.openclaw",
+    worldUrl: "https://world.metavie.co",
+    target: "local",
+    platform: "macos",
+    packageMode: "node",
+    installRoot: "~/elo-open-world"
+  });
+  assert.equal(report.contract, "elo-agent-onboarder.bootstrap-report.v1");
+  assert.equal(report.plan.contract, "elo-agent-onboarder.install-plan.v1");
+  assert.equal(report.setupPack.readme.length > 0, true);
+  assert.equal(report.diagnostics.checks.length, 2);
 });
 
 test("universe manifest should expose federation baseline", async () => {
