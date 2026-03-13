@@ -1,5 +1,23 @@
 import { csvArray, now, text, token, uid } from "../lib/validation.js";
 
+function normalizeRefinementSummary(response) {
+  const source = response && typeof response === "object" ? response : {};
+  const restatedRequirement = text("restatedRequirement", source.restatedRequirement || source.message || "", 4000);
+  const projectDirection = text("projectDirection", source.projectDirection || "", 4000);
+  const milestones = Array.isArray(source.milestones)
+    ? source.milestones.map((item) => text("milestone", String(item), 512)).filter(Boolean)
+    : [];
+  const questions = Array.isArray(source.questions)
+    ? source.questions.map((item) => text("question", String(item), 512)).filter(Boolean)
+    : [];
+  return {
+    restatedRequirement,
+    projectDirection,
+    milestones,
+    questions
+  };
+}
+
 export class ProjectRequirementRegistry {
   constructor({ requirements = [], identityRegistry, onChange = async () => {} } = {}) {
     this.requirements = new Map(requirements.map((item) => [item.requirementId, { ...item }]));
@@ -62,6 +80,12 @@ export class ProjectRequirementRegistry {
       reviewHistory: [],
       refinementCount: 0,
       agentRefinements: [],
+      latestRefinementSummary: {
+        restatedRequirement: "",
+        projectDirection: "",
+        milestones: [],
+        questions: []
+      },
       rereviewCount: 0,
       status: "drafted",
       linkedProjectId: "",
@@ -100,10 +124,12 @@ export class ProjectRequirementRegistry {
       agentId: safeAgentId,
       humanId: safeHumanId,
       respondedAt: now(),
-      response: normalizedResponse
+      response: normalizedResponse,
+      summary: normalizeRefinementSummary(normalizedResponse)
     };
     requirement.agentRefinements.push(entry);
     requirement.refinementCount = requirement.agentRefinements.length;
+    requirement.latestRefinementSummary = entry.summary;
     requirement.updatedAt = entry.respondedAt;
     await this.onChange();
     return { ...requirement };

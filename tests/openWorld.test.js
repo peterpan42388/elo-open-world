@@ -836,11 +836,18 @@ test("requirements should persist primary-agent refinements for the owner", asyn
     agentId: "agent.refine.openclaw",
     response: {
       restatedRequirement: "Build a starter bridge",
+      projectDirection: "Use the browser plugin as the transport layer.",
       milestones: ["wire prompt", "persist refinement"]
+      ,
+      questions: ["Should the bridge persist chat history?"]
     }
   });
 
   assert.equal(refined.refinementCount, 1);
   assert.equal(refined.agentRefinements[0].agentId, "agent.refine.openclaw");
   assert.equal(refined.agentRefinements[0].response.restatedRequirement, "Build a starter bridge");
+  assert.equal(refined.latestRefinementSummary.restatedRequirement, "Build a starter bridge");
+  assert.equal(refined.latestRefinementSummary.projectDirection, "Use the browser plugin as the transport layer.");
+  assert.equal(refined.latestRefinementSummary.milestones.length, 2);
+  assert.equal(refined.latestRefinementSummary.questions[0], "Should the bridge persist chat history?");
 });

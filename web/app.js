@@ -269,6 +269,30 @@ function latestRequirementRefinement(requirement) {
   return items.length ? items[items.length - 1] : null;
 }
 
+function renderRefinementSummary(summary) {
+  if (!summary) return '<div class="empty">No structured summary yet.</div>';
+  const milestones = (summary.milestones || []).length
+    ? (summary.milestones || []).map((item) => `<li>${item}</li>`).join("")
+    : "<li>No milestones yet.</li>";
+  const questions = (summary.questions || []).length
+    ? (summary.questions || []).map((item) => `<li>${item}</li>`).join("")
+    : "<li>No open questions.</li>";
+  return `
+    <div class="copy-stack">
+      <p><strong>Restated Requirement</strong><br />${summary.restatedRequirement || "Not provided."}</p>
+      <p><strong>Project Direction</strong><br />${summary.projectDirection || "Not provided."}</p>
+      <div>
+        <strong>Milestones</strong>
+        <ul class="content-list">${milestones}</ul>
+      </div>
+      <div>
+        <strong>Open Questions</strong>
+        <ul class="content-list">${questions}</ul>
+      </div>
+    </div>
+  `;
+}
+
 function bridgeStatusLabel() {
   if (!state.starterBridgeStatus) return "Not checked";
   if (!state.starterBridgeStatus.available) return "Plugin not detected";
@@ -1217,6 +1241,7 @@ function renderSettingsData() {
               <strong>Primary Agent Response</strong>
               <span>${formatTimestamp(persistedRefinement.respondedAt)}</span>
             </div>
+            ${renderRefinementSummary(state.latestStarterRequirement.latestRefinementSummary)}
             <pre class="code-block compact">${JSON.stringify(persistedRefinement.response, null, 2)}</pre>
           </div>
         ` : ""}
@@ -1614,6 +1639,15 @@ function renderRequirements(requirements) {
                 <span>${JSON.stringify(entry.response)}</span>
               </div>
             `).join("")}
+          </div>
+        ` : ""}
+        ${item.refinementCount ? `
+          <div class="starter-conversation-panel">
+            <div class="summary-row">
+              <strong>Latest Structured Refinement</strong>
+              <span>${item.primaryAgentId || "No primary agent"}</span>
+            </div>
+            ${renderRefinementSummary(item.latestRefinementSummary)}
           </div>
         ` : ""}
         <div class="tag-row action-row">
