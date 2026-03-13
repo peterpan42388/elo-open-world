@@ -146,6 +146,44 @@ export class IdentityRegistry {
     return this.#publicHuman(human);
   }
 
+  async issuePasswordReset({ humanIdOrEmail, ttlMs = 1000 * 60 * 30 }) {
+    const identifier = text("humanIdOrEmail", humanIdOrEmail, 320).toLowerCase();
+    const human = [...this.humans.values()].find((item) => item.humanId.toLowerCase() === identifier || item.email.toLowerCase() === identifier);
+    if (!human) throw new Error("unknown human identity");
+    const tokenValue = crypto.randomBytes(24).toString("hex");
+    human.passwordReset = {
+      token: tokenValue,
+      expiresAt: now() + ttlMs,
+      sentAt: now()
+    };
+    human.updatedAt = now();
+    await this.onChange();
+    return {
+      human: this.#publicHuman(human),
+      token: tokenValue,
+      expiresAt: human.passwordReset.expiresAt
+    };
+  }
+
+  async resetPasswordWithToken({ token: tokenValue, password }) {
+    const safeToken = text("token", tokenValue, 256);
+    const safePassword = text("password", password, 256);
+    if (!safePassword) throw new Error("password is required");
+    const human = [...this.humans.values()].find((item) => item.passwordReset?.token === safeToken);
+    if (!human) throw new Error("password reset token is invalid");
+    if (!human.passwordReset?.expiresAt || human.passwordReset.expiresAt < now()) {
+      throw new Error("password reset token has expired");
+    }
+    const secret = hashPassword(safePassword);
+    human.passwordSalt = secret.salt;
+    human.passwordHash = secret.hash;
+    if (!human.authMethods.includes("password")) human.authMethods.push("password");
+    delete human.passwordReset;
+    human.updatedAt = now();
+    await this.onChange();
+    return this.#publicHuman(human);
+  }
+
   async linkGitHubHuman({ humanId, githubLogin, email: githubEmail = "", displayName = "" }) {
     const human = this.getHuman(humanId);
     const safeGithubLogin = token("githubLogin", githubLogin);

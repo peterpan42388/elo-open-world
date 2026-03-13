@@ -61,6 +61,70 @@ function renderEmailVerifyResultPage({ ok, message }) {
   </script><p>${safeMessage}</p></body></html>`;
 }
 
+function renderPasswordResetPage({ token = "", message = "", ok = false }) {
+  const safeToken = String(token || "").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+  const safeMessage = String(message || "").replace(/</g, "&lt;");
+  return `<!doctype html>
+  <html lang="en">
+    <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>Reset Password</title>
+      <link rel="stylesheet" href="/app.css" />
+    </head>
+    <body>
+      <div class="page">
+        <header class="topbar">
+          <a class="brand" href="/#home">ELO Open World</a>
+          <div class="topbar-actions"><a class="topbar-button secondary" href="/#join">Back To Join</a></div>
+        </header>
+        <main>
+          <section class="panel guide-page">
+            <div class="panel-header">
+              <h2>Reset Password</h2>
+              <p>Set a new local password for your ELO Open World account.</p>
+            </div>
+            ${safeMessage ? `<p class="note">${safeMessage}</p>` : ""}
+            ${ok ? `<p class="note">Password reset completed. You can now return to Join and sign in.</p>` : `
+            <form id="password-reset-form">
+              <input type="hidden" name="token" value="${safeToken}" />
+              <input name="password" type="password" placeholder="new password" required />
+              <input name="passwordConfirm" type="password" placeholder="confirm new password" required />
+              <button type="submit">Set New Password</button>
+            </form>
+            <p class="note" id="password-reset-status"></p>`}
+          </section>
+        </main>
+      </div>
+      ${ok ? "" : `<script>
+        document.getElementById('password-reset-form')?.addEventListener('submit', async (event) => {
+          event.preventDefault();
+          const form = event.currentTarget;
+          const password = form.password.value;
+          const passwordConfirm = form.passwordConfirm.value;
+          const status = document.getElementById('password-reset-status');
+          if (password !== passwordConfirm) {
+            status.textContent = 'Passwords do not match.';
+            return;
+          }
+          const res = await fetch('/api/auth/password/reset/confirm', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: form.token.value, password })
+          });
+          const payload = await res.json();
+          if (!res.ok || payload.error) {
+            status.textContent = payload.error || 'Password reset failed.';
+            return;
+          }
+          status.textContent = 'Password reset complete. Redirecting to Join...';
+          setTimeout(() => window.location.replace('/#join'), 1200);
+        });
+      </script>`}
+    </body>
+  </html>`;
+}
+
 async function readJson(req) {
   let raw = "";
   for await (const chunk of req) raw += chunk;
@@ -202,6 +266,11 @@ const server = http.createServer(async (req, res) => {
       return html(res, 200, renderEmailVerifyResultPage({ ok: true, message: `Email verified for ${human.humanId}` }));
     }
 
+    if (req.method === "GET" && path === "/auth/reset-password") {
+      const token = url.searchParams.get("token") || "";
+      return html(res, 200, renderPasswordResetPage({ token }));
+    }
+
     if (req.method === "POST" && path === "/api/humans/register") {
       const body = await readJson(req);
       return json(res, 200, await framework.identity.registerHuman(body));
@@ -224,6 +293,30 @@ const server = http.createServer(async (req, res) => {
         email: issued.human.email,
         expiresAt: issued.expiresAt
       });
+    }
+
+    if (req.method === "POST" && path === "/api/auth/password/reset/request") {
+      const body = await readJson(req);
+      const issued = await framework.identity.issuePasswordReset(body);
+      const cfg = oauthConfig();
+      const resetUrl = `${cfg.publicBaseUrl}/auth/reset-password?token=${encodeURIComponent(issued.token)}`;
+      await emailService.sendPasswordResetEmail({
+        to: issued.human.email,
+        displayName: issued.human.displayName,
+        resetUrl,
+        humanId: issued.human.humanId
+      });
+      return json(res, 200, {
+        delivered: true,
+        humanId: issued.human.humanId,
+        email: issued.human.email,
+        expiresAt: issued.expiresAt
+      });
+    }
+
+    if (req.method === "POST" && path === "/api/auth/password/reset/confirm") {
+      const body = await readJson(req);
+      return json(res, 200, await framework.identity.resetPasswordWithToken(body));
     }
 
     if (req.method === "POST" && path === "/api/auth/github/unlink") {

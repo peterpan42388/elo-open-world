@@ -62,6 +62,32 @@ export class EmailService {
     };
   }
 
+  passwordResetTemplate({ displayName, resetUrl, humanId }) {
+    const name = displayName || humanId;
+    return {
+      subject: "Reset your ELO Open World password",
+      text: [
+        `Hello ${name},`,
+        "",
+        "Reset your ELO Open World password by opening the link below:",
+        resetUrl,
+        "",
+        "If you did not request this, you can ignore this email."
+      ].join("\n"),
+      html: `
+        <div style="font-family:Arial,sans-serif;line-height:1.5;color:#151515">
+          <h2>ELO Open World Password Reset</h2>
+          <p>Hello ${name},</p>
+          <p>Use the button below to set a new password for your ELO Open World account.</p>
+          <p><a href="${resetUrl}" style="display:inline-block;padding:12px 18px;background:#0d6b66;color:#ffffff;text-decoration:none;border-radius:10px">Reset Password</a></p>
+          <p>If the button does not work, use this link:</p>
+          <p><a href="${resetUrl}">${resetUrl}</a></p>
+          <p>If you did not request this, you can ignore this email.</p>
+        </div>
+      `
+    };
+  }
+
   async sendVerificationEmail({ to, displayName, verifyUrl, humanId }) {
     if (!this.enabled) {
       throw new Error("email delivery is not configured on this deployment");
@@ -85,6 +111,57 @@ export class EmailService {
           htmlContent: template.html,
           textContent: template.text,
           tags: ["elo-open-world", "email-verification"]
+        })
+      });
+      if (!response.ok) {
+        let details = "";
+        try {
+          const data = await response.json();
+          details = data?.message || data?.code || JSON.stringify(data);
+        } catch {
+          details = await response.text();
+        }
+        throw new Error(`brevo email send failed: ${details || response.status}`);
+      }
+      return { delivered: true, mode: this.mode };
+    }
+
+    if (!this.transporter) {
+      throw new Error("smtp transporter is not configured on this deployment");
+    }
+    await this.transporter.sendMail({
+      from: this.from,
+      to,
+      subject: template.subject,
+      text: template.text,
+      html: template.html
+    });
+    return { delivered: true, mode: this.mode };
+  }
+
+  async sendPasswordResetEmail({ to, displayName, resetUrl, humanId }) {
+    if (!this.enabled) {
+      throw new Error("email delivery is not configured on this deployment");
+    }
+    const template = this.passwordResetTemplate({ displayName, resetUrl, humanId });
+    if (this.mode === "brevo-api") {
+      const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+        method: "POST",
+        headers: {
+          accept: "application/json",
+          "content-type": "application/json",
+          "api-key": this.brevoApiKey
+        },
+        body: JSON.stringify({
+          sender: {
+            name: this.brevoSenderName,
+            email: this.brevoSenderEmail
+          },
+          to: [{ email: to, name: displayName || humanId }],
+          subject: template.subject,
+          htmlContent: template.html,
+          textContent: template.text,
+          tags: ["elo-open-world", "password-reset"]
         })
       });
       if (!response.ok) {

@@ -494,6 +494,39 @@ test("human auth keypair should support signed agent registration", async () => 
   assert.equal(created.authKeyId, issued.keyId);
 });
 
+test("password reset should issue a token and allow local sign-in with the new password", async () => {
+  const root = await mkdtemp(join(tmpdir(), "open-world-password-reset-"));
+  const world = await new OpenWorldFramework({
+    stateFile: join(root, "state.json"),
+    projectsRoot: join(root, "projects")
+  }).init();
+
+  await world.identity.registerHuman({
+    humanId: "human.reset",
+    email: "reset@example.com",
+    password: "old-password-1"
+  });
+
+  const issued = await world.identity.issuePasswordReset({
+    humanIdOrEmail: "human.reset"
+  });
+
+  assert.equal(issued.human.humanId, "human.reset");
+  assert.ok(issued.token);
+
+  await world.identity.resetPasswordWithToken({
+    token: issued.token,
+    password: "new-password-2"
+  });
+
+  const signedIn = world.identity.authenticateLocal({
+    humanIdOrEmail: "human.reset",
+    password: "new-password-2"
+  });
+
+  assert.equal(signedIn.humanId, "human.reset");
+});
+
 test("requirements should be creatable by humans and linked into project creation", async () => {
   const root = await mkdtemp(join(tmpdir(), "open-world-requirements-"));
   const github = new FakeGitHubRepoService();

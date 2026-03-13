@@ -1811,6 +1811,27 @@ $("signin-form")?.addEventListener("submit", async (event) => {
   }
 });
 
+$("forgot-password-button")?.addEventListener("click", () => {
+  const form = $("forgot-password-form");
+  if (!form) return;
+  form.hidden = !form.hidden;
+});
+
+$("forgot-password-form")?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  try {
+    const result = await request("/api/auth/password/reset/request", "POST", {
+      humanIdOrEmail: form.humanIdOrEmail.value
+    });
+    if (typeof form.reset === "function") form.reset();
+    form.hidden = true;
+    setStatus(`Password reset email sent to ${result.email}`, "ok");
+  } catch (error) {
+    setStatus(error.message, "error");
+  }
+});
+
 document.querySelectorAll("[data-route-target]").forEach((node) => {
   node.addEventListener("click", () => goToRoute(node.dataset.routeTarget));
 });
@@ -1874,6 +1895,23 @@ $("market-sort")?.addEventListener("change", (event) => {
 
 $("github-auth-button")?.addEventListener("click", () => {
   window.location.href = "/auth/github/start";
+});
+
+$("security-password-reset-form")?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const human = currentHuman();
+  if (!human) {
+    setStatus("Sign in first.", "error");
+    return;
+  }
+  try {
+    const result = await request("/api/auth/password/reset/request", "POST", {
+      humanIdOrEmail: human.humanId
+    });
+    setStatus(`Password reset email sent to ${result.email}`, "ok");
+  } catch (error) {
+    setStatus(error.message, "error");
+  }
 });
 
 window.addEventListener("hashchange", () => showRoute(currentRoute()));
