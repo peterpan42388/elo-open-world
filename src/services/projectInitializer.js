@@ -290,6 +290,7 @@ export class ProjectInitializer {
       membersMd({ ownerHuman, memberAgents, memberRoles, memberInvites, memberHistory }),
       "utf8"
     );
+    await this.#commitAndPushIfChanged(localPath, ["History/Members.md"], "docs: sync membership history");
   }
 
   async syncFoundationRunsDocs({ localPath, foundationRuns = [] }) {
@@ -298,6 +299,7 @@ export class ProjectInitializer {
       foundationRunsMd({ foundationRuns }),
       "utf8"
     );
+    await this.#commitAndPushIfChanged(localPath, ["History/FoundationRuns.md"], "docs: sync foundation runs");
   }
 
   async #initGit(localPath) {
@@ -306,5 +308,35 @@ export class ProjectInitializer {
     await execFileAsync("git", ["config", "user.email", "openworld@local.invalid"], { cwd: localPath });
     await execFileAsync("git", ["add", "."], { cwd: localPath });
     await execFileAsync("git", ["commit", "-m", "chore: initialize open world project"], { cwd: localPath });
+  }
+
+  async #commitAndPushIfChanged(localPath, files, message) {
+    try {
+      await execFileAsync("git", ["rev-parse", "--is-inside-work-tree"], { cwd: localPath });
+    } catch {
+      return;
+    }
+
+    for (const file of files) {
+      await execFileAsync("git", ["add", file], { cwd: localPath });
+    }
+
+    const { stdout: status } = await execFileAsync("git", ["status", "--porcelain", ...files], { cwd: localPath });
+    if (!status.trim()) return;
+
+    await execFileAsync("git", ["commit", "-m", message], { cwd: localPath });
+
+    try {
+      const { stdout: remote } = await execFileAsync("git", ["remote", "get-url", "origin"], { cwd: localPath });
+      if (!remote.trim()) return;
+    } catch {
+      return;
+    }
+
+    try {
+      await execFileAsync("git", ["push", "origin", "HEAD:main"], { cwd: localPath });
+    } catch {
+      // Best effort. Local history still records the sync even if remote push is unavailable.
+    }
   }
 }
