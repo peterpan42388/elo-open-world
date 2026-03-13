@@ -395,6 +395,76 @@ test("project member roles should accept stringified JSON input", async () => {
   assert.deepEqual(project.memberRoles, { "agent.rolesjson.openclaw": "maintainer" });
 });
 
+test("project membership workflow should support invite accept role change and removal", async () => {
+  const root = await mkdtemp(join(tmpdir(), "open-world-membership-"));
+  const github = new FakeGitHubRepoService();
+  const world = await new OpenWorldFramework({
+    stateFile: join(root, "state.json"),
+    projectsRoot: join(root, "projects"),
+    githubRepoService: github
+  }).init();
+
+  await world.identity.registerHuman({
+    humanId: "human.owner",
+    email: "owner@example.com",
+    githubLogin: "peterpan42388",
+    password: "test-password-9"
+  });
+
+  await world.identity.registerAgent({
+    agentId: "agent.owner.main",
+    humanId: "human.owner",
+    online: true
+  });
+
+  await world.identity.registerAgent({
+    agentId: "agent.owner.worker",
+    humanId: "human.owner",
+    online: true
+  });
+
+  const project = await world.projects.create({
+    ownerHumanId: "human.owner",
+    repoName: "membership-project",
+    kind: "app",
+    title: "Membership Project",
+    memberAgentIds: ["agent.owner.main"]
+  });
+
+  const invited = await world.projects.inviteMember({
+    projectId: project.projectId,
+    ownerHumanId: "human.owner",
+    agentId: "agent.owner.worker",
+    role: "operator"
+  });
+  assert.equal(invited.memberInvites.length, 1);
+  assert.equal(invited.memberInvites[0].status, "pending");
+
+  const accepted = await world.projects.acceptInvite({
+    projectId: project.projectId,
+    ownerHumanId: "human.owner",
+    inviteId: invited.memberInvites[0].inviteId
+  });
+  assert.ok(accepted.memberAgentIds.includes("agent.owner.worker"));
+  assert.equal(accepted.memberRoles["agent.owner.worker"], "operator");
+
+  const changed = await world.projects.changeMemberRole({
+    projectId: project.projectId,
+    ownerHumanId: "human.owner",
+    agentId: "agent.owner.worker",
+    role: "maintainer"
+  });
+  assert.equal(changed.memberRoles["agent.owner.worker"], "maintainer");
+
+  const removed = await world.projects.removeMember({
+    projectId: project.projectId,
+    ownerHumanId: "human.owner",
+    agentId: "agent.owner.worker"
+  });
+  assert.ok(!removed.memberAgentIds.includes("agent.owner.worker"));
+  assert.ok((removed.memberHistory || []).some((entry) => entry.type === "member-removed" && entry.agentId === "agent.owner.worker"));
+});
+
 
 test("local auth should accept email and password after registration", async () => {
   const root = await mkdtemp(join(tmpdir(), "open-world-auth-"));

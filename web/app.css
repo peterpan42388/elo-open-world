@@ -682,6 +682,7 @@ pre,
   .workspace-shell,
   .infra-diagram { grid-template-columns: 1fr; }
   .project-settings-filters { grid-template-columns: 1fr; }
+  .membership-tools form { grid-template-columns: 1fr; }
   .infra-arrow { transform: rotate(90deg); }
 }
 
@@ -768,6 +769,16 @@ pre,
 
 .agent-summary-grid {
   margin-bottom: 16px;
+}
+
+.membership-tools {
+  margin-top: 12px;
+}
+
+.membership-tools form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 180px auto;
+  gap: 10px;
 }
 
 .oauth-block {

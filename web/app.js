@@ -141,6 +141,15 @@ function projectMemberRole(project, agentId) {
   return project.memberRoles?.[agentId] || "builder";
 }
 
+function membershipHistoryLabel(type) {
+  return {
+    "member-invited": "Invited",
+    "member-added": "Added",
+    "member-role-changed": "Role Changed",
+    "member-removed": "Removed"
+  }[type] || type;
+}
+
 function humanReadableAgentStatus(agent) {
   if (agent.online) return "Online";
   if (agent.model) return "Idle";
@@ -1092,6 +1101,71 @@ function renderSettingsData() {
                 </div>
               `).join("") : '<div class="empty">No member agents recorded.</div>'}
             </div>
+            ${(project.memberInvites || []).length ? `
+              <div class="nested-list">
+                ${(project.memberInvites || []).map((invite) => `
+                  <div class="nested-item">
+                    <strong>${invite.agentId}</strong>
+                    <span>Invite Role: ${invite.role}</span>
+                    <span>Status: ${invite.status}</span>
+                    ${project.ownerHumanId === human.humanId && invite.status === "pending" ? `<button type="button" class="topbar-button ghost membership-accept-button" data-project-id="${project.projectId}" data-invite-id="${invite.inviteId}">Accept Invite</button>` : ""}
+                  </div>
+                `).join("")}
+              </div>
+            ` : ""}
+            ${(project.ownerHumanId === human.humanId) ? `
+              <div class="membership-tools copy-stack">
+                <div class="summary-row">
+                  <strong>Membership Workflow</strong>
+                  <span>Owner controls</span>
+                </div>
+                <form class="membership-invite-form" data-project-id="${project.projectId}">
+                  <input name="agentId" placeholder="agent id to invite" required />
+                  <select name="role">
+                    <option value="builder">builder</option>
+                    <option value="reviewer">reviewer</option>
+                    <option value="operator">operator</option>
+                    <option value="maintainer">maintainer</option>
+                    <option value="observer">observer</option>
+                  </select>
+                  <button type="submit">Invite Member</button>
+                </form>
+                <form class="membership-role-form" data-project-id="${project.projectId}">
+                  <select name="agentId">
+                    <option value="">Select member</option>
+                    ${(project.memberAgentIds || []).map((agentId) => `<option value="${agentId}">${agentId}</option>`).join("")}
+                  </select>
+                  <select name="role">
+                    <option value="builder">builder</option>
+                    <option value="reviewer">reviewer</option>
+                    <option value="operator">operator</option>
+                    <option value="maintainer">maintainer</option>
+                    <option value="observer">observer</option>
+                  </select>
+                  <button type="submit">Change Role</button>
+                </form>
+                <form class="membership-remove-form" data-project-id="${project.projectId}">
+                  <select name="agentId">
+                    <option value="">Select member</option>
+                    ${(project.memberAgentIds || []).map((agentId) => `<option value="${agentId}">${agentId}</option>`).join("")}
+                  </select>
+                  <button type="submit">Remove Member</button>
+                </form>
+              </div>
+            ` : ""}
+            ${(project.memberHistory || []).length ? `
+              <div class="nested-list">
+                ${(project.memberHistory || []).slice().reverse().slice(0, 8).map((entry) => `
+                  <div class="nested-item">
+                    <strong>${membershipHistoryLabel(entry.type)}</strong>
+                    <span>${entry.agentId || "-"}</span>
+                    <span>${entry.role || "-"}</span>
+                    <span>${entry.actorHumanId || "-"}</span>
+                    <span>${formatTimestamp(entry.at)}</span>
+                  </div>
+                `).join("")}
+              </div>
+            ` : ""}
             <div class="tag-row action-row">
           <button type="button" class="topbar-button secondary edit-project-button" data-edit-project="${project.projectId}">Edit Metadata</button>
           <button type="button" class="topbar-button ghost" data-route-target="build">Open In Build</button>
@@ -1106,6 +1180,72 @@ function renderSettingsData() {
         node.addEventListener("click", () => {
           state.settingsProjectScope = node.dataset.projectScope || "all";
           renderSettingsData();
+        });
+      });
+      projectsRoot.querySelectorAll(".membership-invite-form").forEach((form) => {
+        form.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          try {
+            const payload = {
+              projectId: form.dataset.projectId,
+              ownerHumanId: human.humanId,
+              agentId: form.agentId.value,
+              role: form.role.value
+            };
+            await request("/api/projects/members/invite", "POST", payload);
+            setStatus(`Invite created for ${payload.agentId}`, "ok");
+            await refresh();
+          } catch (error) {
+            setStatus(error.message, "error");
+          }
+        });
+      });
+      projectsRoot.querySelectorAll(".membership-accept-button").forEach((button) => {
+        button.addEventListener("click", async () => {
+          try {
+            await request("/api/projects/members/accept", "POST", {
+              projectId: button.dataset.projectId,
+              ownerHumanId: human.humanId,
+              inviteId: button.dataset.inviteId
+            });
+            setStatus("Invite accepted.", "ok");
+            await refresh();
+          } catch (error) {
+            setStatus(error.message, "error");
+          }
+        });
+      });
+      projectsRoot.querySelectorAll(".membership-role-form").forEach((form) => {
+        form.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          try {
+            await request("/api/projects/members/role", "POST", {
+              projectId: form.dataset.projectId,
+              ownerHumanId: human.humanId,
+              agentId: form.agentId.value,
+              role: form.role.value
+            });
+            setStatus(`Role updated for ${form.agentId.value}`, "ok");
+            await refresh();
+          } catch (error) {
+            setStatus(error.message, "error");
+          }
+        });
+      });
+      projectsRoot.querySelectorAll(".membership-remove-form").forEach((form) => {
+        form.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          try {
+            await request("/api/projects/members/remove", "POST", {
+              projectId: form.dataset.projectId,
+              ownerHumanId: human.humanId,
+              agentId: form.agentId.value
+            });
+            setStatus(`Removed ${form.agentId.value} from project`, "ok");
+            await refresh();
+          } catch (error) {
+            setStatus(error.message, "error");
+          }
         });
       });
       projectsRoot.querySelectorAll("[data-route-target]").forEach((node) => {

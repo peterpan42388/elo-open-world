@@ -377,6 +377,26 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, await framework.projects.updateMetadata(body));
     }
 
+    if (req.method === "POST" && path === "/api/projects/members/invite") {
+      const body = await readJson(req);
+      return json(res, 200, await framework.projects.inviteMember(body));
+    }
+
+    if (req.method === "POST" && path === "/api/projects/members/accept") {
+      const body = await readJson(req);
+      return json(res, 200, await framework.projects.acceptInvite(body));
+    }
+
+    if (req.method === "POST" && path === "/api/projects/members/role") {
+      const body = await readJson(req);
+      return json(res, 200, await framework.projects.changeMemberRole(body));
+    }
+
+    if (req.method === "POST" && path === "/api/projects/members/remove") {
+      const body = await readJson(req);
+      return json(res, 200, await framework.projects.removeMember(body));
+    }
+
     if (req.method === "GET" && path === "/api/projects") {
       return json(res, 200, { items: framework.projects.list() });
     }

@@ -114,6 +114,14 @@ export class ProjectProtocol {
       repoFullName: initialized.repoFullName,
       repoUrl: initialized.repoUrl,
       localPath: initialized.localPath,
+      memberInvites: [],
+      memberHistory: safeMemberAgentIds.map((agentId) => ({
+        type: "member-added",
+        agentId,
+        role: safeMemberRoles[agentId],
+        actorHumanId: safeOwnerHumanId,
+        at: now()
+      })),
       state: "initialized",
       createdAt: now(),
       updatedAt: now()
@@ -180,6 +188,121 @@ export class ProjectProtocol {
     return { ...project };
   }
 
+  async inviteMember({ projectId, ownerHumanId, agentId, role = "builder" }) {
+    const project = this.#assertOwnerProject({ projectId, ownerHumanId });
+    const safeAgentId = token("agentId", agentId);
+    this.identityRegistry.getAgent(safeAgentId);
+    const safeRole = token("memberRole", String(role), 64).toLowerCase();
+    if (!ALLOWED_MEMBER_ROLES.has(safeRole)) {
+      throw new Error(`memberRole must be one of: ${[...ALLOWED_MEMBER_ROLES].join(", ")}`);
+    }
+    if ((project.memberAgentIds || []).includes(safeAgentId)) {
+      throw new Error("agent is already a project member");
+    }
+    project.memberInvites = project.memberInvites || [];
+    const existingInvite = project.memberInvites.find((invite) => invite.agentId === safeAgentId && invite.status === "pending");
+    if (existingInvite) throw new Error("pending invite already exists for this agent");
+    const invite = {
+      inviteId: uid("invite"),
+      agentId: safeAgentId,
+      role: safeRole,
+      status: "pending",
+      createdAt: now(),
+      actorHumanId: token("ownerHumanId", ownerHumanId)
+    };
+    project.memberInvites.push(invite);
+    project.memberHistory = project.memberHistory || [];
+    project.memberHistory.push({
+      type: "member-invited",
+      agentId: safeAgentId,
+      role: safeRole,
+      actorHumanId: token("ownerHumanId", ownerHumanId),
+      at: now()
+    });
+    project.updatedAt = now();
+    await this.onChange();
+    return { ...project };
+  }
+
+  async acceptInvite({ projectId, ownerHumanId, inviteId }) {
+    const project = this.#assertOwnerProject({ projectId, ownerHumanId });
+    const safeInviteId = token("inviteId", inviteId, 128);
+    const invite = (project.memberInvites || []).find((item) => item.inviteId === safeInviteId);
+    if (!invite) throw new Error(`unknown inviteId: ${safeInviteId}`);
+    if (invite.status !== "pending") throw new Error("invite is not pending");
+    project.memberAgentIds = project.memberAgentIds || [];
+    if (!project.memberAgentIds.includes(invite.agentId)) {
+      project.memberAgentIds.push(invite.agentId);
+    }
+    project.memberRoles = normalizeMemberRoles({
+      ...(project.memberRoles || {}),
+      [invite.agentId]: invite.role
+    }, project.memberAgentIds);
+    invite.status = "accepted";
+    invite.acceptedAt = now();
+    project.memberHistory = project.memberHistory || [];
+    project.memberHistory.push({
+      type: "member-added",
+      agentId: invite.agentId,
+      role: invite.role,
+      actorHumanId: token("ownerHumanId", ownerHumanId),
+      at: now()
+    });
+    project.updatedAt = now();
+    await this.onChange();
+    return { ...project };
+  }
+
+  async changeMemberRole({ projectId, ownerHumanId, agentId, role }) {
+    const project = this.#assertOwnerProject({ projectId, ownerHumanId });
+    const safeAgentId = token("agentId", agentId);
+    if (!(project.memberAgentIds || []).includes(safeAgentId)) {
+      throw new Error("agent is not a current project member");
+    }
+    const safeRole = token("memberRole", String(role), 64).toLowerCase();
+    if (!ALLOWED_MEMBER_ROLES.has(safeRole)) {
+      throw new Error(`memberRole must be one of: ${[...ALLOWED_MEMBER_ROLES].join(", ")}`);
+    }
+    project.memberRoles = normalizeMemberRoles({
+      ...(project.memberRoles || {}),
+      [safeAgentId]: safeRole
+    }, project.memberAgentIds || []);
+    project.memberHistory = project.memberHistory || [];
+    project.memberHistory.push({
+      type: "member-role-changed",
+      agentId: safeAgentId,
+      role: safeRole,
+      actorHumanId: token("ownerHumanId", ownerHumanId),
+      at: now()
+    });
+    project.updatedAt = now();
+    await this.onChange();
+    return { ...project };
+  }
+
+  async removeMember({ projectId, ownerHumanId, agentId }) {
+    const project = this.#assertOwnerProject({ projectId, ownerHumanId });
+    const safeAgentId = token("agentId", agentId);
+    if (!(project.memberAgentIds || []).includes(safeAgentId)) {
+      throw new Error("agent is not a current project member");
+    }
+    project.memberAgentIds = (project.memberAgentIds || []).filter((item) => item !== safeAgentId);
+    project.memberRoles = normalizeMemberRoles(
+      Object.fromEntries(Object.entries(project.memberRoles || {}).filter(([key]) => key !== safeAgentId)),
+      project.memberAgentIds
+    );
+    project.memberHistory = project.memberHistory || [];
+    project.memberHistory.push({
+      type: "member-removed",
+      agentId: safeAgentId,
+      actorHumanId: token("ownerHumanId", ownerHumanId),
+      at: now()
+    });
+    project.updatedAt = now();
+    await this.onChange();
+    return { ...project };
+  }
+
   list() {
     return [...this.projects.values()].sort((a, b) => {
       if ((b.heat || 0) !== (a.heat || 0)) return (b.heat || 0) - (a.heat || 0);
@@ -193,5 +316,16 @@ export class ProjectProtocol {
 
   snapshot() {
     return { projects: this.list() };
+  }
+
+  #assertOwnerProject({ projectId, ownerHumanId }) {
+    const safeProjectId = token("projectId", projectId);
+    const project = this.projects.get(safeProjectId);
+    if (!project) throw new Error(`unknown projectId: ${safeProjectId}`);
+    const safeOwnerHumanId = token("ownerHumanId", ownerHumanId);
+    if (project.ownerHumanId !== safeOwnerHumanId) {
+      throw new Error("only the project owner can manage membership");
+    }
+    return project;
   }
 }
