@@ -190,6 +190,7 @@ function renderFoundationArtifactActions(project) {
       <button type="button" class="topbar-button ghost foundation-copy-json" data-project-id="${project.projectId}">Copy JSON</button>
       <button type="button" class="topbar-button ghost foundation-download-json" data-project-id="${project.projectId}">Download JSON</button>
       ${artifact.result.artifactBundle ? `<button type="button" class="topbar-button ghost foundation-download-bundle" data-project-id="${project.projectId}">Download Artifact Bundle</button>` : ""}
+      ${artifact.result.artifactBundle ? `<button type="button" class="topbar-button ghost foundation-download-zip" data-project-id="${project.projectId}">Download ZIP</button>` : ""}
       ${artifact.action === "setup-pack" && setupPack.readme ? `<button type="button" class="topbar-button ghost foundation-download-file" data-project-id="${project.projectId}" data-foundation-file="readme">Download README</button>` : ""}
       ${artifact.action === "setup-pack" && setupPack.registerScript ? `<button type="button" class="topbar-button ghost foundation-download-file" data-project-id="${project.projectId}" data-foundation-file="registerScript">Download Script</button>` : ""}
       ${artifact.action === "setup-pack" && setupPack.agentConfig ? `<button type="button" class="topbar-button ghost foundation-download-file" data-project-id="${project.projectId}" data-foundation-file="agentConfig">Download Config</button>` : ""}
@@ -1679,6 +1680,34 @@ function renderSettingsData() {
           const artifact = state.latestFoundationArtifacts?.[node.dataset.projectId || ''];
           if (!artifact?.result?.artifactBundle) return;
           downloadTextFile(`${node.dataset.projectId}.artifact-bundle.json`, JSON.stringify(artifact.result.artifactBundle, null, 2), 'application/json;charset=utf-8');
+        });
+      });
+      foundationsRoot.querySelectorAll('.foundation-download-zip').forEach((node) => {
+        node.addEventListener('click', async () => {
+          const artifact = state.latestFoundationArtifacts?.[node.dataset.projectId || ''];
+          if (!artifact?.result?.artifactBundle) return;
+          const response = await fetch('/services/elo-agent-onboarder/artifact-zip', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: artifact.action || 'artifact',
+              artifactBundle: artifact.result.artifactBundle
+            })
+          });
+          if (!response.ok) {
+            setStatus('Artifact zip export failed.', 'error');
+            return;
+          }
+          const blob = await response.blob();
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `elo-agent-onboarder-${artifact.action || 'artifact'}.zip`;
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          URL.revokeObjectURL(url);
+          setStatus('Artifact zip downloaded.', 'ok');
         });
       });
       foundationsRoot.querySelectorAll('.foundation-download-file').forEach((node) => {

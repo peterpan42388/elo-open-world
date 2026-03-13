@@ -5,6 +5,7 @@ import { mkdtemp, readFile, access } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { OpenWorldFramework } from "../src/core/openWorld.js";
+import { buildArtifactZip } from "../src/services/artifactZipService.js";
 
 class FakeGitHubRepoService {
   constructor() {
@@ -957,4 +958,20 @@ test("requirements should track review and implementation timeline events", asyn
   const implemented = world.requirements.attachToProject(requirement.requirementId, "owp_project_1");
   assert.equal(accepted.conversationTimeline[1].type, "requirement-accepted");
   assert.equal(implemented.conversationTimeline[implemented.conversationTimeline.length - 1].type, "project-created-from-requirement");
+});
+
+test("artifact zip service should export a zip buffer from an artifact bundle", async () => {
+  const result = await buildArtifactZip({
+    basename: "test-artifact",
+    bundle: {
+      files: {
+        "README.md": "# test\n",
+        "nested/example.txt": "hello"
+      }
+    }
+  });
+  assert.equal(result.filename, "test-artifact.zip");
+  assert.equal(result.contentType, "application/zip");
+  assert.equal(Buffer.isBuffer(result.data), true);
+  assert.equal(result.data.subarray(0, 2).toString("utf8"), "PK");
 });

@@ -1,6 +1,6 @@
 FROM node:20-alpine
 WORKDIR /app
-RUN apk add --no-cache git github-cli
+RUN apk add --no-cache git github-cli zip
 COPY package.json package-lock.json ./
 RUN npm install --omit=dev
 COPY src ./src

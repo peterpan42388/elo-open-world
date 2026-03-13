@@ -5,6 +5,7 @@ import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import { OpenWorldFramework } from "../core/openWorld.js";
 import { EmailService } from "../services/emailService.js";
+import { buildArtifactZip } from "../services/artifactZipService.js";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const WEB_ROOT = join(__dirname, "../../web");
@@ -27,6 +28,16 @@ function redirect(res, location) {
 function html(res, status, content) {
   res.writeHead(status, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
   res.end(content);
+}
+
+function binary(res, status, data, contentType, filename) {
+  res.writeHead(status, {
+    "Content-Type": contentType,
+    "Content-Disposition": `attachment; filename=\"${filename}\"`,
+    "Cache-Control": "no-store",
+    "Content-Length": data.length
+  });
+  res.end(data);
 }
 
 function oauthConfig() {
@@ -156,6 +167,7 @@ function renderOnboarderServicePage() {
                 <li><code>/services/elo-agent-onboarder/setup-pack</code> — setup pack API</li>
                 <li><code>/services/elo-agent-onboarder/install-plan</code> — install plan API</li>
                 <li><code>/services/elo-agent-onboarder/bootstrap</code> — bootstrap report API</li>
+                <li><code>/services/elo-agent-onboarder/artifact-zip</code> — zip export API</li>
                 <li><code>/services/elo-agent-onboarder/bundle</code> — legacy compatibility alias</li>
               </ul>
             </div>
@@ -362,6 +374,7 @@ const server = http.createServer(async (req, res) => {
           setupPack: "/services/elo-agent-onboarder/setup-pack",
           installPlan: "/services/elo-agent-onboarder/install-plan",
           bootstrap: "/services/elo-agent-onboarder/bootstrap",
+          artifactZip: "/services/elo-agent-onboarder/artifact-zip",
           bundle: "/services/elo-agent-onboarder/bundle"
         },
         outputs: {
@@ -370,7 +383,8 @@ const server = http.createServer(async (req, res) => {
           agentConfig: "json",
           installPlan: "json",
           bootstrapReport: "json",
-          templates: "text"
+          templates: "text",
+          artifactZip: "zip"
         },
         profiles: [
           "macos-homebrew",
@@ -398,6 +412,17 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "POST" && path === "/services/elo-agent-onboarder/bootstrap") {
       const body = await readJson(req);
       return json(res, 200, framework.onboarder.generateBootstrapReport(body));
+    }
+
+    if (req.method === "POST" && path === "/services/elo-agent-onboarder/artifact-zip") {
+      const body = await readJson(req);
+      const action = String(body.action || "artifact").trim().toLowerCase();
+      const basename = `elo-agent-onboarder-${action}`;
+      const result = await buildArtifactZip({
+        bundle: body.artifactBundle,
+        basename
+      });
+      return binary(res, 200, result.data, result.contentType, result.filename);
     }
 
     if (req.method === "POST" && path === "/services/elo-agent-onboarder/bundle") {
