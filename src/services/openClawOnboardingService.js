@@ -32,35 +32,124 @@ const FOUNDATION_INSTALL_PROFILES = {
 function buildProfileTemplates(cfg, world) {
   if (cfg.profile === "macos-homebrew") {
     return {
-      "Brewfile": ["node", "jq"].join("\n") + "\n",
+      "Brewfile": [
+        'tap "homebrew/core"',
+        'brew "node"',
+        'brew "jq"',
+        'brew "curl"'
+      ].join("\n") + "\n",
+      ".env.local": `ELO_OPEN_WORLD_API_BASE=${world.apiBaseUrl}
+ELO_OPEN_WORLD_HUMAN_ID=${cfg.humanId}
+ELO_OPEN_WORLD_AGENT_ID=${cfg.agentId}
+ELO_OPEN_WORLD_AGENT_MODEL=${cfg.model || ""}
+ELO_OPEN_WORLD_AGENT_ENDPOINT=${cfg.endpoint || ""}
+OPENCLAW_INSTALL_ROOT=${cfg.installRoot}
+OPENCLAW_PORT=18789
+`,
+      "install-homebrew.sh": `#!/usr/bin/env sh
+set -eu
+ROOT="\${1:-${cfg.installRoot}}"
+SCRIPT_DIR="$(CDPATH= cd -- "$(dirname "$0")" && pwd)"
+
+if ! command -v brew >/dev/null 2>&1; then
+  echo "Homebrew is required. Install it from https://brew.sh first."
+  exit 1
+fi
+
+mkdir -p "$ROOT"/{bin,config,logs,data}
+brew bundle --file "$SCRIPT_DIR/Brewfile"
+cp "$SCRIPT_DIR/.env.local" "$ROOT/.env.local"
+cp "$SCRIPT_DIR/start-openclaw.sh" "$ROOT/start-openclaw.sh"
+chmod +x "$ROOT/start-openclaw.sh"
+
+echo "macOS runtime scaffold prepared at $ROOT"
+echo "Next step: $ROOT/start-openclaw.sh"
+`,
       "start-openclaw.sh": `#!/usr/bin/env sh
 set -eu
-cd ${cfg.installRoot}
-export ELO_OPEN_WORLD_API_BASE=${world.apiBaseUrl}
-node ./openclaw-runtime.js
+ROOT="\${1:-${cfg.installRoot}}"
+ENV_FILE="$ROOT/.env.local"
+
+if ! command -v node >/dev/null 2>&1; then
+  echo "node is required but was not found in PATH"
+  exit 1
+fi
+
+if [ -f "$ENV_FILE" ]; then
+  set -a
+  . "$ENV_FILE"
+  set +a
+fi
+
+cd "$ROOT"
+
+if [ ! -f "./openclaw-runtime.js" ]; then
+  echo "openclaw-runtime.js is missing in $ROOT"
+  echo "Place your OpenClaw-compatible runtime here before starting."
+  exit 1
+fi
+
+exec node ./openclaw-runtime.js
 `
     };
   }
 
   if (cfg.profile === "linux-systemd") {
     return {
+      "openclaw.env": `ELO_OPEN_WORLD_API_BASE=${world.apiBaseUrl}
+ELO_OPEN_WORLD_HUMAN_ID=${cfg.humanId}
+ELO_OPEN_WORLD_AGENT_ID=${cfg.agentId}
+ELO_OPEN_WORLD_AGENT_MODEL=${cfg.model || ""}
+ELO_OPEN_WORLD_AGENT_ENDPOINT=${cfg.endpoint || ""}
+OPENCLAW_INSTALL_ROOT=${cfg.installRoot}
+`,
       "openclaw.service": `[Unit]
 Description=OpenClaw runtime for ${cfg.agentId}
 After=network-online.target
 
 [Service]
 WorkingDirectory=${cfg.installRoot}
-Environment=ELO_OPEN_WORLD_API_BASE=${world.apiBaseUrl}
-ExecStart=/usr/bin/env node ${cfg.installRoot}/openclaw-runtime.js
+EnvironmentFile=${cfg.installRoot}/openclaw.env
+ExecStart=${cfg.installRoot}/start-openclaw.sh
+ExecReload=/bin/sh -lc 'systemctl --user restart openclaw.service'
+ExecStop=/bin/sh -lc 'pkill -f "${cfg.installRoot}/openclaw-runtime.js" || true'
 Restart=always
 RestartSec=5
 
 [Install]
 WantedBy=default.target
 `,
+      "start-openclaw.sh": `#!/usr/bin/env sh
+set -eu
+ROOT="${cfg.installRoot}"
+
+if ! command -v node >/dev/null 2>&1; then
+  echo "node is required but was not found in PATH"
+  exit 1
+fi
+
+if [ -f "$ROOT/openclaw.env" ]; then
+  set -a
+  . "$ROOT/openclaw.env"
+  set +a
+fi
+
+cd "$ROOT"
+
+if [ ! -f "./openclaw-runtime.js" ]; then
+  echo "openclaw-runtime.js is missing in $ROOT"
+  exit 1
+fi
+
+exec /usr/bin/env node "$ROOT/openclaw-runtime.js"
+`,
       "install-systemd.sh": `#!/usr/bin/env sh
 set -eu
-mkdir -p ~/.config/systemd/user
+ROOT="\${1:-${cfg.installRoot}}"
+mkdir -p "$ROOT" ~/.config/systemd/user
+cp openclaw.env "$ROOT/openclaw.env"
+cp start-openclaw.sh "$ROOT/start-openclaw.sh"
+chmod +x "$ROOT/start-openclaw.sh"
 cp openclaw.service ~/.config/systemd/user/openclaw.service
 systemctl --user daemon-reload
 systemctl --user enable --now openclaw.service
@@ -73,6 +162,7 @@ systemctl --user enable --now openclaw.service
       "docker-compose.yml": `services:
   openclaw:
     image: ghcr.io/example/openclaw:latest
+    container_name: ${cfg.agentId.replace(/[^a-zA-Z0-9_.-]/g, "-")}
     restart: unless-stopped
     env_file:
       - .env
@@ -80,12 +170,32 @@ systemctl --user enable --now openclaw.service
       - "18789:18789"
     volumes:
       - ./data:/app/data
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:18789/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    command: ["node", "/app/openclaw-runtime.js"]
 `,
       ".env": `ELO_OPEN_WORLD_API_BASE=${world.apiBaseUrl}
 ELO_OPEN_WORLD_HUMAN_ID=${cfg.humanId}
 ELO_OPEN_WORLD_AGENT_ID=${cfg.agentId}
 ELO_OPEN_WORLD_AGENT_MODEL=${cfg.model || ''}
 ELO_OPEN_WORLD_AGENT_ENDPOINT=${cfg.endpoint || ''}
+OPENCLAW_INSTALL_ROOT=${cfg.installRoot}
+`,
+      "bootstrap.sh": `#!/usr/bin/env sh
+set -eu
+ROOT="\${1:-${cfg.installRoot}}"
+mkdir -p "$ROOT"/{data,logs}
+cp docker-compose.yml "$ROOT/docker-compose.yml"
+cp .env "$ROOT/.env"
+cd "$ROOT"
+docker compose pull
+docker compose up -d
+docker compose ps
 `
     };
   }
@@ -259,7 +369,7 @@ export class OpenClawOnboardingService {
         id: "install-homebrew-runtime",
         title: "Install runtime via Homebrew",
         action: "homebrew-runtime",
-        command: "brew install node && brew install jq",
+        command: "./install-homebrew.sh",
         rationale: "Homebrew is the supported dependency path for macOS desktop installs."
       });
     } else if (safeProfile === "linux-systemd") {
@@ -275,7 +385,7 @@ export class OpenClawOnboardingService {
           id: "write-systemd-unit",
           title: "Write systemd user unit",
           action: "systemd-unit",
-          command: "write ~/.config/systemd/user/openclaw.service",
+          command: "./install-systemd.sh",
           rationale: "systemd user services provide restart and login persistence."
         }
       );
@@ -292,7 +402,7 @@ export class OpenClawOnboardingService {
           id: "write-compose-stack",
           title: "Write docker compose stack",
           action: "docker-compose-stack",
-          command: "write docker-compose.yml and env files into install root",
+          command: "./bootstrap.sh",
           rationale: "Compose files define the runtime shape and restart policy."
         }
       );
