@@ -78,6 +78,54 @@ function buildRuntimeConfigTemplate(cfg, world) {
   }, null, 2) + "\n";
 }
 
+function buildRuntimeStubTemplate(cfg, world) {
+  return `#!/usr/bin/env node
+import http from "node:http";
+import fs from "node:fs";
+
+const port = Number(process.env.OPENCLAW_PORT || "18789");
+const configPath = process.env.OPENCLAW_RUNTIME_CONFIG || "./config/openclaw-runtime.json";
+let config = {};
+
+try {
+  config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+} catch {
+  config = {
+    runtime: "${cfg.runtime}",
+    agentId: "${cfg.agentId}",
+    humanId: "${cfg.humanId}",
+    model: "${cfg.model || ""}",
+    endpoint: "${cfg.endpoint || "http://127.0.0.1:18789"}",
+    worldUrl: "${world.apiBaseUrl}"
+  };
+}
+
+const server = http.createServer((req, res) => {
+  if (req.url === "/health") {
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(JSON.stringify({
+      ok: true,
+      runtime: config.runtime || "${cfg.runtime}",
+      agentId: config.agentId || "${cfg.agentId}",
+      model: config.model || "${cfg.model || ""}"
+    }));
+    return;
+  }
+
+  res.writeHead(200, { "content-type": "application/json" });
+  res.end(JSON.stringify({
+    message: "OpenClaw runtime stub is running",
+    runtime: config.runtime || "${cfg.runtime}",
+    agentId: config.agentId || "${cfg.agentId}"
+  }));
+});
+
+server.listen(port, "0.0.0.0", () => {
+  console.log("OpenClaw runtime stub listening on port", port);
+});
+`;
+}
+
 function buildProfileTemplates(cfg, world) {
   const shellRoot = shellPath(cfg.installRoot);
   const systemdRoot = systemdPath(cfg.installRoot);
@@ -85,6 +133,7 @@ function buildProfileTemplates(cfg, world) {
     return {
       "runtime-contract.json": buildRuntimeContract(cfg, world),
       "config/openclaw-runtime.example.json": buildRuntimeConfigTemplate(cfg, world),
+      "bin/openclaw-runtime.example.js": buildRuntimeStubTemplate(cfg, world),
       "Brewfile": [
         'tap "homebrew/core"',
         'brew "node"',
@@ -152,6 +201,10 @@ brew bundle --file "$SCRIPT_DIR/Brewfile"
 cp "$SCRIPT_DIR/.env.local" "$ROOT/.env.local"
 cp "$SCRIPT_DIR/runtime-contract.json" "$ROOT/runtime-contract.json"
 cp "$SCRIPT_DIR/config/openclaw-runtime.example.json" "$ROOT/config/openclaw-runtime.example.json"
+cp "$SCRIPT_DIR/bin/openclaw-runtime.example.js" "$ROOT/bin/openclaw-runtime.example.js"
+if [ ! -f "$ROOT/bin/openclaw-runtime.js" ]; then
+  cp "$ROOT/bin/openclaw-runtime.example.js" "$ROOT/bin/openclaw-runtime.js"
+fi
 if [ ! -f "$ROOT/config/openclaw-runtime.json" ]; then
   cp "$ROOT/config/openclaw-runtime.example.json" "$ROOT/config/openclaw-runtime.json"
 fi
@@ -210,6 +263,7 @@ exec node "$RUNTIME_FILE"
     return {
       "runtime-contract.json": buildRuntimeContract(cfg, world),
       "config/openclaw-runtime.example.json": buildRuntimeConfigTemplate(cfg, world),
+      "bin/openclaw-runtime.example.js": buildRuntimeStubTemplate(cfg, world),
       "openclaw.env": `ELO_OPEN_WORLD_API_BASE=${world.apiBaseUrl}
 ELO_OPEN_WORLD_HUMAN_ID=${cfg.humanId}
 ELO_OPEN_WORLD_AGENT_ID=${cfg.agentId}
@@ -315,6 +369,10 @@ mkdir -p "$ROOT"/{bin,config,logs,data} ~/.config/systemd/user
 cp openclaw.env "$ROOT/openclaw.env"
 cp runtime-contract.json "$ROOT/runtime-contract.json"
 cp config/openclaw-runtime.example.json "$ROOT/config/openclaw-runtime.example.json"
+cp bin/openclaw-runtime.example.js "$ROOT/bin/openclaw-runtime.example.js"
+if [ ! -f "$ROOT/bin/openclaw-runtime.js" ]; then
+  cp "$ROOT/bin/openclaw-runtime.example.js" "$ROOT/bin/openclaw-runtime.js"
+fi
 if [ ! -f "$ROOT/config/openclaw-runtime.json" ]; then
   cp "$ROOT/config/openclaw-runtime.example.json" "$ROOT/config/openclaw-runtime.json"
 fi
@@ -335,6 +393,7 @@ systemctl --user enable --now openclaw.service
     return {
       "runtime-contract.json": buildRuntimeContract(cfg, world),
       "config/openclaw-runtime.example.json": buildRuntimeConfigTemplate(cfg, world),
+      "bin/openclaw-runtime.example.js": buildRuntimeStubTemplate(cfg, world),
       "docker-compose.yml": `services:
   openclaw:
     image: ghcr.io/example/openclaw:latest
@@ -345,6 +404,8 @@ systemctl --user enable --now openclaw.service
     ports:
       - "18789:18789"
     volumes:
+      - ./bin:/app/bin
+      - ./config:/app/config
       - ./data:/app/data
       - ./logs:/app/logs
     healthcheck:
@@ -353,7 +414,7 @@ systemctl --user enable --now openclaw.service
       timeout: 5s
       retries: 5
       start_period: 10s
-    command: ["node", "/app/openclaw-runtime.js"]
+    command: ["node", "/app/bin/openclaw-runtime.js"]
 `,
       ".env": `ELO_OPEN_WORLD_API_BASE=${world.apiBaseUrl}
 ELO_OPEN_WORLD_HUMAN_ID=${cfg.humanId}
@@ -404,9 +465,13 @@ echo "Reported status for ${cfg.agentId}"
       "bootstrap.sh": `#!/usr/bin/env sh
 set -eu
 ROOT="\${1:-${shellRoot}}"
-mkdir -p "$ROOT"/{data,logs,config}
+mkdir -p "$ROOT"/{bin,data,logs,config}
 cp runtime-contract.json "$ROOT/runtime-contract.json"
 cp config/openclaw-runtime.example.json "$ROOT/config/openclaw-runtime.example.json"
+cp bin/openclaw-runtime.example.js "$ROOT/bin/openclaw-runtime.example.js"
+if [ ! -f "$ROOT/bin/openclaw-runtime.js" ]; then
+  cp "$ROOT/bin/openclaw-runtime.example.js" "$ROOT/bin/openclaw-runtime.js"
+fi
 if [ ! -f "$ROOT/config/openclaw-runtime.json" ]; then
   cp "$ROOT/config/openclaw-runtime.example.json" "$ROOT/config/openclaw-runtime.json"
 fi
