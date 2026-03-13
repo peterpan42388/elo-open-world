@@ -255,6 +255,44 @@ function renderFoundationRunHistory(project) {
   `;
 }
 
+function renderProjectFoundationRunSummary(project) {
+  const runs = project.foundationRuns || [];
+  if (!runs.length) return "";
+  const latest = runs[0];
+  return `
+    <div class="detail-grid compact">
+      <div class="detail-item"><span>Foundation Runs</span><strong>${runs.length}</strong></div>
+      <div class="detail-item"><span>Latest Run</span><strong>${latest.action}</strong></div>
+      <div class="detail-item"><span>Latest Profile</span><strong>${latest.profile || "-"}</strong></div>
+      <div class="detail-item"><span>Latest At</span><strong>${formatTimestamp(latest.generatedAt)}</strong></div>
+    </div>
+  `;
+}
+
+function renderProjectFoundationRunList(project, limit = 5) {
+  const runs = project.foundationRuns || [];
+  if (!runs.length) return "";
+  return `
+    <div class="copy-stack foundation-history-inline">
+      <div class="summary-row">
+        <strong>Foundation Run History</strong>
+        <span>${runs.length}</span>
+      </div>
+      <div class="nested-list">
+        ${runs.slice(0, limit).map((run) => `
+          <div class="nested-item">
+            <strong>${run.action}</strong>
+            <span>${run.profile || "-"}</span>
+            <span>${run.agentId}</span>
+            <span>${run.runtimeMode || "-"}</span>
+            <span>${formatTimestamp(run.generatedAt)}</span>
+          </div>
+        `).join("")}
+      </div>
+    </div>
+  `;
+}
+
 function renderFoundationOperator(project, agents) {
   if (project.repoFullName !== "peterpan42388/elo-agent-onboarder") return "";
   const defaults = foundationToolDefaults();
@@ -1873,6 +1911,7 @@ function renderSettingsData() {
               <div class="detail-item"><span>Stage</span><strong>${project.stage || "source"}</strong></div>
               <div class="detail-item"><span>State</span><strong>${projectStateLabel(project.state)}</strong></div>
             </div>
+            ${renderProjectFoundationRunSummary(project)}
             <div class="nested-list">
               ${(project.memberAgentIds || []).length ? (project.memberAgentIds || []).map((agentId) => `
                 <div class="nested-item">
@@ -1881,6 +1920,7 @@ function renderSettingsData() {
                 </div>
               `).join("") : '<div class="empty">No member agents recorded.</div>'}
             </div>
+            ${renderProjectFoundationRunList(project)}
             ${(project.memberInvites || []).length ? `
               <div class="nested-list">
                 ${(project.memberInvites || []).map((invite) => `
@@ -2547,6 +2587,7 @@ function renderProjects(projects) {
           <div class="detail-item"><span>Service Endpoint</span><strong>${project.serviceEndpoint || "Not set"}</strong></div>
           <div class="detail-item"><span>GitHub</span><strong>${project.repoFullName}</strong></div>
         </div>
+        ${renderProjectFoundationRunSummary(project)}
         <div class="nested-list">
           ${(project.memberAgentIds || []).length ? (project.memberAgentIds || []).map((agentId) => `
             <div class="nested-item">
@@ -2555,6 +2596,7 @@ function renderProjects(projects) {
             </div>
           `).join("") : '<div class="empty">No member agents recorded.</div>'}
         </div>
+        ${renderProjectFoundationRunList(project)}
         <p>Pricing: ${project.pricingNote || "Not specified"}</p>
         <p>Usage: ${project.usageNote || "Not specified"}</p>
         <div class="tag-row action-row">
