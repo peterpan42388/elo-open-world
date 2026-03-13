@@ -46,7 +46,9 @@ const state = {
   },
   authConfig: {
     githubEnabled: false
-  }
+  },
+  latestStarterRequirement: null,
+  starterRequirementId: ""
 };
 
 bootstrapSessionFromUrl();
@@ -116,6 +118,15 @@ function currentHumanProjects() {
     if (project.ownerHumanId === human.humanId) return true;
     return (project.memberAgentIds || []).some((agentId) => agentIds.has(agentId));
   });
+}
+
+function foundationProjects() {
+  if (!state.summary) return [];
+  const preferredRepos = new Set([
+    "peterpan42388/elo-agent-onboarder",
+    "peterpan42388/elo-agent-web-plugin"
+  ]);
+  return (state.summary.projects || []).filter((project) => preferredRepos.has(project.repoFullName));
 }
 
 function filterProjectsByScope(projects, humanId) {
@@ -196,6 +207,16 @@ function formatTimestamp(ts) {
   const date = new Date(ts);
   if (Number.isNaN(date.getTime())) return "-";
   return date.toLocaleString();
+}
+
+function loadRequirementIntoProjectForm(requirement) {
+  const form = $("project-form");
+  if (!requirement || !form) return;
+  if (form.requirementId) form.requirementId.value = requirement.requirementId;
+  if (form.kind && !form.kind.value) form.kind.value = requirement.desiredKind || "";
+  if (form.title && !form.title.value) form.title.value = requirement.title || "";
+  if (form.summary && !form.summary.value) form.summary.value = requirement.summary || "";
+  if (form.tags && !form.tags.value) form.tags.value = (requirement.tags || []).join(", ");
 }
 
 function downloadTextFile(filename, content, mimeType = "text/plain;charset=utf-8") {
@@ -698,6 +719,9 @@ function renderSettingsData() {
   const protocolsPanel = $("settings-protocols-content");
   const agentsRoot = $("my-agents-list");
   const projectsRoot = $("my-projects-list");
+  const foundationsRoot = $("project-foundations-list");
+  const starterForm = $("project-starter-form");
+  const starterResult = $("project-starter-result");
   const signedActions = $("signed-agent-actions");
   if (!human) {
     if (profile) profile.innerHTML = "";
@@ -709,6 +733,8 @@ function renderSettingsData() {
     if (protocolsPanel) protocolsPanel.innerHTML = "";
     if (agentsRoot) agentsRoot.innerHTML = "";
     if (projectsRoot) projectsRoot.innerHTML = "";
+    if (foundationsRoot) foundationsRoot.innerHTML = "";
+    if (starterResult) starterResult.innerHTML = "";
     if (signedActions) signedActions.innerHTML = "";
     return;
   }
@@ -718,6 +744,7 @@ function renderSettingsData() {
   const ownedProjects = projects.filter((project) => project.ownerHumanId === human.humanId);
   const participatingProjects = projects.filter((project) => project.ownerHumanId !== human.humanId);
   const operatingProjects = projects.filter((project) => String(project.stage || "").toLowerCase() === "operating");
+  const foundations = foundationProjects();
   const linkedGitHubStatus = human.githubLogin ? "Linked" : "Not linked";
   const authMethodLabel = (human.authMethods || []).length ? human.authMethods.join(" + ") : human.admissionMethod || "unknown";
   const onlineAgents = agents.filter((agent) => agent.online).length;
@@ -1040,6 +1067,86 @@ function renderSettingsData() {
   }
 
   if (projectsRoot) {
+    if (starterForm) {
+      if (starterForm.primaryAgentId) {
+        starterForm.primaryAgentId.innerHTML = [
+          '<option value="">Select your main agent</option>',
+          ...agents.map((agent) => `<option value="${agent.agentId}">${agent.label || agent.agentId}</option>`)
+        ].join("");
+      }
+      const submitButton = $("project-starter-submit");
+      if (submitButton) submitButton.disabled = !agents.length;
+    }
+
+    if (starterResult) {
+      starterResult.innerHTML = state.latestStarterRequirement ? `
+        <div class="detail-grid compact">
+          <div class="detail-item"><span>Requirement</span><strong>${state.latestStarterRequirement.requirementId}</strong></div>
+          <div class="detail-item"><span>Status</span><strong>${requirementStatusLabel(state.latestStarterRequirement.status)}</strong></div>
+          <div class="detail-item"><span>Main Agent</span><strong>${state.latestStarterRequirement.primaryAgentId || "Not set"}</strong></div>
+        </div>
+        <div class="action-row">
+          <button type="button" class="topbar-button secondary" id="starter-open-build-link">Open Build With Requirement</button>
+          <button type="button" class="topbar-button ghost" id="starter-copy-requirement-id">Copy Requirement ID</button>
+        </div>
+        <p class="note">The starter requirement is ready. Continue in Build when you want to create the GitHub source project.</p>
+      ` : `
+        <div class="guide-card starter-note-card">
+          <span class="guide-step">START</span>
+          <h3>From Idea to Requirement</h3>
+          <p>Choose your primary agent and describe the idea. EOW will create the first requirement so your agent can pick up the work under the project rules.</p>
+        </div>
+      `;
+      $("starter-open-build-link")?.addEventListener("click", () => {
+        const requirement = state.summary?.requirements?.find((item) => item.requirementId === state.starterRequirementId) || state.latestStarterRequirement;
+        if (requirement) loadRequirementIntoProjectForm(requirement);
+        goToRoute("build");
+        window.setTimeout(() => {
+          const target = $("project-form");
+          if (target) {
+            if (requirement) loadRequirementIntoProjectForm(requirement);
+            target.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+        }, 50);
+      });
+      $("starter-copy-requirement-id")?.addEventListener("click", () => {
+        if (state.latestStarterRequirement?.requirementId) {
+          copyText(state.latestStarterRequirement.requirementId, "Requirement ID copied.");
+        }
+      });
+    }
+
+    if (foundationsRoot) {
+      foundationsRoot.innerHTML = foundations.length ? foundations.map((project) => `
+        <details class="expand-card" open>
+          <summary>
+            <div class="summary-row">
+              <strong>${project.title}</strong>
+              <div class="tag-row">
+                ${createBadge(projectTypeLabel(project.kind))}
+                ${createBadge(projectStateLabel(project.state))}
+              </div>
+            </div>
+            <span>${project.repoName}</span>
+          </summary>
+          <div class="expand-body">
+            <p>${project.summary || "No summary provided."}</p>
+            <div class="tag-row">${(project.tags || []).map((tag) => `<span class="subtle-tag">${tag}</span>`).join("")}</div>
+            <div class="detail-grid compact">
+              <div class="detail-item"><span>Repository</span><strong>${project.repoFullName}</strong></div>
+              <div class="detail-item"><span>Stage</span><strong>${project.stage || "source"}</strong></div>
+              <div class="detail-item"><span>State</span><strong>${projectStateLabel(project.state)}</strong></div>
+              <div class="detail-item"><span>Service</span><strong class="detail-code">${project.serviceEndpoint || "Not exposed yet"}</strong></div>
+            </div>
+            <div class="action-row">
+              <a href="${project.repoUrl}" target="_blank" rel="noreferrer">Open GitHub Repo</a>
+              ${project.serviceEndpoint ? `<a href="${project.serviceEndpoint}" target="_blank" rel="noreferrer">Open Service</a>` : ""}
+            </div>
+          </div>
+        </details>
+      `).join("") : '<div class="empty">Foundation projects will appear here after registration into the universe.</div>';
+    }
+
     const scopedProjects = filterProjectsByScope(projects, human.humanId);
     const visibleProjects = filterSettingsProjects(scopedProjects);
     if (!projects.length) {
@@ -1360,15 +1467,10 @@ function renderRequirements(requirements) {
   root.querySelectorAll(".use-requirement-button").forEach((node) => {
     node.addEventListener("click", () => {
       const requirement = requirements.find((item) => item.requirementId === node.dataset.requirementUse);
-      const form = $("project-form");
-      if (!requirement || !form) return;
-      if (form.requirementId) form.requirementId.value = requirement.requirementId;
-      if (form.kind && !form.kind.value) form.kind.value = requirement.desiredKind || "";
-      if (form.title && !form.title.value) form.title.value = requirement.title || "";
-      if (form.summary && !form.summary.value) form.summary.value = requirement.summary || "";
-      if (form.tags && !form.tags.value) form.tags.value = (requirement.tags || []).join(", ");
+      if (!requirement) return;
+      loadRequirementIntoProjectForm(requirement);
       setStatus(`Requirement ${requirement.requirementId} loaded into project form.`, "ok");
-      form.scrollIntoView({ behavior: "smooth", block: "start" });
+      $("project-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   });
 }
@@ -1376,7 +1478,7 @@ function renderRequirements(requirements) {
 function renderRequirementSelect(requirements) {
   const select = $("project-requirement-select");
   if (!select) return;
-  const current = select.value || "";
+  const current = select.value || state.starterRequirementId || "";
   const available = requirements.filter((item) => !item.linkedProjectId && item.status !== "rejected");
   select.innerHTML = [
     '<option value="">No linked requirement</option>',
@@ -1963,6 +2065,9 @@ async function loadAuthConfig() {
 
 async function refresh() {
   state.summary = await request("/api/world/summary");
+  if (state.starterRequirementId) {
+    state.latestStarterRequirement = (state.summary.requirements || []).find((item) => item.requirementId === state.starterRequirementId) || state.latestStarterRequirement;
+  }
   state.authResolved = true;
   renderAll();
 }
@@ -2017,6 +2122,56 @@ $("human-form")?.addEventListener("submit", async (event) => {
 });
 $("agent-form")?.addEventListener("submit", (event) => handleSubmit(event, "/api/agents/register", (result) => `Agent created: ${result.agentId}`, "settings"));
 $("requirement-form")?.addEventListener("submit", (event) => handleSubmit(event, "/api/requirements/create", (result) => `Requirement created: ${result.requirementId}`, "build"));
+$("project-starter-form")?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const human = currentHuman();
+  if (!human) {
+    setStatus("Sign in first.", "error");
+    return;
+  }
+  if (!form.primaryAgentId.value) {
+    setStatus("Select your main agent first.", "error");
+    return;
+  }
+  try {
+    const payload = {
+      title: form.title.value,
+      summary: [
+        `Project starter created inside My Projects.`,
+        `Primary agent: ${form.primaryAgentId.value}`,
+        ``,
+        form.idea.value.trim(),
+        ``,
+        `Next step: continue requirement refinement and source project creation inside Build.`
+      ].join("\n"),
+      desiredKind: form.desiredKind.value || "app",
+      tags: [form.tags.value, "starter"].filter(Boolean).join(", "),
+      createdByType: "human",
+      createdById: human.humanId,
+      ownerHumanId: human.humanId,
+      reviewerHumanId: human.humanId
+    };
+    const result = await request("/api/requirements/create", "POST", payload);
+    state.latestStarterRequirement = {
+      ...result,
+      primaryAgentId: form.primaryAgentId.value
+    };
+    state.starterRequirementId = result.requirementId;
+    if (typeof form.reset === "function") form.reset();
+    renderSettingsData();
+    setStatus(`Starter requirement created: ${result.requirementId}`, "ok");
+    await refresh();
+  } catch (error) {
+    setStatus(error.message, "error");
+  }
+});
+$("project-starter-open-build")?.addEventListener("click", () => {
+  goToRoute("build");
+  window.setTimeout(() => {
+    $("project-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, 50);
+});
 $("agent-status-form")?.addEventListener("submit", (event) => handleSubmit(event, "/api/agents/status", (result) => `Agent updated: ${result.agentId}`, "settings"));
 $("plugin-form")?.addEventListener("submit", (event) => handleSubmit(event, "/api/plugins/register", (result) => `Plugin created: ${result.pluginId}`, "build"));
 $("project-form")?.addEventListener("submit", (event) => handleSubmit(event, "/api/projects/create", (result) => `Project created: ${result.projectId} -> ${result.repoFullName}`, "build"));

@@ -213,6 +213,44 @@
               <section class="settings-section" data-settings-panel="projects" hidden>
                 <section class="panel">
                   <div class="panel-header">
+                    <h2>Project Starter</h2>
+                    <p>Start with an idea. Choose your main agent, describe the work, and let EOW create the first requirement instead of forcing you into raw repository metadata.</p>
+                  </div>
+                  <form id="project-starter-form">
+                    <select name="primaryAgentId" id="project-starter-agent">
+                      <option value="">Select your main agent</option>
+                    </select>
+                    <input name="title" placeholder="Idea title" required />
+                    <textarea name="idea" placeholder="Describe what you want to build, who it serves, and what outcome you expect." required></textarea>
+                    <div class="panel-inline-fields">
+                      <select name="desiredKind">
+                        <option value="app">App</option>
+                        <option value="workflow">Workflow</option>
+                        <option value="skill">Skill</option>
+                        <option value="protocol">Protocol</option>
+                        <option value="other">Other</option>
+                      </select>
+                      <input name="tags" placeholder="comma-separated tags" />
+                    </div>
+                    <div class="action-row">
+                      <button type="submit" id="project-starter-submit">Create Starter Requirement</button>
+                      <button type="button" class="topbar-button ghost" id="project-starter-open-build">Open Build Workspace</button>
+                    </div>
+                    <p class="note">Phase 1 creates a requirement first. Direct browser chat with your own agent will be attached later through <code>elo-agent-web-plugin</code>.</p>
+                  </form>
+                  <div id="project-starter-result" class="copy-stack"></div>
+                </section>
+
+                <section class="panel">
+                  <div class="panel-header">
+                    <h2>Foundation Infrastructure</h2>
+                    <p>These source projects are the current EOW foundations for ordinary-user onboarding and browser-side agent interaction.</p>
+                  </div>
+                  <div id="project-foundations-list" class="list"></div>
+                </section>
+
+                <section class="panel">
+                  <div class="panel-header">
                     <h2>My Projects</h2>
                     <p>Projects you own or participate in through your registered agents. Use the scope switcher to focus the list.</p>
                   </div>
