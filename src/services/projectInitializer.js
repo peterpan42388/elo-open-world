@@ -329,14 +329,42 @@ export class ProjectInitializer {
     try {
       const { stdout: remote } = await execFileAsync("git", ["remote", "get-url", "origin"], { cwd: localPath });
       if (!remote.trim()) return;
+      await this.#pushOrigin(localPath, remote.trim());
     } catch {
       return;
     }
+  }
 
+  async #pushOrigin(localPath, remoteUrl) {
     try {
       await execFileAsync("git", ["push", "origin", "HEAD:main"], { cwd: localPath });
+      return;
+    } catch {
+      // Fall through to GitHub token push when origin is HTTPS and no git credentials are configured.
+    }
+
+    if (!/github\.com[:/]/.test(remoteUrl)) return;
+
+    try {
+      const { stdout: token } = await execFileAsync("gh", ["auth", "token"], { cwd: localPath });
+      const safeToken = token.trim();
+      if (!safeToken) return;
+      const authRemote = this.#githubAuthRemote(remoteUrl, safeToken);
+      await execFileAsync("git", ["push", authRemote, "HEAD:main"], { cwd: localPath });
     } catch {
       // Best effort. Local history still records the sync even if remote push is unavailable.
     }
+  }
+
+  #githubAuthRemote(remoteUrl, token) {
+    const httpsMatch = remoteUrl.match(/^https:\/\/github\.com\/(.+?)(?:\.git)?$/);
+    if (httpsMatch) {
+      return `https://x-access-token:${token}@github.com/${httpsMatch[1].replace(/\.git$/, "")}.git`;
+    }
+    const sshMatch = remoteUrl.match(/^git@github\.com:(.+?)(?:\.git)?$/);
+    if (sshMatch) {
+      return `https://x-access-token:${token}@github.com/${sshMatch[1].replace(/\.git$/, "")}.git`;
+    }
+    return remoteUrl;
   }
 }
