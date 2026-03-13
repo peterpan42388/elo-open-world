@@ -22,6 +22,7 @@ const state = {
   latestAuthKeyBundle: null,
   latestSignedAgentGuide: null,
   activeSettingsSection: SETTINGS_DEFAULT_SECTION,
+  settingsProjectScope: "all",
   selectedGraphProjectId: "",
   buildFilters: {
     kind: "",
@@ -109,6 +110,14 @@ function currentHumanProjects() {
     if (project.ownerHumanId === human.humanId) return true;
     return (project.memberAgentIds || []).some((agentId) => agentIds.has(agentId));
   });
+}
+
+function filterProjectsByScope(projects, humanId) {
+  const scope = state.settingsProjectScope || "all";
+  if (scope === "owned") return projects.filter((project) => project.ownerHumanId === humanId);
+  if (scope === "participating") return projects.filter((project) => project.ownerHumanId !== humanId);
+  if (scope === "operating") return projects.filter((project) => String(project.stage || "").toLowerCase() === "operating");
+  return projects;
 }
 
 function projectMemberRole(project, agentId) {
@@ -666,10 +675,12 @@ function renderSettingsData() {
   const participatingProjects = projects.filter((project) => project.ownerHumanId !== human.humanId);
   const operatingProjects = projects.filter((project) => String(project.stage || "").toLowerCase() === "operating");
   const linkedGitHubStatus = human.githubLogin ? "Linked" : "Not linked";
+  const authMethodLabel = (human.authMethods || []).length ? human.authMethods.join(" + ") : human.admissionMethod || "unknown";
 
   if (settingsSummaryGrid) {
     settingsSummaryGrid.innerHTML = [
       ["Human", human.displayName || human.humanId],
+      ["Auth", authMethodLabel],
       ["GitHub", linkedGitHubStatus],
       ["Agents", agents.length],
       ["Projects", projects.length],
@@ -974,6 +985,7 @@ function renderSettingsData() {
   }
 
   if (projectsRoot) {
+    const scopedProjects = filterProjectsByScope(projects, human.humanId);
     if (!projects.length) {
       projectsRoot.innerHTML = `
         <div class="guide-grid">
@@ -1003,8 +1015,14 @@ function renderSettingsData() {
             <div class="detail-item"><span>Operating</span><strong>${operatingProjects.length}</strong></div>
           </div>
         </div>
+        <div class="action-row project-scope-switcher">
+          <button type="button" class="topbar-button ${state.settingsProjectScope === "all" ? "secondary" : "ghost"}" data-project-scope="all">All</button>
+          <button type="button" class="topbar-button ${state.settingsProjectScope === "owned" ? "secondary" : "ghost"}" data-project-scope="owned">Owned</button>
+          <button type="button" class="topbar-button ${state.settingsProjectScope === "participating" ? "secondary" : "ghost"}" data-project-scope="participating">Participating</button>
+          <button type="button" class="topbar-button ${state.settingsProjectScope === "operating" ? "secondary" : "ghost"}" data-project-scope="operating">Operating</button>
+        </div>
         <div class="list-stack">
-        ${projects.map((project) => `
+        ${scopedProjects.length ? scopedProjects.map((project) => `
         <details class="expand-card">
           <summary>
             <div class="summary-row">
@@ -1046,9 +1064,15 @@ function renderSettingsData() {
         </div>
           </div>
         </details>
-      `).join("")}
+      `).join("") : '<div class="empty">No projects match the current scope.</div>'}
         </div>
       `;
+      projectsRoot.querySelectorAll("[data-project-scope]").forEach((node) => {
+        node.addEventListener("click", () => {
+          state.settingsProjectScope = node.dataset.projectScope || "all";
+          renderSettingsData();
+        });
+      });
       projectsRoot.querySelectorAll("[data-route-target]").forEach((node) => {
         node.addEventListener("click", () => goToRoute(node.dataset.routeTarget));
       });

@@ -746,6 +746,11 @@ pre,
   margin-bottom: 16px;
 }
 
+.project-scope-switcher {
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
 .oauth-block {
   margin-top: 14px;
   display: grid;
