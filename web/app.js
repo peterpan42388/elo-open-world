@@ -223,6 +223,38 @@ function renderFoundationRuntimeNotice() {
   `;
 }
 
+function renderFoundationRunHistory(project) {
+  const runs = project.foundationRuns || [];
+  return `
+    <div class="copy-stack foundation-history">
+      <div class="summary-row">
+        <strong>Recent Foundation Runs</strong>
+        <span>${runs.length}</span>
+      </div>
+      ${runs.length ? `
+        <div class="timeline-list">
+          ${runs.slice(0, 5).map((run) => `
+            <article class="timeline-card">
+              <div class="summary-row">
+                <strong>${run.action}</strong>
+                <span>${new Date(run.generatedAt).toLocaleString()}</span>
+              </div>
+              <div class="detail-grid compact">
+                <div class="detail-item"><span>Agent</span><strong class="detail-code">${run.agentId}</strong></div>
+                <div class="detail-item"><span>Profile</span><strong>${run.profile || "-"}</strong></div>
+                <div class="detail-item"><span>Contract</span><strong class="detail-code">${run.contract || "-"}</strong></div>
+                <div class="detail-item"><span>Templates</span><strong>${run.templateCount || 0}</strong></div>
+                <div class="detail-item"><span>Artifacts</span><strong>${run.artifactFileCount || 0}</strong></div>
+                <div class="detail-item"><span>Runtime Mode</span><strong>${run.runtimeMode || "-"}</strong></div>
+              </div>
+            </article>
+          `).join("")}
+        </div>
+      ` : '<div class="empty">No foundation runs recorded yet.</div>'}
+    </div>
+  `;
+}
+
 function renderFoundationOperator(project, agents) {
   if (project.repoFullName !== "peterpan42388/elo-agent-onboarder") return "";
   const defaults = foundationToolDefaults();
@@ -291,6 +323,7 @@ function renderFoundationOperator(project, agents) {
           <button type="button" class="topbar-button ghost foundation-run-button" data-foundation-action="bootstrap" data-project-id="${project.projectId}">Generate Bootstrap Report</button>
         </div>
       </form>
+      ${renderFoundationRunHistory(project)}
       ${renderFoundationArtifactActions(project)}
       <pre class="code-block compact foundation-output" id="foundation-output-${project.projectId}">${outputText}</pre>
     </div>
@@ -1661,7 +1694,15 @@ function renderSettingsData() {
               installRoot: form.installRoot.value
             });
             state.latestFoundationArtifacts[projectId] = { action, result, agentId };
-            renderSettingsData();
+            await request('/api/projects/foundation-runs/record', 'POST', {
+              projectId,
+              ownerHumanId: human.humanId,
+              action,
+              agentId,
+              profile: form.profile.value,
+              result
+            });
+            await refresh();
             setStatus(`Generated ${action} for ${agentId}.`, 'ok');
           } catch (error) {
             state.latestFoundationArtifacts[projectId] = { action: 'error', result: { error: error.message } };

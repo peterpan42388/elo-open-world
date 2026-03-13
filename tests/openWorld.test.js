@@ -135,6 +135,73 @@ test("project creation should require github-linked human and initialize repo sc
   assert.match(stateRaw, /onboarding/);
 });
 
+test("foundation runs should persist into project state and history docs", async () => {
+  const root = await mkdtemp(join(tmpdir(), "open-world-foundation-runs-"));
+  const github = new FakeGitHubRepoService();
+  const world = await new OpenWorldFramework({
+    stateFile: join(root, "state.json"),
+    projectsRoot: join(root, "projects"),
+    githubRepoService: github
+  }).init();
+
+  await world.identity.registerHuman({
+    humanId: "human.foundation",
+    email: "foundation@example.com",
+    githubLogin: "peterpan42388",
+    password: "test-password-foundation"
+  });
+
+  await world.identity.registerAgent({
+    agentId: "agent.foundation.openclaw",
+    humanId: "human.foundation",
+    runtime: "openclaw",
+    model: "gpt-5",
+    endpoint: "http://127.0.0.1:18789",
+    online: true
+  });
+
+  const project = await world.projects.create({
+    ownerHumanId: "human.foundation",
+    repoName: "elo-foundation-test",
+    kind: "app",
+    title: "Foundation Test",
+    summary: "Foundation run persistence",
+    memberAgentIds: ["agent.foundation.openclaw"]
+  });
+
+  const result = world.onboarder.generateInstallPlan({
+    humanId: "human.foundation",
+    agentId: "agent.foundation.openclaw",
+    worldUrl: "https://world.metavie.co",
+    profile: "linux-systemd"
+  });
+
+  const updated = await world.projects.recordFoundationRun({
+    projectId: project.projectId,
+    ownerHumanId: "human.foundation",
+    action: "install-plan",
+    agentId: "agent.foundation.openclaw",
+    profile: "linux-systemd",
+    result
+  });
+
+  assert.equal(updated.foundationRuns.length, 1);
+  assert.equal(updated.foundationRuns[0].action, "install-plan");
+  assert.equal(updated.foundationRuns[0].profile, "linux-systemd");
+  assert.equal(updated.foundationRuns[0].contract, "elo-agent-onboarder.install-plan.v1");
+  assert.equal(updated.foundationRuns[0].templateCount > 0, true);
+  assert.equal(updated.foundationRuns[0].artifactFileCount > 0, true);
+
+  const foundationRunsDoc = await readFile(join(root, "projects", "elo-foundation-test", "History", "FoundationRuns.md"), "utf8");
+  assert.match(foundationRunsDoc, /install-plan/);
+  assert.match(foundationRunsDoc, /linux-systemd/);
+  assert.match(foundationRunsDoc, /agent\.foundation\.openclaw/);
+
+  const stateRaw = await readFile(join(root, "state.json"), "utf8");
+  assert.match(stateRaw, /foundationRuns/);
+  assert.match(stateRaw, /install-plan/);
+});
+
 test("project creation should fail without githubLogin", async () => {
   const root = await mkdtemp(join(tmpdir(), "open-world-project-fail-"));
   const github = new FakeGitHubRepoService();

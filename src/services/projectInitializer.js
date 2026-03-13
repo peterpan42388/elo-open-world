@@ -149,6 +149,26 @@ function membersMd({ ownerHuman, memberAgents, memberRoles = {}, memberInvites =
   return `${lines.join("\n")}\n`;
 }
 
+function foundationRunsMd({ foundationRuns = [] }) {
+  const lines = [
+    "# Foundation Runs",
+    "",
+    "This file records foundation operator runs generated from ELO Open World.",
+    "",
+    "## Recent Runs"
+  ];
+  if (!foundationRuns.length) {
+    lines.push("- No foundation runs recorded yet.");
+  } else {
+    for (const run of foundationRuns) {
+      lines.push(
+        `- ${run.generatedAt} | action=${run.action} | agent=${run.agentId} | profile=${run.profile || "-"} | contract=${run.contract || "-"} | templates=${run.templateCount || 0} | artifacts=${run.artifactFileCount || 0} | target=${run.target || "-"} | runtimeMode=${run.runtimeMode || "-"}`
+      );
+    }
+  }
+  return `${lines.join("\n")}\n`;
+}
+
 function eloInitMd({ projectId, repoName, repoFullName, pluginIds, ownerHuman, memberAgents }) {
   return `# elo-init
 
@@ -199,7 +219,7 @@ export class ProjectInitializer {
     this.githubRepoService = githubRepoService;
   }
 
-  async initialize({ projectId, repoName, title, summary, ownerHuman, memberAgents, memberRoles = {}, memberHistory = [], memberInvites = [], pluginIds, visibility = "public" }) {
+  async initialize({ projectId, repoName, title, summary, ownerHuman, memberAgents, memberRoles = {}, memberHistory = [], memberInvites = [], foundationRuns = [], pluginIds, visibility = "public" }) {
     const localPath = join(this.projectsRoot, repoName);
     const repoSeed = { owner: ownerHuman.githubLogin, repo: repoName, sourceDir: localPath, visibility };
 
@@ -227,6 +247,7 @@ export class ProjectInitializer {
       memberRoles,
       memberHistory,
       memberInvites,
+      foundationRuns,
       pluginIds
     });
 
@@ -241,7 +262,7 @@ export class ProjectInitializer {
     };
   }
 
-  async #writeProjectFiles({ localPath, title, summary, projectId, repoName, repoFullName, ownerHuman, memberAgents, memberRoles, memberHistory, memberInvites, pluginIds }) {
+  async #writeProjectFiles({ localPath, title, summary, projectId, repoName, repoFullName, ownerHuman, memberAgents, memberRoles, memberHistory, memberInvites, foundationRuns, pluginIds }) {
     const writes = [
       [join(localPath, "README.md"), projectReadme({ title, summary, projectId, rulesPath: "./Rules" })],
       [join(localPath, "Rules", "README.md"), rulesIndex()],
@@ -255,6 +276,7 @@ export class ProjectInitializer {
       [join(localPath, "History", "History.md"), historyMd()],
       [join(localPath, "History", "MindJourney.md"), mindJourneyMd(title)],
       [join(localPath, "History", "Members.md"), membersMd({ ownerHuman, memberAgents, memberRoles, memberHistory, memberInvites })],
+      [join(localPath, "History", "FoundationRuns.md"), foundationRunsMd({ foundationRuns })],
       [join(localPath, "openworld.plugin.json"), `${pluginManifest({ projectId, repoName, title, summary, pluginIds })}\n`],
       [join(localPath, "openworld.healthcheck.json"), `${healthcheckManifest({ repoName })}\n`],
       [join(localPath, "elo-init.md"), eloInitMd({ projectId, repoName, repoFullName, pluginIds, ownerHuman, memberAgents })]
@@ -266,6 +288,14 @@ export class ProjectInitializer {
     await writeFile(
       join(localPath, "History", "Members.md"),
       membersMd({ ownerHuman, memberAgents, memberRoles, memberInvites, memberHistory }),
+      "utf8"
+    );
+  }
+
+  async syncFoundationRunsDocs({ localPath, foundationRuns = [] }) {
+    await writeFile(
+      join(localPath, "History", "FoundationRuns.md"),
+      foundationRunsMd({ foundationRuns }),
       "utf8"
     );
   }

@@ -125,6 +125,7 @@ export class ProjectProtocol {
       localPath: initialized.localPath,
       memberInvites: [],
       memberHistory: initialMemberHistory,
+      foundationRuns: [],
       state: "initialized",
       createdAt: now(),
       updatedAt: now()
@@ -134,6 +135,7 @@ export class ProjectProtocol {
       this.requirementRegistry.attachToProject(project.requirementId, projectId);
     }
     await this.#syncProjectMembershipDocs(project);
+    await this.#syncProjectFoundationDocs(project);
     await this.onChange();
     return project;
   }
@@ -312,6 +314,33 @@ export class ProjectProtocol {
     return { ...project };
   }
 
+  async recordFoundationRun({ projectId, ownerHumanId, action, agentId, profile = "", result = {} }) {
+    const project = this.#assertOwnerProject({ projectId, ownerHumanId });
+    const safeAction = token("foundationAction", action, 64).toLowerCase();
+    const safeAgentId = token("agentId", agentId);
+    this.identityRegistry.getAgent(safeAgentId);
+    const planTarget = result?.target || result?.plan?.target || {};
+    const templates = result?.templates || result?.plan?.templates || {};
+    const artifactFiles = result?.artifactBundle?.files || {};
+    const run = {
+      runId: uid("frun"),
+      action: safeAction,
+      agentId: safeAgentId,
+      profile: text("profile", profile || planTarget.profile || "", 64),
+      contract: text("contract", result?.contract || "", 128),
+      templateCount: Object.keys(templates).length,
+      artifactFileCount: Object.keys(artifactFiles).length,
+      target: text("target", planTarget.target || "", 32),
+      runtimeMode: text("runtimeMode", planTarget.runtimeMode || "", 64),
+      generatedAt: now()
+    };
+    project.foundationRuns = [run, ...(project.foundationRuns || [])].slice(0, 20);
+    project.updatedAt = now();
+    await this.#syncProjectFoundationDocs(project);
+    await this.onChange();
+    return { ...project, latestFoundationRun: run };
+  }
+
   list() {
     return [...this.projects.values()].sort((a, b) => {
       if ((b.heat || 0) !== (a.heat || 0)) return (b.heat || 0) - (a.heat || 0);
@@ -349,6 +378,14 @@ export class ProjectProtocol {
       memberRoles: project.memberRoles || {},
       memberInvites: project.memberInvites || [],
       memberHistory: project.memberHistory || []
+    });
+  }
+
+  async #syncProjectFoundationDocs(project) {
+    if (!project?.localPath) return;
+    await this.projectInitializer.syncFoundationRunsDocs({
+      localPath: project.localPath,
+      foundationRuns: project.foundationRuns || []
     });
   }
 }
