@@ -904,3 +904,10 @@ pre,
   max-height: 320px;
   overflow: auto;
 }
+
+
+.foundation-artifact-actions {
+  margin-top: 8px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
