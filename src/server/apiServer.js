@@ -369,7 +369,8 @@ const server = http.createServer(async (req, res) => {
           registerScript: "shell",
           agentConfig: "json",
           installPlan: "json",
-          bootstrapReport: "json"
+          bootstrapReport: "json",
+          templates: "text"
         },
         profiles: [
           "macos-homebrew",

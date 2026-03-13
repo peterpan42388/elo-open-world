@@ -27,6 +27,72 @@ const FOUNDATION_INSTALL_PROFILES = {
   }
 };
 
+
+
+function buildProfileTemplates(cfg, world) {
+  if (cfg.profile === "macos-homebrew") {
+    return {
+      "Brewfile": ["node", "jq"].join("\n") + "\n",
+      "start-openclaw.sh": `#!/usr/bin/env sh
+set -eu
+cd ${cfg.installRoot}
+export ELO_OPEN_WORLD_API_BASE=${world.apiBaseUrl}
+node ./openclaw-runtime.js
+`
+    };
+  }
+
+  if (cfg.profile === "linux-systemd") {
+    return {
+      "openclaw.service": `[Unit]
+Description=OpenClaw runtime for ${cfg.agentId}
+After=network-online.target
+
+[Service]
+WorkingDirectory=${cfg.installRoot}
+Environment=ELO_OPEN_WORLD_API_BASE=${world.apiBaseUrl}
+ExecStart=/usr/bin/env node ${cfg.installRoot}/openclaw-runtime.js
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target
+`,
+      "install-systemd.sh": `#!/usr/bin/env sh
+set -eu
+mkdir -p ~/.config/systemd/user
+cp openclaw.service ~/.config/systemd/user/openclaw.service
+systemctl --user daemon-reload
+systemctl --user enable --now openclaw.service
+`
+    };
+  }
+
+  if (cfg.profile === "server-docker-compose") {
+    return {
+      "docker-compose.yml": `services:
+  openclaw:
+    image: ghcr.io/example/openclaw:latest
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "18789:18789"
+    volumes:
+      - ./data:/app/data
+`,
+      ".env": `ELO_OPEN_WORLD_API_BASE=${world.apiBaseUrl}
+ELO_OPEN_WORLD_HUMAN_ID=${cfg.humanId}
+ELO_OPEN_WORLD_AGENT_ID=${cfg.agentId}
+ELO_OPEN_WORLD_AGENT_MODEL=${cfg.model || ''}
+ELO_OPEN_WORLD_AGENT_ENDPOINT=${cfg.endpoint || ''}
+`
+    };
+  }
+
+  return {};
+}
+
 export class OpenClawOnboardingService {
   constructor({ identityRegistry, defaultWorldUrl = "http://127.0.0.1:8788" }) {
     this.identityRegistry = identityRegistry;
@@ -236,7 +302,15 @@ export class OpenClawOnboardingService {
       },
       world: bundle.world,
       setupPackContract: bundle.contract,
-      steps
+      steps,
+      templates: buildProfileTemplates({
+        humanId: bundle.identity.humanId,
+        agentId: bundle.identity.agentId,
+        profile: safeProfile || "custom",
+        installRoot: safeInstallRoot,
+        model: bundle.runtime.model,
+        endpoint: bundle.runtime.endpoint
+      }, bundle.world)
     };
   }
 
@@ -252,6 +326,7 @@ export class OpenClawOnboardingService {
       world: bundle.world,
       plan,
       setupPack: bundle.setupPack,
+      templates: plan.templates,
       diagnostics: {
         checks: [
           {

@@ -184,6 +184,7 @@ function renderFoundationArtifactActions(project) {
   const artifact = state.latestFoundationArtifacts?.[project.projectId];
   if (!artifact?.result) return "";
   const setupPack = artifact.result.setupPack || {};
+  const templates = artifact.result.templates || artifact.result.plan?.templates || {};
   return `
     <div class="action-row foundation-artifact-actions">
       <button type="button" class="topbar-button ghost foundation-copy-json" data-project-id="${project.projectId}">Copy JSON</button>
@@ -191,6 +192,7 @@ function renderFoundationArtifactActions(project) {
       ${artifact.action === "setup-pack" && setupPack.readme ? `<button type="button" class="topbar-button ghost foundation-download-file" data-project-id="${project.projectId}" data-foundation-file="readme">Download README</button>` : ""}
       ${artifact.action === "setup-pack" && setupPack.registerScript ? `<button type="button" class="topbar-button ghost foundation-download-file" data-project-id="${project.projectId}" data-foundation-file="registerScript">Download Script</button>` : ""}
       ${artifact.action === "setup-pack" && setupPack.agentConfig ? `<button type="button" class="topbar-button ghost foundation-download-file" data-project-id="${project.projectId}" data-foundation-file="agentConfig">Download Config</button>` : ""}
+      ${Object.keys(templates).map((name) => `<button type="button" class="topbar-button ghost foundation-download-template" data-project-id="${project.projectId}" data-template-name="${encodeURIComponent(name)}">Download ${name}</button>`).join("")}
     </div>
   `;
 }
@@ -1681,6 +1683,17 @@ function renderSettingsData() {
           const suffix = field === 'readme' ? 'README.md' : field === 'registerScript' ? 'register-agent.sh' : 'agent.config.json';
           const mime = field === 'agentConfig' ? 'application/json;charset=utf-8' : 'text/plain;charset=utf-8';
           downloadTextFile(`${node.dataset.projectId}.${suffix}`, value, mime);
+        });
+      });
+      foundationsRoot.querySelectorAll('.foundation-download-template').forEach((node) => {
+        node.addEventListener('click', () => {
+          const artifact = state.latestFoundationArtifacts?.[node.dataset.projectId || ''];
+          const templates = artifact?.result?.templates || artifact?.result?.plan?.templates || {};
+          const name = decodeURIComponent(node.dataset.templateName || '');
+          const value = templates[name];
+          if (!value) return;
+          const mime = name.endsWith('.json') || name === '.env' ? 'text/plain;charset=utf-8' : 'text/plain;charset=utf-8';
+          downloadTextFile(name, value, mime);
         });
       });
     }
