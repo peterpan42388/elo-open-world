@@ -199,6 +199,30 @@ function renderFoundationArtifactActions(project) {
   `;
 }
 
+function renderFoundationRuntimeNotice() {
+  return `
+    <div class="foundation-runtime-note">
+      <div class="summary-row">
+        <strong>Runtime Modes</strong>
+        <span>Stub-ready package</span>
+      </div>
+      <p>
+        Generated artifacts now include a runnable <code>stub runtime</code> so users can test directory layout,
+        health checks, and status reporting before integrating a real OpenClaw-compatible runtime.
+      </p>
+      <ul class="content-list">
+        <li><strong>Stub Runtime:</strong> good for first boot, health checks, and EOW status reporting.</li>
+        <li><strong>Real Runtime:</strong> replace <code>bin/openclaw-runtime.js</code> with your actual OpenClaw-compatible entrypoint.</li>
+        <li><strong>Shared Config:</strong> keep using <code>config/openclaw-runtime.json</code> as the runtime contract boundary.</li>
+      </ul>
+      <div class="action-row">
+        <a href="/guides/runtime-modes.html" target="_blank" rel="noreferrer">Open Runtime Modes Guide</a>
+        <a href="https://github.com/peterpan42388/elo-agent-onboarder/blob/codex/foundation-workspace/docs/INSTALL_PLAN_CONTRACT.md" target="_blank" rel="noreferrer">Install Plan Contract</a>
+      </div>
+    </div>
+  `;
+}
+
 function renderFoundationOperator(project, agents) {
   if (project.repoFullName !== "peterpan42388/elo-agent-onboarder") return "";
   const defaults = foundationToolDefaults();
@@ -210,6 +234,7 @@ function renderFoundationOperator(project, agents) {
         <strong>Foundation Operator</strong>
         <span>Generate onboarding artifacts from EOW</span>
       </div>
+      ${renderFoundationRuntimeNotice()}
       <div class="action-row foundation-preset-actions">
         <button type="button" class="topbar-button ghost foundation-preset-button" data-project-id="${project.projectId}" data-foundation-preset="macos-homebrew">macOS Homebrew</button>
         <button type="button" class="topbar-button ghost foundation-preset-button" data-project-id="${project.projectId}" data-foundation-preset="linux-systemd">Linux systemd</button>

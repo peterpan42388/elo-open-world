@@ -255,6 +255,20 @@ button:hover { filter: brightness(1.05); }
 .guide-card h3 { font-size: 20px; }
 .guide-card p { margin: 0; color: var(--muted); }
 
+.foundation-runtime-note {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 14px;
+  background: rgba(13, 107, 102, 0.04);
+  display: grid;
+  gap: 10px;
+}
+
+.foundation-runtime-note p {
+  margin: 0;
+  color: var(--muted);
+}
+
 .starter-note-card,
 .starter-conversation-panel {
   display: grid;
