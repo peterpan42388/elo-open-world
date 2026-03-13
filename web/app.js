@@ -135,6 +135,76 @@ function foundationWorkspace(project) {
   return FOUNDATION_PROJECT_WORKSPACES[project.repoFullName] || { focus: "Foundation project.", docs: [] };
 }
 
+function foundationToolDefaults() {
+  return {
+    target: "local",
+    platform: navigator.platform.toLowerCase().includes("mac") ? "macos" : "linux",
+    packageMode: "node",
+    installRoot: "~/elo-open-world",
+    machineLabel: "local-machine"
+  };
+}
+
+function renderFoundationOperator(project, agents) {
+  if (project.repoFullName !== "peterpan42388/elo-agent-onboarder") return "";
+  const defaults = foundationToolDefaults();
+  return `
+    <div class="foundation-operator copy-stack">
+      <div class="summary-row">
+        <strong>Foundation Operator</strong>
+        <span>Generate onboarding artifacts from EOW</span>
+      </div>
+      <form class="foundation-tool-form" data-project-id="${project.projectId}">
+        <div class="form-grid compact-grid">
+          <label>
+            <span>Agent</span>
+            <select name="agentId" required>
+              <option value="">Select one of your agents</option>
+              ${agents.map((agent) => `<option value="${agent.agentId}">${agent.label || agent.agentId}</option>`).join("")}
+            </select>
+          </label>
+          <label>
+            <span>Target</span>
+            <select name="target">
+              <option value="local">Local</option>
+              <option value="server">Server</option>
+            </select>
+          </label>
+          <label>
+            <span>Platform</span>
+            <select name="platform">
+              <option value="${defaults.platform}">${defaults.platform}</option>
+              <option value="macos">macOS</option>
+              <option value="linux">Linux</option>
+            </select>
+          </label>
+          <label>
+            <span>Package Mode</span>
+            <select name="packageMode">
+              <option value="node">node</option>
+              <option value="docker">docker</option>
+            </select>
+          </label>
+          <label>
+            <span>Install Root</span>
+            <input name="installRoot" value="${defaults.installRoot}" />
+          </label>
+          <label>
+            <span>Machine Label</span>
+            <input name="machineLabel" value="${defaults.machineLabel}" />
+          </label>
+        </div>
+        <div class="action-row">
+          <button type="button" class="topbar-button secondary foundation-run-button" data-foundation-action="setup-pack" data-project-id="${project.projectId}">Generate Setup Pack</button>
+          <button type="button" class="topbar-button ghost foundation-run-button" data-foundation-action="install-plan" data-project-id="${project.projectId}">Generate Install Plan</button>
+          <button type="button" class="topbar-button ghost foundation-run-button" data-foundation-action="bootstrap" data-project-id="${project.projectId}">Generate Bootstrap Report</button>
+        </div>
+      </form>
+      <pre class="code-block compact foundation-output" id="foundation-output-${project.projectId}">No foundation artifact generated yet.</pre>
+    </div>
+  `;
+}
+
 function filterProjectsByScope(projects, humanId) {
   const scope = state.settingsProjectScope || "all";
   if (scope === "owned") return projects.filter((project) => project.ownerHumanId === humanId);
@@ -1463,6 +1533,7 @@ function renderSettingsData() {
                 ${serviceLinks}
                 <button type="button" class="topbar-button ghost foundation-open-project" data-project-id="${project.projectId}">Open In My Projects</button>
               </div>
+              ${renderFoundationOperator(project, agents)}
             </div>
           </details>
         `;
@@ -1473,6 +1544,35 @@ function renderSettingsData() {
           renderSettingsData();
           const target = document.querySelector(`[data-project-card="${node.dataset.projectId}"]`);
           if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+      });
+      foundationsRoot.querySelectorAll('.foundation-run-button').forEach((node) => {
+        node.addEventListener('click', async () => {
+          const projectId = node.dataset.projectId || '';
+          const action = node.dataset.foundationAction || '';
+          const form = foundationsRoot.querySelector(`.foundation-tool-form[data-project-id="${projectId}"]`);
+          const output = foundationsRoot.querySelector(`#foundation-output-${projectId}`);
+          if (!form || !output) return;
+          try {
+            const agentId = form.agentId.value;
+            if (!agentId) throw new Error('Select one of your agents first.');
+            const endpoint = `/services/elo-agent-onboarder/${action}`;
+            const result = await request(endpoint, 'POST', {
+              humanId: human.humanId,
+              agentId,
+              worldUrl: window.location.origin,
+              machineLabel: form.machineLabel.value,
+              target: form.target.value,
+              platform: form.platform.value,
+              packageMode: form.packageMode.value,
+              installRoot: form.installRoot.value
+            });
+            output.textContent = JSON.stringify(result, null, 2);
+            setStatus(`Generated ${action} for ${agentId}.`, 'ok');
+          } catch (error) {
+            output.textContent = error.message;
+            setStatus(error.message, 'error');
+          }
         });
       });
     }
