@@ -320,6 +320,32 @@ function renderRefinementSummary(summary) {
   `;
 }
 
+function formatTimelineType(value) {
+  const label = String(value || "timeline").replace(/-/g, " ");
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+function renderConversationTimeline(requirement, limit = 6) {
+  const items = (requirement?.conversationTimeline || []).slice().sort((a, b) => a.createdAt - b.createdAt);
+  if (!items.length) return '<div class="empty">No starter timeline yet.</div>';
+  return `
+    <div class="timeline-list">
+      ${items.slice(-limit).map((entry) => `
+        <div class="timeline-item">
+          <div class="timeline-meta">
+            <strong>${formatTimelineType(entry.type)}</strong>
+            <span>${formatTimestamp(entry.createdAt)}</span>
+          </div>
+          <div class="timeline-body">
+            <span class="timeline-actor">${entry.actorType}${entry.actorId ? `: ${entry.actorId}` : ""}</span>
+            <p>${entry.summary || "No summary."}</p>
+          </div>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
 function buildProjectSummaryFromRequirement(requirement) {
   const summary = requirement?.latestRefinementSummary || {};
   const parts = [
@@ -1297,6 +1323,13 @@ function renderSettingsData() {
         <div class="copy-stack">
           <p class="note">Need the browser bridge first? Load the extension from the <code>elo-agent-web-plugin</code> repository and configure your local agent endpoint.</p>
         </div>
+        <div class="starter-conversation-panel">
+          <div class="summary-row">
+            <strong>Starter Timeline</strong>
+            <span>${(state.latestStarterRequirement.conversationTimeline || []).length} event(s)</span>
+          </div>
+          ${renderConversationTimeline(state.latestStarterRequirement, 8)}
+        </div>
         ${persistedRefinement ? `
           <div class="starter-conversation-panel">
             <div class="summary-row">
@@ -1701,6 +1734,15 @@ function renderRequirements(requirements) {
                 <span>${JSON.stringify(entry.response)}</span>
               </div>
             `).join("")}
+          </div>
+        ` : ""}
+        ${(item.conversationTimeline || []).length ? `
+          <div class="starter-conversation-panel">
+            <div class="summary-row">
+              <strong>Starter Timeline</strong>
+              <span>${(item.conversationTimeline || []).length} event(s)</span>
+            </div>
+            ${renderConversationTimeline(item, 6)}
           </div>
         ` : ""}
         ${item.refinementCount ? `

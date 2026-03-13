@@ -850,4 +850,37 @@ test("requirements should persist primary-agent refinements for the owner", asyn
   assert.equal(refined.latestRefinementSummary.projectDirection, "Use the browser plugin as the transport layer.");
   assert.equal(refined.latestRefinementSummary.milestones.length, 2);
   assert.equal(refined.latestRefinementSummary.questions[0], "Should the bridge persist chat history?");
+  assert.equal(refined.conversationTimeline.length, 2);
+  assert.equal(refined.conversationTimeline[0].type, "requirement-created");
+  assert.equal(refined.conversationTimeline[1].type, "agent-refinement");
+});
+
+test("requirements should track review and implementation timeline events", async () => {
+  const root = await mkdtemp(join(tmpdir(), "open-world-requirement-timeline-"));
+  const github = new FakeGitHubRepoService();
+  const world = await new OpenWorldFramework({
+    stateFile: join(root, "state.json"),
+    projectsRoot: join(root, "projects"),
+    githubRepoService: github
+  }).init();
+  await world.identity.registerHuman({
+    humanId: "human.timeline",
+    email: "timeline@example.com",
+    password: "secret-timeline"
+  });
+  const requirement = await world.requirements.create({
+    title: "Timeline requirement",
+    createdByType: "human",
+    createdById: "human.timeline",
+    reviewerHumanId: "human.timeline"
+  });
+  const accepted = await world.requirements.updateStatus({
+    requirementId: requirement.requirementId,
+    status: "accepted",
+    reviewerHumanId: "human.timeline",
+    reviewNote: "Looks good"
+  });
+  const implemented = world.requirements.attachToProject(requirement.requirementId, "owp_project_1");
+  assert.equal(accepted.conversationTimeline[1].type, "requirement-accepted");
+  assert.equal(implemented.conversationTimeline[implemented.conversationTimeline.length - 1].type, "project-created-from-requirement");
 });

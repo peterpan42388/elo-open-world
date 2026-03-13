@@ -1,5 +1,17 @@
 import { csvArray, now, text, token, uid } from "../lib/validation.js";
 
+function buildTimelineEntry({ type, actorType = "system", actorId = "", summary = "", details = {} }) {
+  return {
+    timelineId: uid("evt"),
+    type: token("type", type, 64).toLowerCase(),
+    actorType: token("actorType", actorType || "system", 32).toLowerCase(),
+    actorId: actorId ? token("actorId", actorId, 128) : "",
+    summary: text("summary", summary || "", 2000),
+    details: details && typeof details === "object" ? JSON.parse(JSON.stringify(details)) : {},
+    createdAt: now()
+  };
+}
+
 function normalizeRefinementSummary(response) {
   const source = response && typeof response === "object" ? response : {};
   const restatedRequirement = text("restatedRequirement", source.restatedRequirement || source.message || "", 4000);
@@ -78,6 +90,7 @@ export class ProjectRequirementRegistry {
       acceptedByHumanId: "",
       rejectedByHumanId: "",
       reviewHistory: [],
+      conversationTimeline: [],
       refinementCount: 0,
       agentRefinements: [],
       latestRefinementSummary: {
@@ -93,6 +106,19 @@ export class ProjectRequirementRegistry {
       updatedAt: now(),
       reviewedAt: 0
     };
+
+    requirement.conversationTimeline.push(buildTimelineEntry({
+      type: safeCreatedByType === "human" ? "requirement-created" : "agent-requirement-created",
+      actorType: safeCreatedByType,
+      actorId: safeCreatedById,
+      summary: `Requirement created from ${requirement.source}.`,
+      details: {
+        title: requirement.title,
+        desiredKind: requirement.desiredKind,
+        source: requirement.source,
+        primaryAgentId: requirement.primaryAgentId
+      }
+    }));
 
     this.requirements.set(requirement.requirementId, requirement);
     await this.onChange();
@@ -131,6 +157,19 @@ export class ProjectRequirementRegistry {
     requirement.refinementCount = requirement.agentRefinements.length;
     requirement.latestRefinementSummary = entry.summary;
     requirement.updatedAt = entry.respondedAt;
+    requirement.conversationTimeline.push(buildTimelineEntry({
+      type: "agent-refinement",
+      actorType: "agent",
+      actorId: safeAgentId,
+      summary: entry.summary.restatedRequirement || "Agent refined the starter requirement.",
+      details: {
+        humanId: safeHumanId,
+        projectDirection: entry.summary.projectDirection,
+        milestones: entry.summary.milestones,
+        questions: entry.summary.questions,
+        response: normalizedResponse
+      }
+    }));
     await this.onChange();
     return { ...requirement };
   }
@@ -143,6 +182,15 @@ export class ProjectRequirementRegistry {
     requirement.status = "implemented";
     requirement.linkedProjectId = token("projectId", projectId, 128);
     requirement.updatedAt = now();
+    requirement.conversationTimeline.push(buildTimelineEntry({
+      type: "project-created-from-requirement",
+      actorType: "system",
+      actorId: requirement.ownerHumanId,
+      summary: "Requirement transitioned into a source project.",
+      details: {
+        linkedProjectId: requirement.linkedProjectId
+      }
+    }));
     return { ...requirement };
   }
 
@@ -190,6 +238,15 @@ export class ProjectRequirementRegistry {
         reviewNote: requirement.reviewNote,
         reviewedAt: requirement.reviewedAt
       });
+      requirement.conversationTimeline.push(buildTimelineEntry({
+        type: "requirement-accepted",
+        actorType: "human",
+        actorId: safeReviewerHumanId,
+        summary: "Requirement accepted for implementation.",
+        details: {
+          reviewNote: requirement.reviewNote
+        }
+      }));
     }
     if (safeStatus === "rejected") {
       requirement.rejectedByHumanId = safeReviewerHumanId;
@@ -201,6 +258,15 @@ export class ProjectRequirementRegistry {
         reviewNote: requirement.reviewNote,
         reviewedAt: requirement.reviewedAt
       });
+      requirement.conversationTimeline.push(buildTimelineEntry({
+        type: "requirement-rejected",
+        actorType: "human",
+        actorId: safeReviewerHumanId,
+        summary: "Requirement rejected and returned for revision.",
+        details: {
+          reviewNote: requirement.reviewNote
+        }
+      }));
     }
     if (safeStatus === "drafted" && requirement.reviewHistory.length) {
       requirement.rereviewCount += 1;
@@ -210,6 +276,16 @@ export class ProjectRequirementRegistry {
         reviewNote: requirement.reviewNote,
         reviewedAt: requirement.updatedAt
       });
+      requirement.conversationTimeline.push(buildTimelineEntry({
+        type: "rereview-requested",
+        actorType: "human",
+        actorId: safeReviewerHumanId,
+        summary: "Re-review requested.",
+        details: {
+          reviewNote: requirement.reviewNote,
+          rereviewCount: requirement.rereviewCount
+        }
+      }));
     }
     await this.onChange();
     return { ...requirement };
