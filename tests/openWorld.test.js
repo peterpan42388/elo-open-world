@@ -244,6 +244,8 @@ test("onboarder install-plan and bootstrap report should align with setup-pack c
   assert.ok(plan.templates.Brewfile);
   assert.ok(plan.templates[".env.local"]);
   assert.ok(plan.templates["install-homebrew.sh"]);
+  assert.ok(plan.templates["healthcheck.sh"]);
+  assert.ok(plan.templates["stop-openclaw.sh"]);
   assert.ok(plan.templates["start-openclaw.sh"]);
   assert.equal(plan.artifactBundle.contract, "elo-agent-onboarder.artifact-bundle.v1");
   assert.ok(plan.artifactBundle.files["install-plan.json"]);
@@ -267,6 +269,8 @@ test("onboarder install-plan and bootstrap report should align with setup-pack c
   assert.equal(report.plan.target.runtimeMode, "docker-compose");
   assert.ok(report.templates["docker-compose.yml"]);
   assert.ok(report.templates[".env"]);
+  assert.ok(report.templates["docker-compose.override.yml"]);
+  assert.ok(report.templates["healthcheck.sh"]);
   assert.ok(report.templates["bootstrap.sh"]);
   assert.match(report.templates["docker-compose.yml"], /healthcheck:/);
   assert.equal(report.artifactBundle.contract, "elo-agent-onboarder.artifact-bundle.v1");

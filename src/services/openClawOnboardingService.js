@@ -54,6 +54,19 @@ ELO_OPEN_WORLD_AGENT_ENDPOINT=${cfg.endpoint || ""}
 OPENCLAW_INSTALL_ROOT=${shellRoot}
 OPENCLAW_PORT=18789
 `,
+      "healthcheck.sh": `#!/usr/bin/env sh
+set -eu
+ROOT="\${1:-${shellRoot}}"
+PORT="\${OPENCLAW_PORT:-18789}"
+curl -fsS "http://127.0.0.1:$PORT/health"
+curl -fsS "${world.apiBaseUrl}/api/universe/manifest" >/dev/null
+echo "macOS runtime health checks passed for $ROOT"
+`,
+      "stop-openclaw.sh": `#!/usr/bin/env sh
+set -eu
+pkill -f "openclaw-runtime.js" || true
+echo "Requested stop for local OpenClaw runtime"
+`,
       "install-homebrew.sh": `#!/usr/bin/env sh
 set -eu
 ROOT="\${1:-${shellRoot}}"
@@ -67,8 +80,11 @@ fi
 mkdir -p "$ROOT"/{bin,config,logs,data}
 brew bundle --file "$SCRIPT_DIR/Brewfile"
 cp "$SCRIPT_DIR/.env.local" "$ROOT/.env.local"
+cp "$SCRIPT_DIR/healthcheck.sh" "$ROOT/healthcheck.sh"
+cp "$SCRIPT_DIR/stop-openclaw.sh" "$ROOT/stop-openclaw.sh"
 cp "$SCRIPT_DIR/start-openclaw.sh" "$ROOT/start-openclaw.sh"
 chmod +x "$ROOT/start-openclaw.sh"
+chmod +x "$ROOT/healthcheck.sh" "$ROOT/stop-openclaw.sh"
 
 echo "macOS runtime scaffold prepared at $ROOT"
 echo "Next step: $ROOT/start-openclaw.sh"
@@ -110,6 +126,20 @@ ELO_OPEN_WORLD_AGENT_ID=${cfg.agentId}
 ELO_OPEN_WORLD_AGENT_MODEL=${cfg.model || ""}
 ELO_OPEN_WORLD_AGENT_ENDPOINT=${cfg.endpoint || ""}
 OPENCLAW_INSTALL_ROOT=${shellRoot}
+`,
+      "healthcheck.sh": `#!/usr/bin/env sh
+set -eu
+ROOT="\${1:-${shellRoot}}"
+PORT="\${OPENCLAW_PORT:-18789}"
+curl -fsS "http://127.0.0.1:$PORT/health"
+test -f "$ROOT/openclaw.env"
+echo "linux-systemd runtime health checks passed for $ROOT"
+`,
+      "stop-openclaw.sh": `#!/usr/bin/env sh
+set -eu
+systemctl --user stop openclaw.service || true
+pkill -f "${systemdRoot}/openclaw-runtime.js" || true
+echo "Requested stop for linux-systemd runtime"
 `,
       "openclaw.service": `[Unit]
 Description=OpenClaw runtime for ${cfg.agentId}
@@ -157,7 +187,10 @@ ROOT="\${1:-${shellRoot}}"
 mkdir -p "$ROOT" ~/.config/systemd/user
 cp openclaw.env "$ROOT/openclaw.env"
 cp start-openclaw.sh "$ROOT/start-openclaw.sh"
+cp healthcheck.sh "$ROOT/healthcheck.sh"
+cp stop-openclaw.sh "$ROOT/stop-openclaw.sh"
 chmod +x "$ROOT/start-openclaw.sh"
+chmod +x "$ROOT/healthcheck.sh" "$ROOT/stop-openclaw.sh"
 cp openclaw.service ~/.config/systemd/user/openclaw.service
 systemctl --user daemon-reload
 systemctl --user enable --now openclaw.service
@@ -194,12 +227,30 @@ ELO_OPEN_WORLD_AGENT_MODEL=${cfg.model || ''}
 ELO_OPEN_WORLD_AGENT_ENDPOINT=${cfg.endpoint || ''}
 OPENCLAW_INSTALL_ROOT=${shellRoot}
 `,
+      "docker-compose.override.yml": `services:
+  openclaw:
+    environment:
+      OPENCLAW_LOG_LEVEL: info
+    volumes:
+      - ./config:/app/config
+`,
+      "healthcheck.sh": `#!/usr/bin/env sh
+set -eu
+ROOT="\${1:-${shellRoot}}"
+cd "$ROOT"
+docker compose ps
+docker compose exec -T openclaw curl -fsS "http://127.0.0.1:18789/health"
+echo "docker-compose runtime health checks passed for $ROOT"
+`,
       "bootstrap.sh": `#!/usr/bin/env sh
 set -eu
 ROOT="\${1:-${shellRoot}}"
-mkdir -p "$ROOT"/{data,logs}
+mkdir -p "$ROOT"/{data,logs,config}
 cp docker-compose.yml "$ROOT/docker-compose.yml"
+cp docker-compose.override.yml "$ROOT/docker-compose.override.yml"
 cp .env "$ROOT/.env"
+cp healthcheck.sh "$ROOT/healthcheck.sh"
+chmod +x "$ROOT/healthcheck.sh"
 cd "$ROOT"
 docker compose pull
 docker compose up -d
