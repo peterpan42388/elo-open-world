@@ -142,6 +142,7 @@ The Web UI now includes `ELO OpenClaw Onboarding Assistant`:
 - `docs/MIGRATION_FROM_ELO_PROTOCOL.zh-en.md`
 - `docs/DELIVERY_REPORT_2026-03-11.zh-en.md`
 - `docs/UI_EXECUTION_PHASES.md`
+- `docs/UI_FOUNDATION_RULES.md`
 - `docs/AUTH_AGENT_PROJECT_PHASE_PLAN.md`
 - `docs/MY_PROJECTS_PHASE_PLAN.md`
 - `docs/UNIVERSE_NODE_PROTOCOL.md`
