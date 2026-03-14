@@ -84,10 +84,10 @@ Tasks:
 - Continue improving artifact readability and delivery UX where needed.
 
 ## Recommended Next Action
-Start with `P0 Visual Consolidation`, specifically:
-1. redesign `Project Workspace` layout
-2. normalize `Build` directory card spacing and hierarchy
-3. audit `World`, `Settings`, `Market`, and `Docs` for remaining dark-theme regressions
+Move to `P2 Build Directory Hardening`, specifically:
+1. tighten `Build` directory card scanability around recruiting and operating state
+2. keep participation entry pointed at `Project Workspace`
+3. preserve the no-heavy-edit-controls rule on the directory surface
 
 ## Update Protocol
 After every execution cycle, update this file with:
@@ -97,6 +97,7 @@ After every execution cycle, update this file with:
 - any new blockers
 
 ## Last Completed
+- Elevated `Project Workspace` collaboration into a first-position command deck with stronger bridge readiness, working-agent focus, recent exchange emphasis, and UI gating so only project participants with member agents can task through the workspace form
 - Added full dark foundation theme and UI rules
 - Replaced `settings-guest` behavior with an access-state panel
 - Hid access prompt for GitHub-only logins and showed verification prompt only for local unverified accounts
@@ -115,10 +116,10 @@ After every execution cycle, update this file with:
 - Reworked the `Project Workspace` snapshot around ownership, participation, recruiting, latest activity, and operating inputs so the page reads less like a directory card and more like the active project control surface
 
 ## Current Focus
-- P1 Project Workspace Maturation: make the collaboration panel and execution thread the clearest primary action area
+- P2 Build Directory Hardening: keep `Build` directory-first while sharpening recruiting and operating scanability
 
 ## Next Recommended Action
-- Elevate the collaboration panel inside `Project Workspace` so bridge readiness, working-agent selection, and recent exchanges are visually stronger and more obviously the center of the page
+- tighten `Build` cards so recruiting status, operating state, and directory metadata scan faster without reintroducing edit ownership into the directory
 
 ## Blockers
 - none currently

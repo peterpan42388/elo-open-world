@@ -562,6 +562,44 @@
               <div id="project-workspace-sidebar" class="copy-stack"></div>
             </aside>
             <div class="workspace-content">
+              <section class="panel workspace-collaboration-panel">
+                <div class="panel-header">
+                  <h2>Agent Collaboration</h2>
+                  <p>Keep bridge readiness, working-agent selection, and project-specific execution in one command deck.</p>
+                </div>
+                <div class="workspace-collaboration-grid">
+                  <div id="project-workspace-bridge-status" class="copy-stack"></div>
+                  <div class="workspace-command-card">
+                    <div id="project-workspace-command-status" class="copy-stack"></div>
+                    <form id="project-workspace-chat-form" class="copy-stack workspace-chat-form">
+                      <div class="workspace-chat-grid">
+                        <label class="creation-field">
+                          <span>Working Agent</span>
+                          <select id="project-workspace-agent-select"></select>
+                        </label>
+                        <label class="creation-field workspace-chat-field-full">
+                          <span>Next Task Or Question</span>
+                          <textarea id="project-workspace-chat-input" placeholder="Describe the next task, decision, blocker, or refinement for your agent." required></textarea>
+                        </label>
+                      </div>
+                      <div class="action-row">
+                        <button type="button" class="topbar-button ghost" id="project-workspace-check-bridge">Check Browser Bridge</button>
+                        <button type="submit">Send To Agent</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+                <div class="workspace-thread-shell">
+                  <div class="workspace-thread-header">
+                    <div class="copy-stack">
+                      <strong>Conversation Timeline</strong>
+                      <p class="note">Keep project-specific decisions and next tasks here instead of scattering them across other routes.</p>
+                    </div>
+                  </div>
+                  <div id="project-workspace-chat-thread" class="list-stack"></div>
+                </div>
+              </section>
+
               <section class="panel workspace-summary-panel">
                 <div class="panel-header">
                   <h2>Operating Surface</h2>
@@ -576,39 +614,6 @@
                   <p>Read the current requirement direction, milestone path, and open decisions without leaving the project page.</p>
                 </div>
                 <div id="project-workspace-progress" class="copy-stack"></div>
-              </section>
-
-              <section class="panel workspace-collaboration-panel">
-                <div class="panel-header">
-                  <h2>Agent Collaboration</h2>
-                  <p>Use the browser bridge to move the project forward with your selected working agent.</p>
-                </div>
-                <div id="project-workspace-bridge-status" class="copy-stack"></div>
-                <div class="workspace-thread-shell">
-                  <div class="workspace-thread-header">
-                    <div class="copy-stack">
-                      <strong>Conversation Timeline</strong>
-                      <p class="note">Keep project-specific decisions and next tasks here instead of scattering them across other routes.</p>
-                    </div>
-                  </div>
-                  <div id="project-workspace-chat-thread" class="list-stack"></div>
-                </div>
-                <form id="project-workspace-chat-form" class="copy-stack workspace-chat-form">
-                  <div class="workspace-chat-grid">
-                    <label class="creation-field">
-                      <span>Working Agent</span>
-                      <select id="project-workspace-agent-select"></select>
-                    </label>
-                    <label class="creation-field workspace-chat-field-full">
-                      <span>Next Task Or Question</span>
-                      <textarea id="project-workspace-chat-input" placeholder="Describe the next task, decision, blocker, or refinement for your agent." required></textarea>
-                    </label>
-                  </div>
-                  <div class="action-row">
-                    <button type="button" class="topbar-button ghost" id="project-workspace-check-bridge">Check Browser Bridge</button>
-                    <button type="submit">Send To Agent</button>
-                  </div>
-                </form>
               </section>
 
               <section class="panel workspace-membership-panel">

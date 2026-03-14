@@ -2866,12 +2866,73 @@ function workspaceAgentsForProject(project) {
   const myAgents = currentHumanAgents();
   const myAgentIds = new Set(myAgents.map((agent) => agent.agentId));
   const projectAgentIds = (project?.memberAgentIds || []).filter((agentId) => myAgentIds.has(agentId));
-  const ordered = projectAgentIds.length ? projectAgentIds : myAgents.map((agent) => agent.agentId);
-  return ordered.map((agentId) => myAgents.find((agent) => agent.agentId === agentId)).filter(Boolean);
+  return projectAgentIds.map((agentId) => myAgents.find((agent) => agent.agentId === agentId)).filter(Boolean);
 }
 
 function workspaceConversationEntries(project) {
   return Array.isArray(project?.workspaceConversation) ? project.workspaceConversation : [];
+}
+
+function workspaceCollaborationState(project, agents) {
+  const { isOwner, isParticipant } = currentHumanProjectParticipation(project);
+  const pendingRequest = currentHumanWorkspaceRequest(project);
+  const bridge = state.starterBridgeStatus;
+
+  if (!(isOwner || isParticipant)) {
+    return pendingRequest
+      ? {
+          canSend: false,
+          headline: "Participation approval is still pending.",
+          note: "Wait for the project owner to review your request before using the project conversation deck.",
+          placeholder: "Collaboration unlocks after the participation request is approved.",
+          statusLabel: "Awaiting Access"
+        }
+      : {
+          canSend: false,
+          headline: "Join the project before tasking an agent here.",
+          note: "Use the participation panel on this page to request access, then come back to the command deck once your agent is attached.",
+          placeholder: "Request participation before sending a project task.",
+          statusLabel: "Participation Required"
+        };
+  }
+
+  if (!bridge?.available) {
+    return {
+      canSend: false,
+      headline: "Browser bridge not detected.",
+      note: "Load elo-agent-web-plugin in this browser first, then re-check bridge readiness from this page.",
+      placeholder: "Check the browser bridge before sending a task.",
+      statusLabel: "Bridge Required"
+    };
+  }
+
+  if (!bridge?.configured) {
+    return {
+      canSend: false,
+      headline: "Bridge configuration still needs attention.",
+      note: "Finish the world URL, agent, and endpoint configuration in the browser bridge before sending a project task.",
+      placeholder: "Finish bridge configuration before sending a task.",
+      statusLabel: "Bridge Setup"
+    };
+  }
+
+  if (!agents.length) {
+    return {
+      canSend: false,
+      headline: "No eligible project member agent is attached to your account yet.",
+      note: "Have the owner invite one of your registered agents, or accept the pending invite, before using the project thread.",
+      placeholder: "Add one of your registered agents as a project member first.",
+      statusLabel: "Member Agent Needed"
+    };
+  }
+
+  return {
+    canSend: true,
+    headline: "Command deck is ready for project work.",
+    note: "Keep the task short, specific, and tied to this project so the conversation timeline stays useful after refresh.",
+    placeholder: "Describe the next task, decision, blocker, or refinement for your agent.",
+    statusLabel: "Ready"
+  };
 }
 
 function currentHumanProjectParticipation(project) {
@@ -2926,6 +2987,7 @@ function renderWorkspaceBridgeGuide(project, agents) {
   const workspaceAgent = agents[0]?.label || agents[0]?.agentId || "No eligible agent";
   const configuredEndpoint = config.agentEndpoint || "Not configured";
   const configuredOrigin = config.worldUrl || window.location.origin;
+  const bridgeStateClass = bridge?.configured ? "ready" : bridge?.available ? "attention" : "locked";
 
   let nextStep = "Install and configure the browser bridge before you ask your project agent to work inside this page.";
   if (bridge?.available && !bridge?.configured) {
@@ -2937,7 +2999,14 @@ function renderWorkspaceBridgeGuide(project, agents) {
   }
 
   return `
-    <div class="workspace-bridge-guide">
+    <div class="workspace-command-card workspace-bridge-guide">
+      <div class="workspace-command-header">
+        <div class="copy-stack">
+          <strong>Bridge Readiness</strong>
+          <p>Verify the browser bridge, current endpoint, and target world before sending the next project task.</p>
+        </div>
+        <span class="workspace-state-pill ${bridgeStateClass}">${bridgeStatusLabel()}</span>
+      </div>
       <div class="detail-grid compact">
         <div class="detail-item"><span>Browser Bridge</span><strong>${bridgeStatusLabel()}</strong></div>
         <div class="detail-item"><span>Workspace Agent</span><strong>${workspaceAgent}</strong></div>
@@ -2957,12 +3026,50 @@ function renderWorkspaceBridgeGuide(project, agents) {
   `;
 }
 
-function renderWorkspaceConversationThread(project, human, messages) {
+function renderWorkspaceCommandDeck(project, agents, messages, collaborationState) {
+  const latestMessage = messages[messages.length - 1] || null;
+  const selectedAgent = agents[0] || null;
+  const { isOwner, isParticipant } = currentHumanProjectParticipation(project);
+  const stateClass = collaborationState.canSend ? "ready" : (collaborationState.statusLabel === "Awaiting Access" || collaborationState.statusLabel === "Participation Required" ? "locked" : "attention");
+
+  return `
+    <div class="workspace-command-deck">
+      <div class="workspace-command-header">
+        <div class="copy-stack">
+          <strong>Agent Command Deck</strong>
+          <p>Route project-specific requests through a member agent so the timeline stays attached to the workspace.</p>
+        </div>
+        <span class="workspace-state-pill ${stateClass}">${escapeHtml(collaborationState.statusLabel)}</span>
+      </div>
+      <div class="detail-grid compact">
+        <div class="detail-item"><span>Your Access</span><strong>${isOwner ? "Owner" : isParticipant ? "Participant" : "Viewer"}</strong></div>
+        <div class="detail-item"><span>Eligible Agents</span><strong>${agents.length}</strong></div>
+        <div class="detail-item"><span>Selected Agent</span><strong>${escapeHtml(selectedAgent?.label || selectedAgent?.agentId || "None available")}</strong></div>
+        <div class="detail-item"><span>Conversation Entries</span><strong>${messages.length}</strong></div>
+        <div class="detail-item"><span>Last Speaker</span><strong class="${latestMessage?.actorId ? "detail-code" : ""}">${escapeHtml(latestMessage?.actorId || "No conversation yet")}</strong></div>
+        <div class="detail-item"><span>Last Activity</span><strong>${latestMessage ? formatTimestamp(latestMessage.at) : "No conversation yet"}</strong></div>
+      </div>
+      <div class="workspace-command-note">
+        <strong>${escapeHtml(collaborationState.headline)}</strong>
+        <p>${escapeHtml(collaborationState.note)}</p>
+      </div>
+      ${selectedAgent ? `
+        <div class="workspace-command-agent">
+          <span>Primary working agent</span>
+          <strong>${escapeHtml(selectedAgent.label || selectedAgent.agentId)}</strong>
+          <span class="detail-code">${escapeHtml(selectedAgent.agentId)}</span>
+        </div>
+      ` : ""}
+    </div>
+  `;
+}
+
+function renderWorkspaceConversationThread(project, human, messages, collaborationState) {
   if (!messages.length) {
     return `
       <div class="workspace-thread-empty">
         <strong>No project conversation yet.</strong>
-        <p>Use the working agent selector and send the next task, blocker, or design question. This thread stays attached to the project record.</p>
+        <p>${escapeHtml(collaborationState.canSend ? "Use the working agent selector and send the next task, blocker, or design question. This thread stays attached to the project record." : collaborationState.note)}</p>
       </div>
     `;
   }
@@ -2972,6 +3079,8 @@ function renderWorkspaceConversationThread(project, human, messages) {
   const humanCount = messages.filter((entry) => entry.role === "human").length;
   const agentCount = messages.filter((entry) => entry.role === "agent").length;
   const lastEntry = messages[messages.length - 1];
+  const lastPreview = String(lastEntry.content || "").trim();
+  const lastPreviewText = lastPreview.length > 320 ? `${lastPreview.slice(0, 317)}...` : lastPreview;
 
   const renderMessageCard = (entry, index, mode = "recent") => `
     <article class="entity-card workspace-message-card ${entry.role === "human" ? "human-message" : entry.role === "agent" ? "agent-message" : "system-message"} ${mode === "older" ? "older-message" : "recent-message"}">
@@ -2997,6 +3106,13 @@ function renderWorkspaceConversationThread(project, human, messages) {
         <div class="detail-item"><span>Human Messages</span><strong>${humanCount}</strong></div>
         <div class="detail-item"><span>Agent Messages</span><strong>${agentCount}</strong></div>
         <div class="detail-item"><span>Last Activity</span><strong>${formatTimestamp(lastEntry.at)}</strong></div>
+      </div>
+      <div class="workspace-latest-exchange">
+        <div class="summary-row">
+          <strong>Latest Exchange</strong>
+          <span>${lastEntry.role === "human" ? human.displayName || human.humanId : lastEntry.actorId || "Agent"}</span>
+        </div>
+        <pre class="code-block compact">${escapeHtml(lastPreviewText || "No message content recorded.")}</pre>
       </div>
     </div>
     ${olderMessages.length ? `
@@ -3371,11 +3487,12 @@ function renderProjectWorkspace() {
   const overview = $("project-workspace-overview");
   const progress = $("project-workspace-progress");
   const bridgeStatus = $("project-workspace-bridge-status");
+  const commandStatus = $("project-workspace-command-status");
   const thread = $("project-workspace-chat-thread");
   const membership = $("project-workspace-membership");
   const agentSelect = $("project-workspace-agent-select");
   const form = $("project-workspace-chat-form");
-  if (!title || !lede || !sidebar || !overview || !progress || !bridgeStatus || !thread || !membership || !agentSelect || !form) return;
+  if (!title || !lede || !sidebar || !overview || !progress || !bridgeStatus || !commandStatus || !thread || !membership || !agentSelect || !form) return;
 
   const human = currentHuman();
   const project = activeProject();
@@ -3386,9 +3503,18 @@ function renderProjectWorkspace() {
     overview.innerHTML = '<div class="detail-item"><span>Workspace</span><strong>No active project</strong></div>';
     progress.innerHTML = '<div class="empty">No active project selected.</div>';
     bridgeStatus.innerHTML = '<div class="empty">No bridge context yet.</div>';
+    commandStatus.innerHTML = '<div class="empty">Open a project to load the command deck.</div>';
     thread.innerHTML = '<div class="empty">No workspace conversation yet.</div>';
     membership.innerHTML = '<div class="empty">No project selected, so no membership state is available.</div>';
     agentSelect.innerHTML = '<option value="">No agent available</option>';
+    agentSelect.disabled = true;
+    const chatInput = $("project-workspace-chat-input");
+    const submitButton = form.querySelector('button[type="submit"]');
+    if (chatInput) {
+      chatInput.disabled = true;
+      chatInput.placeholder = "Open a project to send a project-specific task.";
+    }
+    if (submitButton) submitButton.disabled = true;
     return;
   }
 
@@ -3404,6 +3530,7 @@ function renderProjectWorkspace() {
   const ownMemberAgent = currentHumanAgents().find((agent) => (project.memberAgentIds || []).includes(agent.agentId)) || null;
   const workspaceRole = isOwner ? "owner" : ownMemberAgent ? projectMemberRole(project, ownMemberAgent.agentId) : "not assigned";
   const recruitingLabel = String(project.state || "").toLowerCase() === "paused" ? "Closed" : "Open";
+  const collaborationState = workspaceCollaborationState(project, agents);
   const latestActivity = latestMessage
     ? formatTimestamp(latestMessage.at)
     : latestRun?.generatedAt
@@ -3492,6 +3619,7 @@ function renderProjectWorkspace() {
   progress.innerHTML = renderProjectProgressPanel(project);
 
   bridgeStatus.innerHTML = renderWorkspaceBridgeGuide(project, agents);
+  commandStatus.innerHTML = renderWorkspaceCommandDeck(project, agents, messages, collaborationState);
   bridgeStatus.querySelectorAll(".open-workspace-button").forEach((node) => {
     node.addEventListener("click", () => openProjectWorkspace(node.dataset.projectOpen));
   });
@@ -3499,8 +3627,16 @@ function renderProjectWorkspace() {
   agentSelect.innerHTML = agents.length
     ? agents.map((agent) => `<option value="${agent.agentId}">${agent.label || agent.agentId}</option>`).join("")
     : '<option value="">No project agent available</option>';
+  agentSelect.disabled = !collaborationState.canSend;
+  const chatInput = $("project-workspace-chat-input");
+  const submitButton = form.querySelector('button[type="submit"]');
+  if (chatInput) {
+    chatInput.disabled = !collaborationState.canSend;
+    chatInput.placeholder = collaborationState.placeholder;
+  }
+  if (submitButton) submitButton.disabled = !collaborationState.canSend;
 
-  thread.innerHTML = renderWorkspaceConversationThread(project, human, messages);
+  thread.innerHTML = renderWorkspaceConversationThread(project, human, messages, collaborationState);
   renderProjectWorkspaceMembership(project, human);
 }
 
@@ -3511,6 +3647,9 @@ async function sendProjectWorkspacePrompt() {
   const human = currentHuman();
   if (!project || !input || !agentSelect || !human) return;
   const prompt = input.value.trim();
+  const agents = workspaceAgentsForProject(project);
+  const collaborationState = workspaceCollaborationState(project, agents);
+  if (!collaborationState.canSend) throw new Error(collaborationState.headline);
   if (!prompt) throw new Error("Enter a project message first.");
   const agentId = agentSelect.value;
   if (!agentId) throw new Error("Select a workspace agent first.");
