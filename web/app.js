@@ -644,13 +644,33 @@ function clampInlineLabel(value, maxLength = 32) {
   return `${normalized.slice(0, Math.max(6, maxLength - 3)).trim()}...`;
 }
 
+function clampMiddleLabel(value, maxLength = 32) {
+  const normalized = String(value || "").trim();
+  if (!normalized || normalized.length <= maxLength) return normalized;
+  if (maxLength <= 12) return clampInlineLabel(normalized, maxLength);
+  const available = maxLength - 3;
+  const tailLength = Math.max(8, Math.floor(available * 0.55));
+  const headLength = Math.max(4, available - tailLength);
+  return `${normalized.slice(0, headLength).trim()}...${normalized.slice(-tailLength).trim()}`;
+}
+
 function formatCollapsedIdentityLabel(value, { stripProtocol = false, maxLength = 36 } = {}) {
   const normalized = String(value || "").trim();
   if (!normalized) return "";
   const displayValue = stripProtocol
     ? normalized.replace(/^https?:\/\//i, "")
     : normalized;
-  return clampInlineLabel(displayValue, maxLength);
+  if (displayValue.length <= maxLength) return displayValue;
+  const segments = displayValue.split("/").filter(Boolean);
+  if (segments.length >= 2) {
+    const tail = segments[segments.length - 1];
+    const separator = "/.../";
+    const prefixBudget = maxLength - tail.length - separator.length;
+    if (prefixBudget >= 6) {
+      return `${displayValue.slice(0, prefixBudget).trim()}${separator}${tail}`;
+    }
+  }
+  return clampMiddleLabel(displayValue, maxLength);
 }
 
 function formatLatestDeliveryNote({ latestRun = null, latestWorkspaceMessage = null, fallbackAt = 0 } = {}) {
