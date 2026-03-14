@@ -1,7 +1,7 @@
 const $ = (id) => document.getElementById(id);
 const SESSION_KEY = "elo-open-world.session";
 const SETTINGS_DEFAULT_SECTION = "profile";
-const ROUTES = new Set(["home", "join", "settings", "world", "build", "market", "docs"]);
+const ROUTES = new Set(["home", "join", "settings", "new-project", "project", "world", "build", "market", "docs"]);
 const ONBOARDER_PRESET = {
   repoName: "elo-agent-onboarder",
   kind: "app",
@@ -73,7 +73,9 @@ const state = {
   starterRequirementId: "",
   starterBridgeStatus: null,
   latestStarterConversation: null,
-  latestFoundationArtifacts: {}
+  latestFoundationArtifacts: {},
+  activeProjectId: "",
+  projectWorkspaceMessages: {}
 };
 
 bootstrapSessionFromUrl();
@@ -143,6 +145,20 @@ function currentHumanProjects() {
     if (project.ownerHumanId === human.humanId) return true;
     return (project.memberAgentIds || []).some((agentId) => agentIds.has(agentId));
   });
+}
+
+function currentHumanProjectIds() {
+  return new Set(currentHumanProjects().map((project) => project.projectId));
+}
+
+function openProjectWorkspace(projectId) {
+  state.activeProjectId = projectId || "";
+  goToRoute("project");
+}
+
+function activeProject() {
+  if (!state.summary || !state.activeProjectId) return null;
+  return (state.summary.projects || []).find((project) => project.projectId === state.activeProjectId) || null;
 }
 
 function foundationProjects() {
@@ -1060,6 +1076,7 @@ function renderTopbarActions() {
   } else {
     root.innerHTML = `
       <div class="session-chip">${human.displayName || human.humanId}</div>
+      <button type="button" class="topbar-button secondary" data-route-target="new-project">New Project</button>
       <button type="button" class="topbar-button secondary" data-route-target="settings">Settings</button>
       <button type="button" class="topbar-button ghost" id="signout-button">Sign Out</button>
     `;
@@ -1727,7 +1744,7 @@ function renderSettingsData() {
         </div>
         <textarea id="starter-extra-context" placeholder="Optional extra context for your primary agent."></textarea>
         <div class="action-row">
-          <button type="button" class="topbar-button secondary" id="starter-open-build-link">Open Build With Requirement</button>
+          <button type="button" class="topbar-button secondary" id="starter-open-project-form">Continue To Source Project</button>
           <button type="button" class="topbar-button ghost" id="starter-copy-project-draft">Copy Project Draft</button>
           <button type="button" class="topbar-button ghost" id="starter-download-project-draft">Download Project Draft</button>
           <button type="button" class="topbar-button ghost" id="starter-copy-requirement-id">Copy Requirement ID</button>
@@ -1736,7 +1753,7 @@ function renderSettingsData() {
           <button type="button" class="topbar-button ghost" id="starter-check-bridge">Check Browser Bridge</button>
           <button type="button" class="topbar-button secondary" id="starter-send-to-agent">Ask Primary Agent</button>
         </div>
-        <p class="note">The starter requirement is ready. Continue in Build when you want to create the GitHub source project. If the browser plugin is configured, you can ask your primary agent to refine the idea first.</p>
+        <p class="note">The starter requirement is ready. Continue directly to source project creation below. If the browser plugin is configured, ask your primary agent to refine the idea before you create the repository.</p>
         <div class="copy-stack">
           <p class="note">Need the browser bridge first? Load the extension from the <code>elo-agent-web-plugin</code> repository and configure your local agent endpoint.</p>
         </div>
@@ -1765,10 +1782,9 @@ function renderSettingsData() {
           <p>Choose your primary agent and describe the idea. EOW will create the first requirement so your agent can pick up the work under the project rules.</p>
         </div>
       `;
-      $("starter-open-build-link")?.addEventListener("click", () => {
+      $("starter-open-project-form")?.addEventListener("click", () => {
         const requirement = state.summary?.requirements?.find((item) => item.requirementId === state.starterRequirementId) || state.latestStarterRequirement;
         if (requirement) loadRequirementIntoProjectForm(requirement);
-        goToRoute("build");
         window.setTimeout(() => {
           const target = $("project-form");
           if (target) {
@@ -2175,10 +2191,10 @@ function renderSettingsData() {
               </div>
             ` : ""}
             <div class="tag-row action-row">
-          <button type="button" class="topbar-button secondary edit-project-button" data-edit-project="${project.projectId}">Edit Metadata</button>
-          <button type="button" class="topbar-button ghost" data-route-target="build">Open In Build</button>
-          <a href="${project.repoUrl}" target="_blank" rel="noreferrer">Open GitHub Repo</a>
-        </div>
+              <button type="button" class="topbar-button secondary open-workspace-button" data-project-open="${project.projectId}">Open Workspace</button>
+              <button type="button" class="topbar-button ghost" data-route-target="build">Open In Build Directory</button>
+              <a href="${project.repoUrl}" target="_blank" rel="noreferrer">Open GitHub Repo</a>
+            </div>
           </div>
         </details>
       `).join("") : '<div class="empty">No projects match the current scope and filter.</div>'}
@@ -2189,6 +2205,9 @@ function renderSettingsData() {
           state.settingsProjectScope = node.dataset.projectScope || "all";
           renderSettingsData();
         });
+      });
+      projectsRoot.querySelectorAll(".open-workspace-button").forEach((node) => {
+        node.addEventListener("click", () => openProjectWorkspace(node.dataset.projectOpen));
       });
       projectsRoot.querySelectorAll(".membership-invite-form").forEach((form) => {
         form.addEventListener("submit", async (event) => {
@@ -2746,6 +2765,8 @@ function renderProjects(projects) {
   const root = $("projects-list");
   if (!root) return;
   const filtered = applyBuildFiltersToProjects(projects);
+  const human = currentHuman();
+  const myProjectIds = currentHumanProjectIds();
   if (!filtered.length) {
     root.innerHTML = '<div class="empty">No projects match the current filter.</div>';
     return;
@@ -2768,33 +2789,162 @@ function renderProjects(projects) {
         <div class="tag-row">${(project.tags || []).map((tag) => `<span class="subtle-tag">${tag}</span>`).join("")}</div>
         <div class="detail-grid compact">
           <div class="detail-item"><span>Owner</span><strong>${project.ownerHumanId}</strong></div>
-          <div class="detail-item"><span>Agents</span><strong>${project.memberAgentIds?.length || 0}</strong></div>
-          <div class="detail-item"><span>Plugins</span><strong>${project.pluginIds?.length || 0}</strong></div>
+          <div class="detail-item"><span>Participants</span><strong>${project.memberAgentIds?.length || 0}</strong></div>
+          <div class="detail-item"><span>Recruiting</span><strong>${String(project.state || "").toLowerCase() === "paused" ? "No" : "Yes"}</strong></div>
           <div class="detail-item"><span>Rating</span><strong>${project.rating || 0}</strong></div>
           <div class="detail-item"><span>Heat</span><strong>${project.heat || 0}</strong></div>
           <div class="detail-item"><span>Stage</span><strong>${project.stage || "source"}</strong></div>
-          <div class="detail-item"><span>Service Endpoint</span><strong>${project.serviceEndpoint || "Not set"}</strong></div>
+          <div class="detail-item"><span>State</span><strong>${projectStateLabel(project.state)}</strong></div>
           <div class="detail-item"><span>GitHub</span><strong>${project.repoFullName}</strong></div>
         </div>
         ${renderProjectFoundationRunSummary(project)}
-        <div class="nested-list">
-          ${(project.memberAgentIds || []).length ? (project.memberAgentIds || []).map((agentId) => `
-            <div class="nested-item">
-              <strong>${agentId}</strong>
-              <span>Role: ${projectMemberRole(project, agentId)}</span>
-            </div>
-          `).join("") : '<div class="empty">No member agents recorded.</div>'}
-        </div>
+        <div class="nested-list">${(project.memberAgentIds || []).length ? (project.memberAgentIds || []).slice(0, 5).map((agentId) => `
+          <div class="nested-item">
+            <strong>${agentId}</strong>
+            <span>Role: ${projectMemberRole(project, agentId)}</span>
+          </div>
+        `).join("") : '<div class="empty">No member agents recorded.</div>'}</div>
         ${renderProjectFoundationRunList(project)}
-        <p>Pricing: ${project.pricingNote || "Not specified"}</p>
-        <p>Usage: ${project.usageNote || "Not specified"}</p>
         <div class="tag-row action-row">
-          <button type="button" class="topbar-button secondary edit-project-button" data-edit-project="${project.projectId}">Edit Metadata</button>
+          <button type="button" class="topbar-button secondary open-workspace-button" data-project-open="${project.projectId}">Open Project</button>
+          ${human && !myProjectIds.has(project.projectId) ? `<button type="button" class="topbar-button ghost participation-request-button" data-project-title="${escapeHtml(project.title)}">Apply To Participate</button>` : ""}
           <a href="${project.repoUrl}" target="_blank" rel="noreferrer">Open GitHub Repo</a>
         </div>
       </div>
     </details>
   `).join("");
+
+  root.querySelectorAll(".open-workspace-button").forEach((node) => {
+    node.addEventListener("click", () => openProjectWorkspace(node.dataset.projectOpen));
+  });
+  root.querySelectorAll(".participation-request-button").forEach((node) => {
+    node.addEventListener("click", () => {
+      setStatus(`Participation requests for ${node.dataset.projectTitle} will be attached to the project workspace next.`, "ok");
+    });
+  });
+}
+
+function workspaceAgentsForProject(project) {
+  const myAgents = currentHumanAgents();
+  const myAgentIds = new Set(myAgents.map((agent) => agent.agentId));
+  const projectAgentIds = (project?.memberAgentIds || []).filter((agentId) => myAgentIds.has(agentId));
+  const ordered = projectAgentIds.length ? projectAgentIds : myAgents.map((agent) => agent.agentId);
+  return ordered.map((agentId) => myAgents.find((agent) => agent.agentId === agentId)).filter(Boolean);
+}
+
+function renderProjectWorkspace() {
+  const title = $("project-workspace-title");
+  const lede = $("project-workspace-lede");
+  const sidebar = $("project-workspace-sidebar");
+  const bridgeStatus = $("project-workspace-bridge-status");
+  const thread = $("project-workspace-chat-thread");
+  const agentSelect = $("project-workspace-agent-select");
+  const form = $("project-workspace-chat-form");
+  if (!title || !lede || !sidebar || !bridgeStatus || !thread || !agentSelect || !form) return;
+
+  const human = currentHuman();
+  const project = activeProject();
+  if (!human || !project) {
+    title.textContent = "Project Workspace";
+    lede.textContent = "Open a project from Build or My Projects to start a dedicated workspace.";
+    sidebar.innerHTML = '<div class="empty">No active project selected.</div>';
+    bridgeStatus.innerHTML = '<div class="empty">No bridge context yet.</div>';
+    thread.innerHTML = '<div class="empty">No workspace conversation yet.</div>';
+    agentSelect.innerHTML = '<option value="">No agent available</option>';
+    return;
+  }
+
+  const agents = workspaceAgentsForProject(project);
+  const messages = state.projectWorkspaceMessages[project.projectId] || [];
+  title.textContent = project.title;
+  lede.textContent = project.summary || "Project workspace for direct collaboration with your development agent.";
+  sidebar.innerHTML = `
+    <div class="copy-stack">
+      <div class="summary-row">
+        <strong>${project.title}</strong>
+        <div class="tag-row">
+          ${createBadge(projectTypeLabel(project.kind))}
+          ${createBadge(project.stage || "source")}
+          ${createBadge(projectStateLabel(project.state))}
+          ${String(project.state || "").toLowerCase() === "paused" ? createBadge("Not Recruiting") : createBadge("Recruiting")}
+        </div>
+      </div>
+      <div class="detail-grid compact">
+        <div class="detail-item"><span>Repository</span><strong class="detail-code">${project.repoName}</strong></div>
+        <div class="detail-item"><span>Members</span><strong>${project.memberAgentIds?.length || 0}</strong></div>
+        <div class="detail-item"><span>Plugins</span><strong>${project.pluginIds?.length || 0}</strong></div>
+        <div class="detail-item"><span>Foundation Runs</span><strong>${project.foundationRuns?.length || 0}</strong></div>
+      </div>
+      <p><strong>Progress</strong><br />${project.summary || "No summary yet."}</p>
+      ${renderProjectFoundationRunSummary(project)}
+      ${renderProjectFoundationRunList(project, 3)}
+    </div>
+  `;
+
+  bridgeStatus.innerHTML = `
+    <div class="detail-grid compact">
+      <div class="detail-item"><span>Browser Bridge</span><strong>${bridgeStatusLabel()}</strong></div>
+      <div class="detail-item"><span>Workspace Agent</span><strong>${agents[0]?.label || agents[0]?.agentId || "No eligible agent"}</strong></div>
+    </div>
+  `;
+
+  agentSelect.innerHTML = agents.length
+    ? agents.map((agent) => `<option value="${agent.agentId}">${agent.label || agent.agentId}</option>`).join("")
+    : '<option value="">No project agent available</option>';
+
+  thread.innerHTML = messages.length ? messages.map((entry) => `
+    <article class="entity-card">
+      <div class="summary-row">
+        <strong>${entry.role === "human" ? human.displayName || human.humanId : entry.agentId || "Agent"}</strong>
+        <span>${formatTimestamp(entry.at)}</span>
+      </div>
+      <pre class="code-block compact">${escapeHtml(entry.content)}</pre>
+    </article>
+  `).join("") : '<div class="empty">No project conversation yet. Start by sending the next task to your agent.</div>';
+}
+
+async function sendProjectWorkspacePrompt() {
+  const project = activeProject();
+  const input = $("project-workspace-chat-input");
+  const agentSelect = $("project-workspace-agent-select");
+  if (!project || !input || !agentSelect) return;
+  const prompt = input.value.trim();
+  if (!prompt) throw new Error("Enter a project message first.");
+  const agentId = agentSelect.value;
+  if (!agentId) throw new Error("Select a workspace agent first.");
+  if (!window.ELOAgentBridge || typeof window.ELOAgentBridge.sendPrompt !== "function") {
+    throw new Error("Browser bridge is not available.");
+  }
+
+  const response = await window.ELOAgentBridge.sendPrompt({
+    prompt,
+    context: {
+      mode: "project-workspace",
+      project: {
+        projectId: project.projectId,
+        title: project.title,
+        summary: project.summary,
+        repoName: project.repoName,
+        stage: project.stage,
+        state: project.state
+      },
+      agentId
+    }
+  });
+
+  state.projectWorkspaceMessages[project.projectId] = [
+    ...(state.projectWorkspaceMessages[project.projectId] || []),
+    { role: "human", content: prompt, at: Date.now() },
+    {
+      role: "agent",
+      agentId,
+      content: typeof response?.response === "string" ? response.response : JSON.stringify(response?.response ?? response, null, 2),
+      at: Date.now()
+    }
+  ].slice(-20);
+  input.value = "";
+  renderProjectWorkspace();
+  setStatus(`Workspace response received from ${agentId}.`, "ok");
 }
 
 
@@ -3001,6 +3151,7 @@ function renderAll() {
   bindProjectEditButtons();
   renderMemberRoleAgentOptions();
   renderSettingsShell();
+  renderProjectWorkspace();
   showRoute(currentRoute());
 }
 
@@ -3088,15 +3239,22 @@ $("project-starter-form")?.addEventListener("submit", async (event) => {
     setStatus(error.message, "error");
   }
 });
-$("project-starter-open-build")?.addEventListener("click", () => {
-  goToRoute("build");
-  window.setTimeout(() => {
-    $("project-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, 50);
-});
 $("agent-status-form")?.addEventListener("submit", (event) => handleSubmit(event, "/api/agents/status", (result) => `Agent updated: ${result.agentId}`, "settings"));
 $("plugin-form")?.addEventListener("submit", (event) => handleSubmit(event, "/api/plugins/register", (result) => `Plugin created: ${result.pluginId}`, "build"));
-$("project-form")?.addEventListener("submit", (event) => handleSubmit(event, "/api/projects/create", (result) => `Project created: ${result.projectId} -> ${result.repoFullName}`, "build"));
+$("project-form")?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  try {
+    const result = await request("/api/projects/create", "POST", formDataToObject(form));
+    if (typeof form.reset === "function") form.reset();
+    state.activeProjectId = result.projectId;
+    setStatus(`Project created: ${result.projectId} -> ${result.repoFullName}`, "ok");
+    await refresh();
+    goToRoute("project");
+  } catch (error) {
+    setStatus(error.message, "error");
+  }
+});
 $("project-edit-form")?.addEventListener("submit", (event) => handleSubmit(event, "/api/projects/update", (result) => `Project updated: ${result.projectId}`, "build"));
 $("project-requirement-select")?.addEventListener("change", (event) => {
   const requirementId = event.currentTarget.value;
@@ -3119,6 +3277,31 @@ $("preset-onboarder-button")?.addEventListener("click", () => {
   }
   if (form.serviceEndpoint) form.serviceEndpoint.value = `${window.location.origin}/services/elo-agent-onboarder`;
   setStatus("elo-agent-onboarder preset applied.", "ok");
+});
+
+$("project-workspace-check-bridge")?.addEventListener("click", async () => {
+  try {
+    await inspectStarterBridge();
+    renderProjectWorkspace();
+    const config = state.starterBridgeStatus?.config || {};
+    setStatus(
+      state.starterBridgeStatus?.configured
+        ? `Browser bridge ready for agent ${config.agentId || "unknown"}`
+        : "Browser bridge detected but not fully configured.",
+      state.starterBridgeStatus?.configured ? "ok" : "error"
+    );
+  } catch (error) {
+    setStatus(error.message, "error");
+  }
+});
+
+$("project-workspace-chat-form")?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  try {
+    await sendProjectWorkspacePrompt();
+  } catch (error) {
+    setStatus(error.message, "error");
+  }
 });
 $("onboarder-form")?.addEventListener("submit", handleOnboarderSubmit);
 $("signed-agent-guide-form")?.addEventListener("submit", async (event) => {
