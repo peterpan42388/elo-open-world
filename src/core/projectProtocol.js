@@ -138,6 +138,7 @@ export class ProjectProtocol {
       repoUrl: initialized.repoUrl,
       localPath: initialized.localPath,
       memberInvites: [],
+      participationRequests: [],
       memberHistory: initialMemberHistory,
       foundationRuns: [],
       workspaceConversation: [],
@@ -327,6 +328,56 @@ export class ProjectProtocol {
     await this.#syncProjectMembershipDocs(project);
     await this.onChange();
     return { ...project };
+  }
+
+  async requestParticipation({ projectId, humanId, message = "" }) {
+    const safeProjectId = token("projectId", projectId);
+    const project = this.projects.get(safeProjectId);
+    if (!project) throw new Error(`unknown projectId: ${safeProjectId}`);
+    const human = this.identityRegistry.getHuman(humanId);
+    if (project.ownerHumanId === human.humanId) {
+      throw new Error("project owner does not need a participation request");
+    }
+    const ownAgentIds = this.identityRegistry.summary().agents
+      .filter((agent) => agent.humanId === human.humanId)
+      .map((agent) => agent.agentId);
+    if ((project.memberAgentIds || []).some((agentId) => ownAgentIds.includes(agentId))) {
+      throw new Error("you are already participating in this project");
+    }
+    project.participationRequests = project.participationRequests || [];
+    const existing = project.participationRequests.find((request) => request.humanId === human.humanId && request.status === "pending");
+    if (existing) throw new Error("a pending participation request already exists");
+    const requestEntry = {
+      requestId: uid("preq"),
+      humanId: human.humanId,
+      agentIds: ownAgentIds,
+      message: text("message", message, 2000),
+      status: "pending",
+      createdAt: now()
+    };
+    project.participationRequests.unshift(requestEntry);
+    project.updatedAt = now();
+    await this.onChange();
+    return { ...project, latestParticipationRequest: requestEntry };
+  }
+
+  async resolveParticipationRequest({ projectId, ownerHumanId, requestId, decision, note = "" }) {
+    const project = this.#assertOwnerProject({ projectId, ownerHumanId });
+    const safeRequestId = token("requestId", requestId, 128);
+    const safeDecision = token("decision", decision, 32).toLowerCase();
+    if (!["accepted", "rejected"].includes(safeDecision)) {
+      throw new Error("decision must be accepted or rejected");
+    }
+    const requestEntry = (project.participationRequests || []).find((request) => request.requestId === safeRequestId);
+    if (!requestEntry) throw new Error(`unknown requestId: ${safeRequestId}`);
+    if (requestEntry.status !== "pending") throw new Error("participation request is not pending");
+    requestEntry.status = safeDecision;
+    requestEntry.reviewedAt = now();
+    requestEntry.reviewedByHumanId = token("ownerHumanId", ownerHumanId);
+    requestEntry.reviewNote = text("note", note, 1000);
+    project.updatedAt = now();
+    await this.onChange();
+    return { ...project, latestParticipationRequest: requestEntry };
   }
 
   async recordFoundationRun({ projectId, ownerHumanId, action, agentId, profile = "", result = {} }) {

@@ -105,14 +105,14 @@ After every execution cycle, update this file with:
 - Reworked `Project Workspace` into a clearer collaboration shell with grouped sidebar blocks, workspace summary, and stronger agent conversation hierarchy
 - Normalized `Build` directory cards with stronger header hierarchy, recruiting signal, directory snapshot blocks, and lower-noise project actions
 - Audited `World`, `Settings`, `Market`, and `Docs` for dark-theme regressions and aligned their card density, detail blocks, and page-level boundaries with the shared dark foundation rules
-- Moved membership workflow controls into `Project Workspace` and reduced `My Projects` to project visibility plus workspace entry, keeping participation actions attached to the active project page
-- Switched `Project Workspace` conversation from browser-only state to persisted project workspace conversation stored through the project API, so chat survives refresh and stays attached to the project record
+- Moved membership workflow controls into `Project Workspace`, reduced `My Projects` to visibility plus workspace entry, and added project-scoped participation request handling on the workspace page
+- Switched `Project Workspace` conversation from browser-only state to persisted project workspace conversation stored through the project API, and added a progress/delivery panel so collaboration state survives refresh and stays attached to the project record
 
 ## Current Focus
-- P1 Project Workspace Maturation
+- P1 Project Workspace Maturation: agent conversation quality and project-side clarity
 
 ## Next Recommended Action
-- Add clearer project progress blocks and participation request flow inside `Project Workspace`, then remove any remaining cross-page ownership of collaboration actions
+- Make agent collaboration more first-class in `Project Workspace`, especially for `elo-agent-web-plugin`, with clearer bridge guidance and stronger message presentation for longer project threads
 
 ## Blockers
 - none currently

@@ -2844,7 +2844,7 @@ function renderProjects(projects) {
         ${renderProjectFoundationRunList(project)}
         <div class="tag-row action-row build-directory-actions">
           <button type="button" class="topbar-button secondary open-workspace-button" data-project-open="${project.projectId}">Open Project</button>
-          ${human && !myProjectIds.has(project.projectId) ? `<button type="button" class="topbar-button ghost participation-request-button" data-project-title="${escapeHtml(project.title)}">Apply To Participate</button>` : ""}
+          ${human && !myProjectIds.has(project.projectId) ? `<button type="button" class="topbar-button ghost participation-request-button" data-project-title="${escapeHtml(project.title)}" data-project-open="${project.projectId}">Apply To Participate</button>` : ""}
           <a href="${project.repoUrl}" target="_blank" rel="noreferrer">Open GitHub Repo</a>
         </div>
       </div>
@@ -2856,7 +2856,8 @@ function renderProjects(projects) {
   });
   root.querySelectorAll(".participation-request-button").forEach((node) => {
     node.addEventListener("click", () => {
-      setStatus(`Participation requests for ${node.dataset.projectTitle} will be attached to the project workspace next.`, "ok");
+      openProjectWorkspace(node.dataset.projectOpen);
+      setStatus(`Open ${node.dataset.projectTitle} in the project workspace to submit a participation request.`, "ok");
     });
   });
 }
@@ -2873,6 +2874,70 @@ function workspaceConversationEntries(project) {
   return Array.isArray(project?.workspaceConversation) ? project.workspaceConversation : [];
 }
 
+function currentHumanProjectParticipation(project) {
+  const human = currentHuman();
+  if (!human || !project) return { isOwner: false, isParticipant: false };
+  if (project.ownerHumanId === human.humanId) return { isOwner: true, isParticipant: true };
+  const ownAgentIds = new Set(currentHumanAgents().map((agent) => agent.agentId));
+  return {
+    isOwner: false,
+    isParticipant: (project.memberAgentIds || []).some((agentId) => ownAgentIds.has(agentId))
+  };
+}
+
+function renderProjectProgressPanel(project) {
+  const requirement = project?.requirementId && state.summary?.requirements
+    ? state.summary.requirements.find((item) => item.requirementId === project.requirementId)
+    : null;
+  const summary = requirement?.latestRefinementSummary || null;
+  const milestones = Array.isArray(summary?.milestones) && summary.milestones.length
+    ? summary.milestones.map((item) => `<li>${escapeHtml(item)}</li>`).join("")
+    : "<li>No milestones captured yet.</li>";
+  const questions = Array.isArray(summary?.questions) && summary.questions.length
+    ? summary.questions.map((item) => `<li>${escapeHtml(item)}</li>`).join("")
+    : "<li>No open questions recorded.</li>";
+  return `
+    <div class="build-directory-detail-grid">
+      <div class="build-directory-detail-block">
+        <div class="summary-row">
+          <strong>Current Direction</strong>
+          <span>${project.stage || "source"}</span>
+        </div>
+        <p>${summary?.restatedRequirement || project.summary || "No structured requirement summary yet."}</p>
+        <p>${summary?.projectDirection || "Project direction will appear here after requirement refinement."}</p>
+      </div>
+      <div class="build-directory-detail-block">
+        <div class="summary-row">
+          <strong>Delivery Signals</strong>
+          <span>${projectStateLabel(project.state)}</span>
+        </div>
+        <div class="detail-grid compact">
+          <div class="detail-item"><span>Requirement</span><strong>${project.requirementId || "No linked requirement"}</strong></div>
+          <div class="detail-item"><span>Stage</span><strong>${project.stage || "source"}</strong></div>
+          <div class="detail-item"><span>State</span><strong>${projectStateLabel(project.state)}</strong></div>
+          <div class="detail-item"><span>Latest Foundation Run</span><strong>${project.foundationRuns?.[0]?.action || "none"}</strong></div>
+        </div>
+      </div>
+    </div>
+    <div class="build-directory-detail-grid">
+      <div class="build-directory-detail-block">
+        <div class="summary-row">
+          <strong>Milestones</strong>
+          <span>${Array.isArray(summary?.milestones) ? summary.milestones.length : 0}</span>
+        </div>
+        <ul class="content-list">${milestones}</ul>
+      </div>
+      <div class="build-directory-detail-block">
+        <div class="summary-row">
+          <strong>Open Questions</strong>
+          <span>${Array.isArray(summary?.questions) ? summary.questions.length : 0}</span>
+        </div>
+        <ul class="content-list">${questions}</ul>
+      </div>
+    </div>
+  `;
+}
+
 function projectMemberRoleOptions(selected = "builder") {
   return ["builder", "reviewer", "operator", "maintainer", "observer"].map((role) => `
     <option value="${role}" ${role === selected ? "selected" : ""}>${role}</option>
@@ -2887,8 +2952,9 @@ function renderProjectWorkspaceMembership(project, human) {
     return;
   }
 
-  const isOwner = project.ownerHumanId === human.humanId;
+  const { isOwner, isParticipant } = currentHumanProjectParticipation(project);
   const workspaceReadyAgents = new Set(workspaceAgentsForProject(project).map((agent) => agent.agentId));
+  const pendingRequests = project.participationRequests || [];
   root.innerHTML = `
     <div class="workspace-membership-grid">
       <div class="workspace-membership-block">
@@ -2925,6 +2991,31 @@ function renderProjectWorkspaceMembership(project, human) {
           </div>
         ` : '<div class="empty">No pending invites.</div>'}
       </div>
+      <div class="workspace-membership-block">
+        <div class="summary-row">
+          <strong>Participation Requests</strong>
+          <span>${pendingRequests.length}</span>
+        </div>
+        ${pendingRequests.length ? `
+          <div class="nested-list">
+            ${pendingRequests.slice(0, 8).map((requestEntry) => `
+              <div class="nested-item">
+                <strong class="detail-code">${requestEntry.humanId}</strong>
+                <span>Status: ${requestEntry.status}</span>
+                <span>Agents: ${(requestEntry.agentIds || []).length ? requestEntry.agentIds.join(", ") : "No agents linked"}</span>
+                <span>${formatTimestamp(requestEntry.createdAt)}</span>
+                ${requestEntry.message ? `<span>${escapeHtml(requestEntry.message)}</span>` : ""}
+                ${isOwner && requestEntry.status === "pending" ? `
+                  <div class="action-row">
+                    <button type="button" class="topbar-button ghost workspace-participation-resolve" data-request-id="${requestEntry.requestId}" data-decision="accepted">Accept Request</button>
+                    <button type="button" class="topbar-button ghost workspace-participation-resolve" data-request-id="${requestEntry.requestId}" data-decision="rejected">Reject Request</button>
+                  </div>
+                ` : ""}
+              </div>
+            `).join("")}
+          </div>
+        ` : '<div class="empty">No participation requests yet.</div>'}
+      </div>
       <div class="workspace-membership-block workspace-membership-history">
         <div class="summary-row">
           <strong>Membership History</strong>
@@ -2946,8 +3037,8 @@ function renderProjectWorkspaceMembership(project, human) {
       </div>
       <div class="workspace-membership-block">
         <div class="summary-row">
-          <strong>Owner Controls</strong>
-          <span>${isOwner ? "Enabled" : "Owner only"}</span>
+          <strong>${isOwner ? "Owner Controls" : "Participation Request"}</strong>
+          <span>${isOwner ? "Enabled" : isParticipant ? "Already participating" : "Request access"}</span>
         </div>
         ${isOwner ? `
           <div class="copy-stack">
@@ -2987,12 +3078,37 @@ function renderProjectWorkspaceMembership(project, human) {
               <button type="submit" class="topbar-button ghost">Remove Member</button>
             </form>
           </div>
-        ` : '<p class="note">Open this page as the project owner to invite members, accept pending invites, or change roles.</p>'}
+        ` : isParticipant ? '<p class="note">You are already participating in this project through one of your registered agents.</p>' : `
+          <form class="workspace-membership-form" id="workspace-participation-request-form">
+            <label class="creation-field workspace-chat-field-full">
+              <span>Why do you want to join this project?</span>
+              <textarea name="message" placeholder="Explain your interest, the agent you want to contribute with, and the role you expect to play." required></textarea>
+            </label>
+            <button type="submit">Request Participation</button>
+          </form>
+        `}
       </div>
     </div>
   `;
 
-  if (!isOwner) return;
+  if (!isOwner) {
+    $("workspace-participation-request-form")?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      try {
+        await request("/api/projects/participation/request", "POST", {
+          projectId: project.projectId,
+          humanId: human.humanId,
+          message: form.message.value
+        });
+        setStatus("Participation request submitted.", "ok");
+        await refresh();
+      } catch (error) {
+        setStatus(error.message, "error");
+      }
+    });
+    return;
+  }
 
   $("workspace-membership-invite-form")?.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -3059,6 +3175,24 @@ function renderProjectWorkspaceMembership(project, human) {
       }
     });
   });
+
+  root.querySelectorAll(".workspace-participation-resolve").forEach((button) => {
+    button.addEventListener("click", async () => {
+      try {
+        await request("/api/projects/participation/resolve", "POST", {
+          projectId: project.projectId,
+          ownerHumanId: human.humanId,
+          requestId: button.dataset.requestId,
+          decision: button.dataset.decision,
+          note: ""
+        });
+        setStatus(`Participation request ${button.dataset.decision}.`, "ok");
+        await refresh();
+      } catch (error) {
+        setStatus(error.message, "error");
+      }
+    });
+  });
 }
 
 function renderProjectWorkspace() {
@@ -3066,12 +3200,13 @@ function renderProjectWorkspace() {
   const lede = $("project-workspace-lede");
   const sidebar = $("project-workspace-sidebar");
   const overview = $("project-workspace-overview");
+  const progress = $("project-workspace-progress");
   const bridgeStatus = $("project-workspace-bridge-status");
   const thread = $("project-workspace-chat-thread");
   const membership = $("project-workspace-membership");
   const agentSelect = $("project-workspace-agent-select");
   const form = $("project-workspace-chat-form");
-  if (!title || !lede || !sidebar || !overview || !bridgeStatus || !thread || !membership || !agentSelect || !form) return;
+  if (!title || !lede || !sidebar || !overview || !progress || !bridgeStatus || !thread || !membership || !agentSelect || !form) return;
 
   const human = currentHuman();
   const project = activeProject();
@@ -3080,6 +3215,7 @@ function renderProjectWorkspace() {
     lede.textContent = "Open a project from Build or My Projects to start a dedicated workspace.";
     sidebar.innerHTML = '<div class="empty">No active project selected.</div>';
     overview.innerHTML = '<div class="detail-item"><span>Workspace</span><strong>No active project</strong></div>';
+    progress.innerHTML = '<div class="empty">No active project selected.</div>';
     bridgeStatus.innerHTML = '<div class="empty">No bridge context yet.</div>';
     thread.innerHTML = '<div class="empty">No workspace conversation yet.</div>';
     membership.innerHTML = '<div class="empty">No project selected, so no membership state is available.</div>';
@@ -3144,6 +3280,8 @@ function renderProjectWorkspace() {
     </div>
   `).join("");
 
+  progress.innerHTML = renderProjectProgressPanel(project);
+
   bridgeStatus.innerHTML = `
     <div class="detail-grid compact">
       <div class="detail-item"><span>Browser Bridge</span><strong>${bridgeStatusLabel()}</strong></div>
@@ -3157,24 +3295,23 @@ function renderProjectWorkspace() {
     : '<option value="">No project agent available</option>';
 
   thread.innerHTML = messages.length ? messages.map((entry) => `
-    <article class="entity-card workspace-message-card ${entry.role === "human" ? "human-message" : "agent-message"}">
+    <article class="entity-card workspace-message-card ${entry.role === "human" ? "human-message" : entry.role === "agent" ? "agent-message" : "system-message"}">
       <div class="summary-row">
-        <strong>${entry.role === "human" ? human.displayName || human.humanId : entry.actorId || entry.agentId || "Agent"}</strong>
+        <strong>${entry.role === "human" ? human.displayName || human.humanId : entry.actorId || "Agent"}</strong>
         <span>${formatTimestamp(entry.at)}</span>
       </div>
       <pre class="code-block compact">${escapeHtml(entry.content)}</pre>
     </article>
   `).join("") : '<div class="empty">No project conversation yet. Start by sending the next task to your agent.</div>';
-
-  membership.innerHTML = renderProjectWorkspaceMembership(project, human);
-  bindWorkspaceMembershipControls(project, human);
+  renderProjectWorkspaceMembership(project, human);
 }
 
 async function sendProjectWorkspacePrompt() {
   const project = activeProject();
   const input = $("project-workspace-chat-input");
   const agentSelect = $("project-workspace-agent-select");
-  if (!project || !input || !agentSelect) return;
+  const human = currentHuman();
+  if (!project || !input || !agentSelect || !human) return;
   const prompt = input.value.trim();
   if (!prompt) throw new Error("Enter a project message first.");
   const agentId = agentSelect.value;
@@ -3200,11 +3337,11 @@ async function sendProjectWorkspacePrompt() {
   });
   await request("/api/projects/workspace/conversation", "POST", {
     projectId: project.projectId,
-    humanId: currentHuman()?.humanId,
+    humanId: human.humanId,
     entries: [
       {
         actorType: "human",
-        actorId: currentHuman()?.humanId,
+        actorId: human.humanId,
         content: prompt,
         at: Date.now()
       },

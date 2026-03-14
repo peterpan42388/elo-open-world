@@ -202,6 +202,162 @@ test("foundation runs should persist into project state and history docs", async
   assert.match(stateRaw, /install-plan/);
 });
 
+test("workspace conversation should persist for project participants", async () => {
+  const root = await mkdtemp(join(tmpdir(), "open-world-workspace-"));
+  const github = new FakeGitHubRepoService();
+  const world = await new OpenWorldFramework({
+    stateFile: join(root, "state.json"),
+    projectsRoot: join(root, "projects"),
+    githubRepoService: github
+  }).init();
+
+  await world.identity.registerHuman({
+    humanId: "human.owner",
+    email: "owner@example.com",
+    githubLogin: "peterpan42388",
+    password: "test-password-owner"
+  });
+  await world.identity.registerHuman({
+    humanId: "human.partner",
+    email: "partner@example.com",
+    password: "test-password-partner"
+  });
+
+  await world.identity.registerAgent({
+    agentId: "agent.owner.openclaw",
+    humanId: "human.owner",
+    model: "gpt-5",
+    online: true
+  });
+  await world.identity.registerAgent({
+    agentId: "agent.partner.openclaw",
+    humanId: "human.partner",
+    model: "gpt-5",
+    online: true
+  });
+
+  const project = await world.projects.create({
+    ownerHumanId: "human.owner",
+    repoName: "elo-workspace-persistence",
+    kind: "app",
+    title: "Workspace Persistence",
+    summary: "Persist project collaboration history",
+    memberAgentIds: ["agent.owner.openclaw", "agent.partner.openclaw"]
+  });
+
+  const updated = await world.projects.appendWorkspaceConversation({
+    projectId: project.projectId,
+    humanId: "human.partner",
+    entries: [
+      {
+        actorType: "human",
+        actorId: "human.partner",
+        content: "I am taking the next integration task.",
+        at: 101
+      },
+      {
+        actorType: "agent",
+        actorId: "agent.partner.openclaw",
+        content: "I will draft the implementation plan now.",
+        at: 202
+      }
+    ]
+  });
+
+  assert.equal(updated.workspaceConversation.length, 2);
+  assert.equal(updated.workspaceConversation[0].actorId, "human.partner");
+  assert.equal(updated.workspaceConversation[1].actorId, "agent.partner.openclaw");
+
+  const stateRaw = await readFile(join(root, "state.json"), "utf8");
+  assert.match(stateRaw, /workspaceConversation/);
+  assert.match(stateRaw, /integration task/);
+
+  const reloaded = await new OpenWorldFramework({
+    stateFile: join(root, "state.json"),
+    projectsRoot: join(root, "projects"),
+    githubRepoService: github
+  }).init();
+  const reloadedProject = reloaded.projects.list().find((item) => item.projectId === project.projectId);
+  assert.equal(reloadedProject.workspaceConversation.length, 2);
+  assert.equal(reloadedProject.workspaceConversation[1].content, "I will draft the implementation plan now.");
+});
+
+test("participation requests should persist and be resolvable by the project owner", async () => {
+  const root = await mkdtemp(join(tmpdir(), "open-world-participation-"));
+  const github = new FakeGitHubRepoService();
+  const world = await new OpenWorldFramework({
+    stateFile: join(root, "state.json"),
+    projectsRoot: join(root, "projects"),
+    githubRepoService: github
+  }).init();
+
+  await world.identity.registerHuman({
+    humanId: "human.owner",
+    email: "owner@example.com",
+    githubLogin: "peterpan42388",
+    password: "test-password-owner"
+  });
+  await world.identity.registerHuman({
+    humanId: "human.candidate",
+    email: "candidate@example.com",
+    password: "test-password-candidate"
+  });
+
+  await world.identity.registerAgent({
+    agentId: "agent.owner.openclaw",
+    humanId: "human.owner",
+    model: "gpt-5",
+    online: true
+  });
+  await world.identity.registerAgent({
+    agentId: "agent.candidate.openclaw",
+    humanId: "human.candidate",
+    model: "gpt-5",
+    online: true
+  });
+
+  const project = await world.projects.create({
+    ownerHumanId: "human.owner",
+    repoName: "elo-participation-flow",
+    kind: "app",
+    title: "Participation Flow",
+    summary: "Test project for participation requests",
+    memberAgentIds: ["agent.owner.openclaw"]
+  });
+
+  const requested = await world.projects.requestParticipation({
+    projectId: project.projectId,
+    humanId: "human.candidate",
+    message: "I want to contribute with my runtime integration agent."
+  });
+
+  assert.equal(requested.participationRequests.length, 1);
+  assert.equal(requested.latestParticipationRequest.humanId, "human.candidate");
+  assert.equal(requested.latestParticipationRequest.status, "pending");
+  assert.deepEqual(requested.latestParticipationRequest.agentIds, ["agent.candidate.openclaw"]);
+
+  const resolved = await world.projects.resolveParticipationRequest({
+    projectId: project.projectId,
+    ownerHumanId: "human.owner",
+    requestId: requested.latestParticipationRequest.requestId,
+    decision: "accepted",
+    note: "Join through the workspace and we can assign the next task."
+  });
+
+  assert.equal(resolved.latestParticipationRequest.status, "accepted");
+  assert.equal(resolved.latestParticipationRequest.reviewedByHumanId, "human.owner");
+  assert.match(resolved.latestParticipationRequest.reviewNote, /assign the next task/);
+
+  const reloaded = await new OpenWorldFramework({
+    stateFile: join(root, "state.json"),
+    projectsRoot: join(root, "projects"),
+    githubRepoService: github
+  }).init();
+  const reloadedProject = reloaded.projects.list().find((item) => item.projectId === project.projectId);
+  assert.equal(reloadedProject.participationRequests.length, 1);
+  assert.equal(reloadedProject.participationRequests[0].status, "accepted");
+});
+
 test("project creation should fail without githubLogin", async () => {
   const root = await mkdtemp(join(tmpdir(), "open-world-project-fail-"));
   const github = new FakeGitHubRepoService();

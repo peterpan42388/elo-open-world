@@ -390,6 +390,7 @@ h3 { margin: 0; }
 }
 
 .workspace-summary-panel,
+.workspace-progress-panel,
 .workspace-collaboration-panel,
 .workspace-membership-panel {
   background:
@@ -421,6 +422,27 @@ h3 { margin: 0; }
   display: grid;
   gap: 14px;
   min-width: 0;
+}
+
+.workspace-membership-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  min-width: 0;
+}
+
+.workspace-membership-block {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--panel-strong);
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.workspace-membership-history {
+  grid-column: 1 / -1;
 }
 
 .workspace-membership-form {
@@ -466,6 +488,10 @@ h3 { margin: 0; }
 
 .workspace-message-card.human-message {
   border-color: rgba(255, 155, 95, 0.18);
+}
+
+.workspace-message-card.system-message {
+  border-color: rgba(130, 161, 191, 0.22);
 }
 
 .panel h2 { margin-top: 0; }
@@ -1172,6 +1198,7 @@ pre,
   .creation-form-grid,
   .infra-diagram { grid-template-columns: 1fr; }
   .project-settings-filters { grid-template-columns: 1fr; }
+  .workspace-membership-grid { grid-template-columns: 1fr; }
   .membership-tools form { grid-template-columns: 1fr; }
   .infra-arrow { transform: rotate(90deg); }
 }

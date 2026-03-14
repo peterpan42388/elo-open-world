@@ -669,6 +669,16 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, await framework.projects.removeMember(body));
     }
 
+    if (req.method === "POST" && path === "/api/projects/participation/request") {
+      const body = await readJson(req);
+      return json(res, 200, await framework.projects.requestParticipation(body));
+    }
+
+    if (req.method === "POST" && path === "/api/projects/participation/resolve") {
+      const body = await readJson(req);
+      return json(res, 200, await framework.projects.resolveParticipationRequest(body));
+    }
+
     if (req.method === "POST" && path === "/api/projects/foundation-runs/record") {
       const body = await readJson(req);
       return json(res, 200, await framework.projects.recordFoundationRun(body));
