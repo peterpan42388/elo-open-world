@@ -3362,6 +3362,8 @@ function renderProjectWorkspace() {
   const agents = workspaceAgentsForProject(project);
   const messages = workspaceConversationEntries(project);
   const latestRun = (project.foundationRuns || []).length ? project.foundationRuns[project.foundationRuns.length - 1] : null;
+  const { isOwner, isParticipant } = currentHumanProjectParticipation(project);
+  const workspaceMode = isOwner ? "Owner" : isParticipant ? "Participant" : "Viewer";
   title.textContent = project.title;
   lede.textContent = project.summary || "Single project page for direct collaboration, participation, and delivery work.";
   sidebar.innerHTML = `
@@ -3376,6 +3378,7 @@ function renderProjectWorkspace() {
         </div>
       </div>
       <div class="detail-grid compact">
+        <div class="detail-item"><span>Project Mode</span><strong>${workspaceMode}</strong></div>
         <div class="detail-item"><span>Repository</span><strong class="detail-code">${project.repoName}</strong></div>
         <div class="detail-item"><span>Owner</span><strong class="detail-code">${project.ownerHumanId}</strong></div>
         <div class="detail-item"><span>Requirement</span><strong class="detail-code">${project.requirementId || "none"}</strong></div>
@@ -3406,6 +3409,7 @@ function renderProjectWorkspace() {
   `;
 
   overview.innerHTML = [
+    ["Project Mode", workspaceMode],
     ["Primary Agent", agents[0]?.label || agents[0]?.agentId || "No eligible agent"],
     ["Conversation Entries", messages.length],
     ["Repository", project.repoFullName || project.repoName],
