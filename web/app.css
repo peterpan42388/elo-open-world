@@ -748,10 +748,22 @@ button:focus {
 
 .relation-card span { color: var(--muted); }
 
+.selected-project-card {
+  background:
+    linear-gradient(180deg, rgba(22, 34, 49, 0.92) 0%, rgba(15, 24, 35, 0.96) 100%);
+  gap: 12px;
+}
+
 .settings-shell,
 .workspace-shell {
   grid-template-columns: 260px minmax(0, 1fr);
   align-items: start;
+}
+
+.settings-section {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
 }
 
 .workspace-content {
@@ -903,7 +915,17 @@ details.expand-card summary::-webkit-details-marker { display: none; }
     linear-gradient(180deg, rgba(17, 26, 35, 0.96) 0%, rgba(12, 19, 28, 0.92) 100%);
 }
 
+.market-directory-card {
+  padding: 0;
+  background:
+    linear-gradient(180deg, rgba(17, 26, 35, 0.96) 0%, rgba(12, 19, 28, 0.92) 100%);
+}
+
 .build-directory-card summary {
+  padding: 16px;
+}
+
+.market-directory-card summary {
   padding: 16px;
 }
 
@@ -1298,6 +1320,19 @@ pre,
 
 .multi-link-card a:hover {
   text-decoration: underline;
+}
+
+.docs-grid .guide-card {
+  min-height: 220px;
+  align-content: start;
+  background:
+    linear-gradient(180deg, rgba(17, 26, 35, 0.96) 0%, rgba(12, 19, 28, 0.92) 100%);
+  border-color: rgba(130, 161, 191, 0.18);
+}
+
+.docs-grid .guide-card p {
+  color: var(--text-soft);
+  line-height: 1.55;
 }
 
 .guide-page {

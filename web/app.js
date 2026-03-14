@@ -1344,18 +1344,25 @@ function renderProjectGraph(projects) {
   relations.innerHTML = `
     <h3>Relations</h3>
     <div class="relation-card selected-project-card">
-      <strong>Selected Project</strong>
+      <div class="summary-row">
+        <strong>Selected Project</strong>
+        <span>${selectedProject.repoName}</span>
+      </div>
       <span>${selectedProject.title}</span>
       <div class="tag-row">
         ${createBadge(projectTypeLabel(selectedProject.kind))}
+        ${createBadge(selectedProject.stage || "source")}
         ${createBadge(projectStateLabel(selectedProject.state))}
         ${isOperatingFoundationProject(selectedProject) ? createBadge("Operating Foundation") : ""}
       </div>
-      <span>Owner: ${selectedProject.ownerHumanId}</span>
-      <span>Agents: ${selectedProject.memberAgentIds?.length || 0}</span>
-      <span>Plugins: ${selectedProject.pluginIds?.length || 0}</span>
-      <span>Rating: ${selectedProject.rating || 0}</span>
-      <span>Heat: ${selectedProject.heat || 0}</span>
+      <div class="detail-grid compact">
+        <div class="detail-item"><span>Owner</span><strong class="detail-code">${selectedProject.ownerHumanId}</strong></div>
+        <div class="detail-item"><span>Agents</span><strong>${selectedProject.memberAgentIds?.length || 0}</strong></div>
+        <div class="detail-item"><span>Plugins</span><strong>${selectedProject.pluginIds?.length || 0}</strong></div>
+        <div class="detail-item"><span>Rating</span><strong>${selectedProject.rating || 0}</strong></div>
+        <div class="detail-item"><span>Heat</span><strong>${selectedProject.heat || 0}</strong></div>
+        <div class="detail-item"><span>Recruiting</span><strong>${String(selectedProject.state || "").toLowerCase() === "paused" ? "No" : "Yes"}</strong></div>
+      </div>
       <div class="tag-row">${(selectedProject.tags || []).map((tag) => `<span class="subtle-tag">${tag}</span>`).join("")}</div>
       ${renderProjectFoundationRunSummary(selectedProject)}
       ${renderProjectFoundationRunList(selectedProject, 3)}
@@ -3163,33 +3170,81 @@ function renderMarketProjects(projects) {
     return;
   }
   root.innerHTML = filtered.map((project) => `
-    <details class="expand-card" data-project-card="${project.projectId}">
+    <details class="expand-card market-directory-card" data-project-card="${project.projectId}">
       <summary>
-        <div class="summary-row">
-          <strong>${project.title}</strong>
-          <div class="tag-row">
-            ${createBadge(projectTypeLabel(project.kind))}
-            ${createBadge(`Rating ${project.rating || 0}`)}
-            ${isOperatingFoundationProject(project) ? createBadge("Operating Foundation") : ""}
+        <div class="build-card-shell">
+          <div class="build-card-header">
+            <div class="build-card-title-stack">
+              <div class="summary-row">
+                <strong>${project.title}</strong>
+                <div class="tag-row">
+                  ${createBadge(projectTypeLabel(project.kind))}
+                  ${createBadge(`Rating ${project.rating || 0}`)}
+                  ${isOperatingFoundationProject(project) ? createBadge("Operating Foundation") : ""}
+                </div>
+              </div>
+              <div class="build-card-repo">${project.repoFullName || project.repoName}</div>
+            </div>
+            <div class="build-card-status">
+              <span class="directory-signal recruiting">Operating</span>
+            </div>
           </div>
+          <p class="build-card-summary">${project.summary || "No summary provided."}</p>
+          <div class="build-card-meta">
+            <div class="build-meta-item">
+              <span>Heat</span>
+              <strong>${project.heat || 0}</strong>
+            </div>
+            <div class="build-meta-item">
+              <span>Stage</span>
+              <strong>${project.stage || "operating"}</strong>
+            </div>
+            <div class="build-meta-item">
+              <span>Endpoint</span>
+              <strong class="detail-code">${project.serviceEndpoint || "Not set"}</strong>
+            </div>
+            <div class="build-meta-item">
+              <span>Source</span>
+              <strong>${project.repoName}</strong>
+            </div>
+          </div>
+          <div class="tag-row build-card-tags">${(project.tags || []).length ? (project.tags || []).map((tag) => `<span class="subtle-tag">${tag}</span>`).join("") : '<span class="subtle-tag">No tags</span>'}</div>
         </div>
-        <span>${project.repoName}</span>
       </summary>
       <div class="expand-body">
-        <p>${project.summary || "No summary provided."}</p>
-        <div class="tag-row">${(project.tags || []).map((tag) => `<span class="subtle-tag">${tag}</span>`).join("")}</div>
-        <div class="detail-grid compact">
-          <div class="detail-item"><span>Source Project</span><strong>${project.repoFullName}</strong></div>
-          <div class="detail-item"><span>Stage</span><strong>${project.stage || "operating"}</strong></div>
-          <div class="detail-item"><span>Heat</span><strong>${project.heat || 0}</strong></div>
-          <div class="detail-item"><span>Service Endpoint</span><strong>${project.serviceEndpoint || "Not set"}</strong></div>
+        <div class="build-directory-detail-grid">
+          <div class="build-directory-detail-block">
+            <div class="summary-row">
+              <strong>Operating Snapshot</strong>
+              <span>${project.repoName}</span>
+            </div>
+            <div class="detail-grid compact">
+              <div class="detail-item"><span>Source Project</span><strong class="detail-code">${project.repoFullName}</strong></div>
+              <div class="detail-item"><span>Service Endpoint</span><strong class="detail-code">${project.serviceEndpoint || "Not set"}</strong></div>
+              <div class="detail-item"><span>Heat</span><strong>${project.heat || 0}</strong></div>
+              <div class="detail-item"><span>Rating</span><strong>${project.rating || 0}</strong></div>
+            </div>
+          </div>
+          <div class="build-directory-detail-block">
+            <div class="summary-row">
+              <strong>Access Model</strong>
+              <span>${isOperatingFoundationProject(project) ? "Foundation" : "Project"}</span>
+            </div>
+            <p>Pricing: ${project.pricingNote || "ELO protocol plugin"}</p>
+            <p>Usage: ${project.usageNote || "Let your agent call the source project endpoint after deployment and settle through the future ELO protocol layer."}</p>
+          </div>
         </div>
-        <p>Pricing: ${project.pricingNote || "ELO protocol plugin"}</p>
-        <p>Usage: ${project.usageNote || "Let your agent call the source project endpoint after deployment and settle through the future ELO protocol layer."}</p>
-        <a href="${project.repoUrl}" target="_blank" rel="noreferrer">Open Source Project</a>
+        <div class="tag-row action-row build-directory-actions">
+          <button type="button" class="topbar-button secondary open-workspace-button" data-project-open="${project.projectId}">Open Project</button>
+          <a href="${project.repoUrl}" target="_blank" rel="noreferrer">Open Source Project</a>
+        </div>
       </div>
     </details>
   `).join("");
+
+  root.querySelectorAll(".open-workspace-button").forEach((node) => {
+    node.addEventListener("click", () => openProjectWorkspace(node.dataset.projectOpen));
+  });
 }
 
 function renderSettingsShell() {
