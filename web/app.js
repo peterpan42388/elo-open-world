@@ -727,6 +727,46 @@ function buildProjectSummaryFromRequirement(requirement) {
   return parts.join("\n\n");
 }
 
+function buildProjectDraftFromRequirement(requirement) {
+  if (!requirement) return null;
+  const suggestion = buildProjectNameSuggestion(requirement);
+  const tags = [...new Set([...(requirement.tags || []), ...((requirement.latestRefinementSummary?.milestones || []).length ? ["agent-refined"] : [])])];
+  return {
+    requirementId: requirement.requirementId,
+    ownerHumanId: requirement.ownerHumanId,
+    primaryAgentId: requirement.primaryAgentId || "",
+    kind: requirement.desiredKind || "app",
+    title: suggestion.title,
+    repoName: suggestion.repoName,
+    summary: buildProjectSummaryFromRequirement(requirement),
+    tags
+  };
+}
+
+function renderProjectDraft(requirement) {
+  const draft = buildProjectDraftFromRequirement(requirement);
+  if (!draft) return "";
+  return `
+    <div class="starter-conversation-panel">
+      <div class="summary-row">
+        <strong>Project Draft</strong>
+        <span>${draft.repoName}</span>
+      </div>
+      <div class="detail-grid compact">
+        <div class="detail-item"><span>Kind</span><strong>${projectTypeLabel(draft.kind)}</strong></div>
+        <div class="detail-item"><span>Suggested Title</span><strong>${draft.title}</strong></div>
+        <div class="detail-item"><span>Suggested Repo</span><strong class="detail-code">${draft.repoName}</strong></div>
+        <div class="detail-item"><span>Primary Agent</span><strong>${draft.primaryAgentId || "-"}</strong></div>
+      </div>
+      <div class="copy-stack">
+        <p><strong>Tags</strong><br />${draft.tags.length ? draft.tags.join(", ") : "No tags yet."}</p>
+        <p><strong>Summary</strong></p>
+        <pre class="code-block compact">${escapeHtml(draft.summary || "No summary yet.")}</pre>
+      </div>
+    </div>
+  `;
+}
+
 function renderProjectRequirementPreview(requirement) {
   const root = $("project-requirement-preview");
   if (!root) return;
@@ -1688,6 +1728,8 @@ function renderSettingsData() {
         <textarea id="starter-extra-context" placeholder="Optional extra context for your primary agent."></textarea>
         <div class="action-row">
           <button type="button" class="topbar-button secondary" id="starter-open-build-link">Open Build With Requirement</button>
+          <button type="button" class="topbar-button ghost" id="starter-copy-project-draft">Copy Project Draft</button>
+          <button type="button" class="topbar-button ghost" id="starter-download-project-draft">Download Project Draft</button>
           <button type="button" class="topbar-button ghost" id="starter-copy-requirement-id">Copy Requirement ID</button>
           <button type="button" class="topbar-button ghost" id="starter-copy-agent-brief">Copy Agent Brief</button>
           <button type="button" class="topbar-button ghost" id="starter-download-agent-brief">Download Agent Brief</button>
@@ -1698,6 +1740,7 @@ function renderSettingsData() {
         <div class="copy-stack">
           <p class="note">Need the browser bridge first? Load the extension from the <code>elo-agent-web-plugin</code> repository and configure your local agent endpoint.</p>
         </div>
+        ${renderProjectDraft(state.latestStarterRequirement)}
         <div class="starter-conversation-panel">
           <div class="summary-row">
             <strong>Starter Timeline</strong>
@@ -1738,6 +1781,20 @@ function renderSettingsData() {
         if (state.latestStarterRequirement?.requirementId) {
           copyText(state.latestStarterRequirement.requirementId, "Requirement ID copied.");
         }
+      });
+      $("starter-copy-project-draft")?.addEventListener("click", () => {
+        const draft = buildProjectDraftFromRequirement(state.latestStarterRequirement);
+        if (!draft) return;
+        copyText(JSON.stringify(draft, null, 2), "Project draft copied.");
+      });
+      $("starter-download-project-draft")?.addEventListener("click", () => {
+        const draft = buildProjectDraftFromRequirement(state.latestStarterRequirement);
+        if (!draft) return;
+        downloadTextFile(
+          `${draft.repoName || state.latestStarterRequirement.requirementId}.project-draft.json`,
+          JSON.stringify(draft, null, 2),
+          "application/json;charset=utf-8"
+        );
       });
       $("starter-copy-agent-brief")?.addEventListener("click", () => {
         copyText(buildProjectStarterPrompt(state.latestStarterRequirement), "Project starter brief copied.");
