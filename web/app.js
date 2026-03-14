@@ -664,6 +664,16 @@ function projectDirectoryOperatingState(project) {
   };
 }
 
+function projectDirectoryOperatingHint(project) {
+  const stageValue = String(project?.stage || "source").toLowerCase();
+  const stateValue = String(project?.state || "initialized").toLowerCase();
+  if (stateValue === "paused") return "Delivery is paused right now.";
+  if (project?.serviceEndpoint) return "Service endpoint is published.";
+  if (stageValue === "operating" || stateValue === "operating") return "Marked operating without an endpoint yet.";
+  if (stateValue === "developing") return "Active source build, not world-facing yet.";
+  return "Still shaping source infrastructure.";
+}
+
 function projectDirectoryRecruitingState(project) {
   const paused = String(project?.state || "").toLowerCase() === "paused";
   return paused
@@ -679,6 +689,16 @@ function projectDirectoryRecruitingState(project) {
         label: "Open To New Participants",
         note: "Build stays directory-only. Open the project page when you want to request participation."
       };
+}
+
+function projectDirectoryRecruitingHint(project) {
+  const openParticipationRequests = (project?.participationRequests || []).filter((entry) => entry.status === "pending");
+  const paused = String(project?.state || "").toLowerCase() === "paused";
+  if (paused) return "Owner intake is paused.";
+  if (openParticipationRequests.length) {
+    return `${openParticipationRequests.length} pending request${openParticipationRequests.length === 1 ? "" : "s"} waiting in Project Workspace.`;
+  }
+  return "New participation starts in Project Workspace.";
 }
 
 function projectDirectoryParticipationState(project, human, myProjectIds) {
@@ -706,6 +726,44 @@ function projectDirectoryParticipationState(project, human, myProjectIds) {
   return {
     label: "Request Through Project Page",
     note: "Participation starts on the project page so Build remains a clean source directory."
+  };
+}
+
+function projectDirectoryParticipationHint(project, human, myProjectIds) {
+  if (myProjectIds.has(project.projectId)) return "Use Project Workspace for members, progress, and agent work.";
+  const pendingRequest = human
+    ? (project.participationRequests || []).find((entry) => entry.humanId === human.humanId && entry.status === "pending")
+    : null;
+  if (pendingRequest) return "Track owner review and next steps on the project page.";
+  if (!human) return "Sign in, then continue on the project page.";
+  return "Apply on the project page. Build stays directory-only.";
+}
+
+function projectDirectoryPrimaryAction(project, human, myProjectIds) {
+  if (myProjectIds.has(project.projectId)) {
+    return {
+      label: "Open Project Workspace",
+      tone: "secondary"
+    };
+  }
+  const pendingRequest = human
+    ? (project.participationRequests || []).find((entry) => entry.humanId === human.humanId && entry.status === "pending")
+    : null;
+  if (pendingRequest) {
+    return {
+      label: "Open Pending Request",
+      tone: "secondary"
+    };
+  }
+  if (!human) {
+    return {
+      label: "Open Project Entry",
+      tone: "ghost"
+    };
+  }
+  return {
+    label: "Open Project To Apply",
+    tone: "secondary"
   };
 }
 
@@ -2871,6 +2929,7 @@ function renderProjects(projects) {
     const operatingState = projectDirectoryOperatingState(project);
     const recruitingState = projectDirectoryRecruitingState(project);
     const participationState = projectDirectoryParticipationState(project, human, myProjectIds);
+    const primaryAction = projectDirectoryPrimaryAction(project, human, myProjectIds);
     const latestRun = latestProjectFoundationRun(project);
     const latestActivity = projectLatestActivity(project);
     const openParticipationRequests = (project.participationRequests || []).filter((entry) => entry.status === "pending");
@@ -2915,12 +2974,17 @@ function renderProjects(projects) {
             <div class="build-card-signal">
               <span>Operating</span>
               <strong>${operatingState.label}</strong>
-              <p>${operatingState.note}</p>
+              <p>${projectDirectoryOperatingHint(project)}</p>
+            </div>
+            <div class="build-card-signal">
+              <span>Recruiting</span>
+              <strong>${recruitingState.label}</strong>
+              <p>${projectDirectoryRecruitingHint(project)}</p>
             </div>
             <div class="build-card-signal">
               <span>Workspace Entry</span>
               <strong>${participationState.label}</strong>
-              <p>${participationState.note}</p>
+              <p>${projectDirectoryParticipationHint(project, human, myProjectIds)}</p>
             </div>
           </div>
           <div class="build-card-meta">
@@ -2988,8 +3052,7 @@ function renderProjects(projects) {
         ${renderProjectFoundationRunSummary(project)}
         ${renderProjectFoundationRunList(project)}
         <div class="tag-row action-row build-directory-actions">
-          <button type="button" class="topbar-button secondary open-workspace-button" data-project-open="${project.projectId}">Open Project</button>
-          ${human && !myProjectIds.has(project.projectId) ? `<button type="button" class="topbar-button ghost participation-request-button" data-project-title="${escapeHtml(project.title)}" data-project-open="${project.projectId}">Open Project To Apply</button>` : ""}
+          <button type="button" class="topbar-button ${primaryAction.tone} open-workspace-button" data-project-open="${project.projectId}" data-project-title="${escapeHtml(project.title)}">${primaryAction.label}</button>
           <a href="${project.repoUrl}" target="_blank" rel="noreferrer">Open GitHub Repo</a>
         </div>
       </div>
@@ -2998,12 +3061,9 @@ function renderProjects(projects) {
   }).join("");
 
   root.querySelectorAll(".open-workspace-button").forEach((node) => {
-    node.addEventListener("click", () => openProjectWorkspace(node.dataset.projectOpen));
-  });
-  root.querySelectorAll(".participation-request-button").forEach((node) => {
     node.addEventListener("click", () => {
       openProjectWorkspace(node.dataset.projectOpen);
-      setStatus(`Open ${node.dataset.projectTitle} in the project page to submit a participation request.`, "ok");
+      setStatus(`Open ${node.dataset.projectTitle} in Project Workspace for participation and delivery context.`, "ok");
     });
   });
 }
