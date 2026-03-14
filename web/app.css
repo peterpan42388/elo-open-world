@@ -1281,6 +1281,11 @@ details.expand-card summary::-webkit-details-marker { display: none; }
   background: rgba(255, 255, 255, 0.03);
 }
 
+.build-meta-item.demand {
+  border-color: rgba(114, 224, 160, 0.2);
+  background: rgba(114, 224, 160, 0.08);
+}
+
 .build-meta-item span {
   color: var(--muted);
   font-size: 12px;

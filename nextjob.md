@@ -97,6 +97,7 @@ After every execution cycle, update this file with:
 - any new blockers
 
 ## Last Completed
+- Tightened `Build` directory cards around workspace entry and recruiting demand by renaming participation guidance to explicit `Project Workspace` entry, surfacing open participation requests on the collapsed card, combining rating/heat into a single directory signal, and removing repeated low-priority metadata from the expanded view
 - Hardened `Build` directory cards for narrow widths and long repo/service values by separating card identity into bounded repo/service blocks, stacking dense metadata on small screens, and making long GitHub/service fields render as full-width wrapped detail rows
 - Tightened `Build` directory cards around operating and recruiting scanability by surfacing operating state, participation entry path, latest activity, and current run signals earlier while keeping collaboration entry pointed at `Project Workspace`
 - Elevated `Project Workspace` collaboration into a first-position command deck with stronger bridge readiness, working-agent focus, recent exchange emphasis, and UI gating so only project participants with member agents can task through the workspace form
@@ -118,10 +119,10 @@ After every execution cycle, update this file with:
 - Reworked the `Project Workspace` snapshot around ownership, participation, recruiting, latest activity, and operating inputs so the page reads less like a directory card and more like the active project control surface
 
 ## Current Focus
-- P2 Build Directory Hardening: verify the refined `Build` cards against live project data and trim any remaining density edge cases without reintroducing edit controls
+- P2 Build Directory Hardening: run a live browser pass against the refined `Build` cards and trim any remaining tablet/mobile density issues without reintroducing edit controls
 
 ## Next Recommended Action
-- run a browser pass on `Build` with long real repo/service values and trim any remaining secondary metadata noise if it still harms scanning on tablet or mobile widths
+- run a browser pass on `Build` with long real repo/service values and active participation requests, then trim any remaining overflow or low-priority copy that still weakens scanability on tablet or mobile widths
 
 ## Blockers
 - none currently

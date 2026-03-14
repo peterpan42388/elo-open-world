@@ -2876,6 +2876,7 @@ function renderProjects(projects) {
     const openParticipationRequests = (project.participationRequests || []).filter((entry) => entry.status === "pending");
     const repoLabel = project.repoFullName || project.repoName || "No repo linked";
     const serviceLabel = project.serviceEndpoint || "";
+    const directorySignal = `R ${project.rating || 0} / H ${project.heat || 0}`;
     return `
     <details class="expand-card build-directory-card" data-project-card="${project.projectId}">
       <summary>
@@ -2917,7 +2918,7 @@ function renderProjects(projects) {
               <p>${operatingState.note}</p>
             </div>
             <div class="build-card-signal">
-              <span>Participation</span>
+              <span>Workspace Entry</span>
               <strong>${participationState.label}</strong>
               <p>${participationState.note}</p>
             </div>
@@ -2926,6 +2927,10 @@ function renderProjects(projects) {
             <div class="build-meta-item">
               <span>Participants</span>
               <strong>${project.memberAgentIds?.length || 0}</strong>
+            </div>
+            <div class="build-meta-item ${openParticipationRequests.length ? "demand" : ""}">
+              <span>Open Requests</span>
+              <strong>${openParticipationRequests.length}</strong>
             </div>
             <div class="build-meta-item">
               <span>Latest Run</span>
@@ -2936,12 +2941,8 @@ function renderProjects(projects) {
               <strong>${latestActivity.label}</strong>
             </div>
             <div class="build-meta-item">
-              <span>Rating</span>
-              <strong>${project.rating || 0}</strong>
-            </div>
-            <div class="build-meta-item">
-              <span>Heat</span>
-              <strong>${project.heat || 0}</strong>
+              <span>Directory Signal</span>
+              <strong>${directorySignal}</strong>
             </div>
           </div>
           <div class="tag-row build-card-tags">
@@ -2969,35 +2970,26 @@ function renderProjects(projects) {
           <div class="build-directory-detail-block">
             <div class="summary-row">
               <strong>Operating And Entry</strong>
-              <span>${participationState.label}</span>
+              <span>Project Workspace</span>
             </div>
             <div class="detail-grid compact">
-              <div class="detail-item"><span>Operating State</span><strong>${operatingState.label}</strong></div>
+              <div class="detail-item"><span>Entry Route</span><strong>Project Workspace</strong></div>
+              <div class="detail-item"><span>Participation</span><strong>${participationState.label}</strong></div>
               <div class="detail-item"><span>Recruiting</span><strong>${recruitingState.label}</strong></div>
-              <div class="detail-item"><span>Workspace Entry</span><strong>${participationState.label}</strong></div>
               <div class="detail-item"><span>Open Requests</span><strong>${openParticipationRequests.length}</strong></div>
+              <div class="detail-item"><span>Directory Signal</span><strong>${directorySignal}</strong></div>
               <div class="detail-item detail-item-wide"><span>Service Endpoint</span><strong class="detail-code">${project.serviceEndpoint || "Not set"}</strong></div>
               <div class="detail-item"><span>Latest Run At</span><strong>${latestRun ? formatTimestamp(latestRun.generatedAt) : "-"}</strong></div>
             </div>
-            <p>${recruitingState.note}</p>
+            <p>${operatingState.note}</p>
             <p>${latestActivity.detail}</p>
-          </div>
-        </div>
-        <div class="detail-grid compact">
-          <div class="detail-item">
-            <span>Directory Role</span>
-            <strong>${myProjectIds.has(project.projectId) ? "Already In Your Workspace" : "Public Source Project"}</strong>
-          </div>
-          <div class="detail-item">
-            <span>Participation</span>
-            <strong>${participationState.label}</strong>
           </div>
         </div>
         ${renderProjectFoundationRunSummary(project)}
         ${renderProjectFoundationRunList(project)}
         <div class="tag-row action-row build-directory-actions">
           <button type="button" class="topbar-button secondary open-workspace-button" data-project-open="${project.projectId}">Open Project</button>
-          ${human && !myProjectIds.has(project.projectId) ? `<button type="button" class="topbar-button ghost participation-request-button" data-project-title="${escapeHtml(project.title)}" data-project-open="${project.projectId}">Apply To Participate</button>` : ""}
+          ${human && !myProjectIds.has(project.projectId) ? `<button type="button" class="topbar-button ghost participation-request-button" data-project-title="${escapeHtml(project.title)}" data-project-open="${project.projectId}">Open Project To Apply</button>` : ""}
           <a href="${project.repoUrl}" target="_blank" rel="noreferrer">Open GitHub Repo</a>
         </div>
       </div>
