@@ -1377,6 +1377,14 @@ details.expand-card summary::-webkit-details-marker { display: none; }
 .build-card-tags {
   min-height: 24px;
   align-items: flex-start;
+  gap: 6px;
+}
+
+.build-card-tags .subtle-tag {
+  max-width: min(100%, 180px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .subtle-tag-more {
@@ -1611,10 +1619,13 @@ pre,
   }
 
   .build-card-identity-list,
-  .build-card-signal-grid,
-  .build-card-meta,
   .detail-grid.compact {
     grid-template-columns: 1fr;
+  }
+
+  .build-card-signal-grid,
+  .build-card-meta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .directory-action-primary > .topbar-button,
@@ -1625,6 +1636,17 @@ pre,
   .directory-action-primary,
   .directory-action-secondary {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .build-card-signal-grid,
+  .build-card-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .build-card-tags .subtle-tag {
+    max-width: 100%;
   }
 }
 

@@ -591,7 +591,11 @@ function renderDirectoryTags(tags = [], maxVisible = 3) {
   const safeTags = Array.isArray(tags) ? tags.filter(Boolean) : [];
   if (!safeTags.length) return "";
   const visible = safeTags.slice(0, maxVisible)
-    .map((tag) => `<span class="subtle-tag">${escapeHtml(tag)}</span>`)
+    .map((tag) => {
+      const safeTag = escapeHtml(tag);
+      const compactTag = escapeHtml(clampInlineLabel(tag, 24));
+      return `<span class="subtle-tag" title="${safeTag}">${compactTag}</span>`;
+    })
     .join("");
   const remaining = safeTags.length - maxVisible;
   const overflow = remaining > 0 ? `<span class="subtle-tag subtle-tag-more">+${remaining} more</span>` : "";
@@ -634,10 +638,16 @@ function clampDirectionalCopy(value, maxLength = 110) {
   return `${(boundary > 48 ? sliced.slice(0, boundary) : sliced).trim()}...`;
 }
 
+function clampInlineLabel(value, maxLength = 32) {
+  const normalized = String(value || "").trim();
+  if (!normalized || normalized.length <= maxLength) return normalized;
+  return `${normalized.slice(0, Math.max(6, maxLength - 3)).trim()}...`;
+}
+
 function formatLatestDeliveryNote({ latestRun = null, latestWorkspaceMessage = null, fallbackAt = 0 } = {}) {
   if (latestRun) {
     const parts = [formatCompactTimestamp(latestRun.generatedAt)];
-    const context = formatActionLabel(latestRun.runtimeMode || latestRun.profile || latestRun.target, "");
+    const context = clampInlineLabel(formatActionLabel(latestRun.runtimeMode || latestRun.profile || latestRun.target, ""), 24);
     if (context) parts.push(context);
     return parts.join(" | ");
   }
@@ -3087,7 +3097,7 @@ function renderProjects(projects) {
             <div class="build-meta-item ${openParticipationRequests.length ? "demand" : ""}">
               <span>Recruiting</span>
               <strong>${openParticipationRequests.length ? `${openParticipationRequests.length} Waiting` : "Open Intake"}</strong>
-              <p>${escapeHtml(openParticipationRequests.length ? "Pending owner review is already active in Project Workspace." : "New participation still starts on the project page.")}</p>
+              <p>${escapeHtml(openParticipationRequests.length ? "Review in Project Workspace." : "Start on project page.")}</p>
             </div>
             <div class="build-meta-item build-meta-item-activity">
               <span>Latest Delivery</span>
