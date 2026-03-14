@@ -97,6 +97,7 @@ After every execution cycle, update this file with:
 - any new blockers
 
 ## Last Completed
+- Tightened `Build` and `Market` mobile CTA scanability by turning expanded card actions into one primary `Project Workspace` entry plus wrapped secondary link buttons, shortening the action labels, and making the action stack full-width on narrow screens so tablet/mobile cards stay readable without reintroducing edit controls
 - Hardened `Market` operating cards to match the dark directory system by moving long repo/service values into bounded identity rows, adding clearer operating/access/usage signal blocks, widening long source and endpoint details in the expanded view, and separating `Open Service` from `Open Project Workspace`
 - Tightened `Build` directory card scanability by shortening collapsed operating/recruiting/workspace copy, promoting recruiting state into its own compact summary block, and collapsing duplicate route buttons into one route-aware `Project Workspace` entry action
 - Tightened `Build` directory cards around workspace entry and recruiting demand by renaming participation guidance to explicit `Project Workspace` entry, surfacing open participation requests on the collapsed card, combining rating/heat into a single directory signal, and removing repeated low-priority metadata from the expanded view
@@ -121,10 +122,10 @@ After every execution cycle, update this file with:
 - Reworked the `Project Workspace` snapshot around ownership, participation, recruiting, latest activity, and operating inputs so the page reads less like a directory card and more like the active project control surface
 
 ## Current Focus
-- P2 Build Directory Hardening: run a live browser pass against the refined `Build` and `Market` cards, especially guest, pending-request, member, and endpoint-live states at tablet/mobile widths, and trim any remaining density or overflow issues without reintroducing edit controls
+- P2 Build Directory Hardening: run a live browser pass against the updated `Build` and `Market` action clusters on real project data, especially guest, pending-request, member, and endpoint-live states at tablet/mobile widths, and catch any remaining overflow or hierarchy issues that do not show up in fixture-based local checks
 
 ## Next Recommended Action
-- run a browser pass on `Build` and `Market` with long real repo/service values plus guest/pending/member and endpoint-live entry states, then trim any remaining overflow or CTA duplication that still weakens scanability on tablet or mobile widths
+- run a live browser pass on `Build` and `Market` with real project data after the new primary/secondary action split, then trim any remaining long-string overflow or button hierarchy regressions that still weaken scanability on tablet or mobile widths
 
 ## Blockers
-- none currently
+- local runtime has no seeded project data, so fully representative browser validation still needs either real project records in the local state or a pass against the deployed environment

@@ -114,6 +114,11 @@ body {
   background: var(--accent);
   color: #081018;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  line-height: 1.2;
 }
 
 .topbar-button.secondary {
@@ -1369,8 +1374,29 @@ details.expand-card summary::-webkit-details-marker { display: none; }
 }
 
 .build-directory-actions {
-  padding-top: 4px;
+  padding-top: 12px;
   border-top: 1px solid rgba(130, 161, 191, 0.12);
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.directory-action-primary,
+.directory-action-secondary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+}
+
+.directory-action-secondary .topbar-button {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.directory-action-primary > *,
+.directory-action-secondary > * {
+  min-width: 0;
 }
 
 .nested-list { display: grid; gap: 8px; }
@@ -1501,6 +1527,16 @@ pre,
   .build-card-signal-grid,
   .build-card-meta,
   .detail-grid.compact {
+    grid-template-columns: 1fr;
+  }
+
+  .directory-action-primary > .topbar-button,
+  .directory-action-secondary > .topbar-button {
+    width: 100%;
+  }
+
+  .directory-action-secondary {
+    display: grid;
     grid-template-columns: 1fr;
   }
 }

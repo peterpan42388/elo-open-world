@@ -742,7 +742,7 @@ function projectDirectoryParticipationHint(project, human, myProjectIds) {
 function projectDirectoryPrimaryAction(project, human, myProjectIds) {
   if (myProjectIds.has(project.projectId)) {
     return {
-      label: "Open Project Workspace",
+      label: "Project Workspace",
       tone: "secondary"
     };
   }
@@ -751,18 +751,18 @@ function projectDirectoryPrimaryAction(project, human, myProjectIds) {
     : null;
   if (pendingRequest) {
     return {
-      label: "Open Pending Request",
+      label: "Pending Request",
       tone: "secondary"
     };
   }
   if (!human) {
     return {
-      label: "Open Project Entry",
+      label: "Project Entry",
       tone: "ghost"
     };
   }
   return {
-    label: "Open Project To Apply",
+    label: "Project Entry",
     tone: "secondary"
   };
 }
@@ -3051,9 +3051,13 @@ function renderProjects(projects) {
         </div>
         ${renderProjectFoundationRunSummary(project)}
         ${renderProjectFoundationRunList(project)}
-        <div class="tag-row action-row build-directory-actions">
-          <button type="button" class="topbar-button ${primaryAction.tone} open-workspace-button" data-project-open="${project.projectId}" data-project-title="${escapeHtml(project.title)}">${primaryAction.label}</button>
-          <a href="${project.repoUrl}" target="_blank" rel="noreferrer">Open GitHub Repo</a>
+        <div class="build-directory-actions">
+          <div class="directory-action-primary">
+            <button type="button" class="topbar-button ${primaryAction.tone} open-workspace-button" data-project-open="${project.projectId}" data-project-title="${escapeHtml(project.title)}">${primaryAction.label}</button>
+          </div>
+          <div class="directory-action-secondary">
+            <a class="topbar-button ghost" href="${project.repoUrl}" target="_blank" rel="noreferrer">Source Repo</a>
+          </div>
         </div>
       </div>
     </details>
@@ -4065,10 +4069,14 @@ function renderMarketProjects(projects) {
             <p>Usage: ${escapeHtml(usageNote)}</p>
           </div>
         </div>
-        <div class="tag-row action-row build-directory-actions">
-          <button type="button" class="topbar-button secondary open-workspace-button" data-project-open="${project.projectId}">Open Project Workspace</button>
-          ${project.serviceEndpoint ? `<a href="${project.serviceEndpoint}" target="_blank" rel="noreferrer">Open Service</a>` : ""}
-          <a href="${project.repoUrl}" target="_blank" rel="noreferrer">Open Source Project</a>
+        <div class="build-directory-actions">
+          <div class="directory-action-primary">
+            <button type="button" class="topbar-button secondary open-workspace-button" data-project-open="${project.projectId}">Project Workspace</button>
+          </div>
+          <div class="directory-action-secondary">
+            ${project.serviceEndpoint ? `<a class="topbar-button ghost" href="${project.serviceEndpoint}" target="_blank" rel="noreferrer">Live Service</a>` : ""}
+            <a class="topbar-button ghost" href="${project.repoUrl}" target="_blank" rel="noreferrer">Source Repo</a>
+          </div>
         </div>
       </div>
     </details>
