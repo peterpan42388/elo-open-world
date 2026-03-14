@@ -348,7 +348,7 @@ function renderFoundationRunHistory(project) {
 function renderProjectFoundationRunSummary(project) {
   const runs = project.foundationRuns || [];
   if (!runs.length) return "";
-  const latest = runs[0];
+  const latest = latestProjectFoundationRun(project);
   return `
     <div class="detail-grid compact">
       <div class="detail-item"><span>Foundation Runs</span><strong>${runs.length}</strong></div>
@@ -592,6 +592,121 @@ function formatTimestamp(ts) {
   const date = new Date(ts);
   if (Number.isNaN(date.getTime())) return "-";
   return date.toLocaleString();
+}
+
+function latestProjectFoundationRun(project) {
+  const runs = project?.foundationRuns || [];
+  return runs.length ? runs[0] : null;
+}
+
+function latestProjectWorkspaceMessage(project) {
+  const messages = workspaceConversationEntries(project);
+  return messages.length ? messages[messages.length - 1] : null;
+}
+
+function projectLatestActivity(project) {
+  const latestMessage = latestProjectWorkspaceMessage(project);
+  const latestRun = latestProjectFoundationRun(project);
+  const latestMessageAt = latestMessage?.at || 0;
+  const latestRunAt = latestRun?.generatedAt || 0;
+  if (latestMessageAt && latestMessageAt >= latestRunAt) {
+    return {
+      label: formatTimestamp(latestMessageAt),
+      detail: `Latest workspace activity came from ${latestMessage.actorId || latestMessage.actorType || "project activity"} at ${formatTimestamp(latestMessageAt)}.`
+    };
+  }
+  if (latestRunAt) {
+    return {
+      label: formatTimestamp(latestRunAt),
+      detail: `Latest foundation output was ${latestRun.action} for profile ${latestRun.profile || "default"} at ${formatTimestamp(latestRunAt)}.`
+    };
+  }
+  return {
+    label: "No activity yet",
+    detail: "No direct workspace exchange or foundation output has been recorded yet."
+  };
+}
+
+function projectDirectoryOperatingState(project) {
+  const stageValue = String(project?.stage || "source").toLowerCase();
+  const stateValue = String(project?.state || "initialized").toLowerCase();
+  if (stateValue === "paused") {
+    return {
+      pill: "Paused",
+      className: "inactive",
+      label: "Paused Project",
+      note: "Delivery is paused. Open the project page to review current context before asking to join."
+    };
+  }
+  if (stageValue === "operating" || stateValue === "operating" || project?.serviceEndpoint) {
+    return {
+      pill: "Operating",
+      className: "operating",
+      label: "Operating Surface",
+      note: project?.serviceEndpoint
+        ? "A service endpoint is published, so this project already has a world-facing operating surface."
+        : "The project is marked as operating even though no service endpoint is listed yet."
+    };
+  }
+  if (stateValue === "developing") {
+    return {
+      pill: "Building",
+      className: "building",
+      label: "Build In Progress",
+      note: "The repository is active and moving, but it is still a source project rather than an operating surface."
+    };
+  }
+  return {
+    pill: "Source",
+    className: "source",
+    label: "Source Setup",
+    note: "The project is still being shaped as source infrastructure before it becomes an operating surface."
+  };
+}
+
+function projectDirectoryRecruitingState(project) {
+  const paused = String(project?.state || "").toLowerCase() === "paused";
+  return paused
+    ? {
+        pill: "Recruiting Closed",
+        className: "inactive",
+        label: "Closed To New Participants",
+        note: "Participation stays attached to the project page, but owner intake is paused right now."
+      }
+    : {
+        pill: "Recruiting Open",
+        className: "recruiting",
+        label: "Open To New Participants",
+        note: "Build stays directory-only. Open the project page when you want to request participation."
+      };
+}
+
+function projectDirectoryParticipationState(project, human, myProjectIds) {
+  if (myProjectIds.has(project.projectId)) {
+    return {
+      label: "Already In Your Workspace",
+      note: "Open the project page to review progress, members, and the agent conversation for this project."
+    };
+  }
+  const pendingRequest = human
+    ? (project.participationRequests || []).find((entry) => entry.humanId === human.humanId && entry.status === "pending")
+    : null;
+  if (pendingRequest) {
+    return {
+      label: "Request Pending",
+      note: "Return to the project page for owner review status and the next collaboration step."
+    };
+  }
+  if (!human) {
+    return {
+      label: "Sign In For Project Entry",
+      note: "After sign-in, open the project page to submit a participation request."
+    };
+  }
+  return {
+    label: "Request Through Project Page",
+    note: "Participation starts on the project page so Build remains a clean source directory."
+  };
 }
 
 function slugifyRepoName(input) {
@@ -2752,7 +2867,14 @@ function renderProjects(projects) {
     root.innerHTML = '<div class="empty">No projects match the current filter.</div>';
     return;
   }
-  root.innerHTML = filtered.map((project) => `
+  root.innerHTML = filtered.map((project) => {
+    const operatingState = projectDirectoryOperatingState(project);
+    const recruitingState = projectDirectoryRecruitingState(project);
+    const participationState = projectDirectoryParticipationState(project, human, myProjectIds);
+    const latestRun = latestProjectFoundationRun(project);
+    const latestActivity = projectLatestActivity(project);
+    const openParticipationRequests = (project.participationRequests || []).filter((entry) => entry.status === "pending");
+    return `
     <details class="expand-card build-directory-card" data-project-card="${project.projectId}">
       <summary>
         <div class="build-card-shell">
@@ -2770,20 +2892,35 @@ function renderProjects(projects) {
               <div class="build-card-repo">${project.repoFullName || project.repoName}</div>
             </div>
             <div class="build-card-status">
-              <span class="directory-signal ${String(project.state || "").toLowerCase() === "paused" ? "inactive" : "recruiting"}">
-                ${String(project.state || "").toLowerCase() === "paused" ? "Not Recruiting" : "Recruiting"}
-              </span>
+              <span class="directory-signal ${operatingState.className}">${operatingState.pill}</span>
+              <span class="directory-signal ${recruitingState.className}">${recruitingState.pill}</span>
             </div>
           </div>
           <p class="build-card-summary">${project.summary || "No summary provided."}</p>
+          <div class="build-card-signal-grid">
+            <div class="build-card-signal">
+              <span>Operating</span>
+              <strong>${operatingState.label}</strong>
+              <p>${operatingState.note}</p>
+            </div>
+            <div class="build-card-signal">
+              <span>Participation</span>
+              <strong>${participationState.label}</strong>
+              <p>${participationState.note}</p>
+            </div>
+          </div>
           <div class="build-card-meta">
             <div class="build-meta-item">
               <span>Participants</span>
               <strong>${project.memberAgentIds?.length || 0}</strong>
             </div>
             <div class="build-meta-item">
-              <span>Owner</span>
-              <strong class="detail-code">${project.ownerHumanId}</strong>
+              <span>Latest Run</span>
+              <strong>${latestRun?.action || "none"}</strong>
+            </div>
+            <div class="build-meta-item">
+              <span>Latest Activity</span>
+              <strong>${latestActivity.label}</strong>
             </div>
             <div class="build-meta-item">
               <span>Rating</span>
@@ -2809,25 +2946,28 @@ function renderProjects(projects) {
             <div class="detail-grid compact">
               <div class="detail-item"><span>Owner</span><strong class="detail-code">${project.ownerHumanId}</strong></div>
               <div class="detail-item"><span>Participants</span><strong>${project.memberAgentIds?.length || 0}</strong></div>
-              <div class="detail-item"><span>Recruiting</span><strong>${String(project.state || "").toLowerCase() === "paused" ? "No" : "Yes"}</strong></div>
-              <div class="detail-item"><span>Rating</span><strong>${project.rating || 0}</strong></div>
-              <div class="detail-item"><span>Heat</span><strong>${project.heat || 0}</strong></div>
               <div class="detail-item"><span>Stage</span><strong>${project.stage || "source"}</strong></div>
               <div class="detail-item"><span>State</span><strong>${projectStateLabel(project.state)}</strong></div>
+              <div class="detail-item"><span>Rating</span><strong>${project.rating || 0}</strong></div>
+              <div class="detail-item"><span>Heat</span><strong>${project.heat || 0}</strong></div>
               <div class="detail-item"><span>GitHub</span><strong class="detail-code">${project.repoFullName}</strong></div>
             </div>
           </div>
           <div class="build-directory-detail-block">
             <div class="summary-row">
-              <strong>Member Agents</strong>
-              <span>${project.memberAgentIds?.length || 0}</span>
+              <strong>Operating And Entry</strong>
+              <span>${participationState.label}</span>
             </div>
-            <div class="nested-list">${(project.memberAgentIds || []).length ? (project.memberAgentIds || []).slice(0, 5).map((agentId) => `
-              <div class="nested-item">
-                <strong>${agentId}</strong>
-                <span>Role: ${projectMemberRole(project, agentId)}</span>
-              </div>
-            `).join("") : '<div class="empty">No member agents recorded.</div>'}</div>
+            <div class="detail-grid compact">
+              <div class="detail-item"><span>Operating State</span><strong>${operatingState.label}</strong></div>
+              <div class="detail-item"><span>Recruiting</span><strong>${recruitingState.label}</strong></div>
+              <div class="detail-item"><span>Workspace Entry</span><strong>${participationState.label}</strong></div>
+              <div class="detail-item"><span>Open Requests</span><strong>${openParticipationRequests.length}</strong></div>
+              <div class="detail-item"><span>Service Endpoint</span><strong class="detail-code">${project.serviceEndpoint || "Not set"}</strong></div>
+              <div class="detail-item"><span>Latest Run At</span><strong>${latestRun ? formatTimestamp(latestRun.generatedAt) : "-"}</strong></div>
+            </div>
+            <p>${recruitingState.note}</p>
+            <p>${latestActivity.detail}</p>
           </div>
         </div>
         <div class="detail-grid compact">
@@ -2837,7 +2977,7 @@ function renderProjects(projects) {
           </div>
           <div class="detail-item">
             <span>Participation</span>
-            <strong>${human && !myProjectIds.has(project.projectId) ? "Request Through Project Page" : "Managed From Your Project Page"}</strong>
+            <strong>${participationState.label}</strong>
           </div>
         </div>
         ${renderProjectFoundationRunSummary(project)}
@@ -2849,7 +2989,8 @@ function renderProjects(projects) {
         </div>
       </div>
     </details>
-  `).join("");
+  `;
+  }).join("");
 
   root.querySelectorAll(".open-workspace-button").forEach((node) => {
     node.addEventListener("click", () => openProjectWorkspace(node.dataset.projectOpen));
@@ -3520,27 +3661,20 @@ function renderProjectWorkspace() {
 
   const agents = workspaceAgentsForProject(project);
   const messages = workspaceConversationEntries(project);
-  const latestRun = (project.foundationRuns || []).length ? project.foundationRuns[project.foundationRuns.length - 1] : null;
+  const latestRun = latestProjectFoundationRun(project);
   const { isOwner } = currentHumanProjectParticipation(project);
   const accessState = projectWorkspaceAccessState(project);
   const openParticipationRequests = (project.participationRequests || []).filter((entry) => entry.status === "pending");
   const openInvites = (project.memberInvites || []).filter((invite) => invite.status === "pending");
-  const latestMessage = messages[messages.length - 1] || null;
+  const latestMessage = latestProjectWorkspaceMessage(project);
   const latestMembershipEvent = (project.memberHistory || []).length ? project.memberHistory[project.memberHistory.length - 1] : null;
   const ownMemberAgent = currentHumanAgents().find((agent) => (project.memberAgentIds || []).includes(agent.agentId)) || null;
   const workspaceRole = isOwner ? "owner" : ownMemberAgent ? projectMemberRole(project, ownMemberAgent.agentId) : "not assigned";
   const recruitingLabel = String(project.state || "").toLowerCase() === "paused" ? "Closed" : "Open";
   const collaborationState = workspaceCollaborationState(project, agents);
-  const latestActivity = latestMessage
-    ? formatTimestamp(latestMessage.at)
-    : latestRun?.generatedAt
-      ? formatTimestamp(latestRun.generatedAt)
-      : "No activity yet";
-  const executionFocus = latestMessage
-    ? `Latest workspace activity came from ${latestMessage.actorId || latestMessage.role} at ${formatTimestamp(latestMessage.at)}.`
-    : latestRun
-      ? `Latest foundation output was ${latestRun.action} for profile ${latestRun.profile || "default"} at ${formatTimestamp(latestRun.generatedAt)}.`
-      : "No direct workspace exchange or foundation output has been recorded yet.";
+  const latestActivityInfo = projectLatestActivity(project);
+  const latestActivity = latestActivityInfo.label;
+  const executionFocus = latestActivityInfo.detail;
   title.textContent = project.title;
   lede.textContent = project.summary || "Single project page for direct collaboration, participation, and delivery work.";
   sidebar.innerHTML = `

@@ -97,6 +97,7 @@ After every execution cycle, update this file with:
 - any new blockers
 
 ## Last Completed
+- Tightened `Build` directory cards around operating and recruiting scanability by surfacing operating state, participation entry path, latest activity, and current run signals earlier while keeping collaboration entry pointed at `Project Workspace`
 - Elevated `Project Workspace` collaboration into a first-position command deck with stronger bridge readiness, working-agent focus, recent exchange emphasis, and UI gating so only project participants with member agents can task through the workspace form
 - Added full dark foundation theme and UI rules
 - Replaced `settings-guest` behavior with an access-state panel
@@ -116,10 +117,10 @@ After every execution cycle, update this file with:
 - Reworked the `Project Workspace` snapshot around ownership, participation, recruiting, latest activity, and operating inputs so the page reads less like a directory card and more like the active project control surface
 
 ## Current Focus
-- P2 Build Directory Hardening: keep `Build` directory-first while sharpening recruiting and operating scanability
+- P2 Build Directory Hardening: keep `Build` directory-first while checking remaining card density and overflow edge cases after the operating-state pass
 
 ## Next Recommended Action
-- tighten `Build` cards so recruiting status, operating state, and directory metadata scan faster without reintroducing edit ownership into the directory
+- audit `Build` card layout on narrow widths and long repo/service values, then trim any remaining overflow or dense metadata regressions without adding edit controls back to the directory
 
 ## Blockers
 - none currently

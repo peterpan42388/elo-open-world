@@ -1179,6 +1179,12 @@ details.expand-card summary::-webkit-details-marker { display: none; }
   flex-wrap: wrap;
 }
 
+.build-card-status {
+  display: grid;
+  gap: 8px;
+  justify-items: end;
+}
+
 .build-card-repo {
   color: var(--muted);
   font-family: var(--font-mono);
@@ -1194,9 +1200,36 @@ details.expand-card summary::-webkit-details-marker { display: none; }
   overflow-wrap: anywhere;
 }
 
+.build-card-signal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.build-card-signal {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px;
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.build-card-signal span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.build-card-signal p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
 .build-card-meta {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 10px;
 }
 
@@ -1235,6 +1268,24 @@ details.expand-card summary::-webkit-details-marker { display: none; }
   color: var(--ok);
   background: rgba(114, 224, 160, 0.1);
   border-color: rgba(114, 224, 160, 0.18);
+}
+
+.directory-signal.operating {
+  color: var(--accent);
+  background: rgba(87, 215, 193, 0.12);
+  border-color: rgba(87, 215, 193, 0.18);
+}
+
+.directory-signal.building {
+  color: var(--warn);
+  background: rgba(255, 184, 102, 0.12);
+  border-color: rgba(255, 184, 102, 0.18);
+}
+
+.directory-signal.source {
+  color: var(--text-soft);
+  background: rgba(130, 161, 191, 0.08);
+  border-color: rgba(130, 161, 191, 0.16);
 }
 
 .directory-signal.inactive {
