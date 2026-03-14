@@ -108,12 +108,13 @@ After every execution cycle, update this file with:
 - Moved membership workflow controls into `Project Workspace`, reduced `My Projects` to visibility plus workspace entry, and added project-scoped participation request handling on the workspace page
 - Switched `Project Workspace` conversation from browser-only state to persisted project workspace conversation stored through the project API, and added a progress/delivery panel so collaboration state survives refresh and stays attached to the project record
 - Routed `Build` participation actions into `Project Workspace`, kept participation requests on the project page, and added project-level regression coverage for request/resolve flow so directory browsing stays separate from collaboration
+- Added stronger browser bridge guidance and long-thread presentation inside `Project Workspace`, so agent collaboration now has clearer next steps, bridge context, and a split between earlier context and recent exchanges
 
 ## Current Focus
-- P1 Project Workspace Maturation: agent conversation quality, bridge guidance, and project-side clarity
+- P1 Project Workspace Maturation: project-stage clarity and final collaboration cleanup
 
 ## Next Recommended Action
-- Make agent collaboration more first-class in `Project Workspace`, especially for `elo-agent-web-plugin`, with clearer bridge guidance, stronger message presentation for longer project threads, and less residual collaboration language outside the project page
+- Tighten project-stage and progress presentation inside `Project Workspace`, then remove any remaining collaboration or participation language outside the project page so the workspace becomes the single collaboration surface
 
 ## Blockers
 - none currently

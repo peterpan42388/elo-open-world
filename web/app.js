@@ -2885,6 +2885,107 @@ function currentHumanProjectParticipation(project) {
   };
 }
 
+function renderWorkspaceBridgeGuide(project, agents) {
+  const bridge = state.starterBridgeStatus;
+  const config = bridge?.config || {};
+  const foundationProject = (state.summary?.projects || []).find((item) => item.repoName === "elo-agent-web-plugin");
+  const bridgeDocs = "https://github.com/peterpan42388/elo-agent-web-plugin/blob/codex/browser-bridge-skeleton/docs/BRIDGE_PROTOCOL.md";
+  const workspaceAgent = agents[0]?.label || agents[0]?.agentId || "No eligible agent";
+  const configuredEndpoint = config.agentEndpoint || "Not configured";
+  const configuredOrigin = config.worldUrl || window.location.origin;
+
+  let nextStep = "Install and configure the browser bridge before you ask your project agent to work inside this page.";
+  if (bridge?.available && !bridge?.configured) {
+    nextStep = "The bridge is detected, but its world URL, agent, or endpoint is incomplete. Finish the extension configuration, then re-check the bridge.";
+  } else if (bridge?.configured && agents.length) {
+    nextStep = "The bridge is ready. Keep the working agent selected and use this page as the project-specific coordination thread.";
+  } else if (bridge?.configured && !agents.length) {
+    nextStep = "The bridge is ready, but this project still needs one of your registered agents as a member before direct collaboration can continue.";
+  }
+
+  return `
+    <div class="workspace-bridge-guide">
+      <div class="detail-grid compact">
+        <div class="detail-item"><span>Browser Bridge</span><strong>${bridgeStatusLabel()}</strong></div>
+        <div class="detail-item"><span>Workspace Agent</span><strong>${workspaceAgent}</strong></div>
+        <div class="detail-item"><span>Agent Endpoint</span><strong class="detail-code">${escapeHtml(configuredEndpoint)}</strong></div>
+        <div class="detail-item"><span>World URL</span><strong class="detail-code">${escapeHtml(configuredOrigin)}</strong></div>
+      </div>
+      <div class="workspace-bridge-note">
+        <strong>Next step</strong>
+        <p>${nextStep}</p>
+      </div>
+      <div class="action-row">
+        <a href="${bridgeDocs}" target="_blank" rel="noreferrer">Bridge Protocol</a>
+        ${foundationProject ? `<button type="button" class="topbar-button ghost open-workspace-button" data-project-open="${foundationProject.projectId}">Open Bridge Project</button>` : ""}
+        ${project?.serviceEndpoint ? `<a href="${project.serviceEndpoint}" target="_blank" rel="noreferrer">Project Service</a>` : ""}
+      </div>
+    </div>
+  `;
+}
+
+function renderWorkspaceConversationThread(project, human, messages) {
+  if (!messages.length) {
+    return `
+      <div class="workspace-thread-empty">
+        <strong>No project conversation yet.</strong>
+        <p>Use the working agent selector and send the next task, blocker, or design question. This thread stays attached to the project record.</p>
+      </div>
+    `;
+  }
+
+  const recentMessages = messages.slice(-6);
+  const olderMessages = messages.slice(0, -6);
+  const humanCount = messages.filter((entry) => entry.role === "human").length;
+  const agentCount = messages.filter((entry) => entry.role === "agent").length;
+  const lastEntry = messages[messages.length - 1];
+
+  const renderMessageCard = (entry, index, mode = "recent") => `
+    <article class="entity-card workspace-message-card ${entry.role === "human" ? "human-message" : entry.role === "agent" ? "agent-message" : "system-message"} ${mode === "older" ? "older-message" : "recent-message"}">
+      <div class="summary-row">
+        <div class="tag-row">
+          ${createBadge(entry.role === "human" ? "Human" : entry.role === "agent" ? "Agent" : "System")}
+          <span class="subtle-tag">#${index + 1}</span>
+        </div>
+        <span>${formatTimestamp(entry.at)}</span>
+      </div>
+      <div class="workspace-message-meta">
+        <strong>${entry.role === "human" ? human.displayName || human.humanId : entry.actorId || "Agent"}</strong>
+        <span class="detail-code">${entry.actorId || entry.role}</span>
+      </div>
+      <pre class="code-block ${mode === "older" ? "compact" : ""}">${escapeHtml(entry.content)}</pre>
+    </article>
+  `;
+
+  return `
+    <div class="workspace-thread-summary">
+      <div class="detail-grid compact">
+        <div class="detail-item"><span>Total Entries</span><strong>${messages.length}</strong></div>
+        <div class="detail-item"><span>Human Messages</span><strong>${humanCount}</strong></div>
+        <div class="detail-item"><span>Agent Messages</span><strong>${agentCount}</strong></div>
+        <div class="detail-item"><span>Last Activity</span><strong>${formatTimestamp(lastEntry.at)}</strong></div>
+      </div>
+    </div>
+    ${olderMessages.length ? `
+      <details class="workspace-thread-history">
+        <summary>Earlier Context (${olderMessages.length})</summary>
+        <div class="list-stack">
+          ${olderMessages.map((entry, index) => renderMessageCard(entry, index, "older")).join("")}
+        </div>
+      </details>
+    ` : ""}
+    <div class="workspace-thread-recent">
+      <div class="summary-row">
+        <strong>Latest Exchanges</strong>
+        <span>${recentMessages.length} most recent entries</span>
+      </div>
+      <div class="list-stack">
+        ${recentMessages.map((entry, index) => renderMessageCard(entry, messages.length - recentMessages.length + index, "recent")).join("")}
+      </div>
+    </div>
+  `;
+}
+
 function renderProjectProgressPanel(project) {
   const requirement = project?.requirementId && state.summary?.requirements
     ? state.summary.requirements.find((item) => item.requirementId === project.requirementId)
@@ -3282,27 +3383,16 @@ function renderProjectWorkspace() {
 
   progress.innerHTML = renderProjectProgressPanel(project);
 
-  bridgeStatus.innerHTML = `
-    <div class="detail-grid compact">
-      <div class="detail-item"><span>Browser Bridge</span><strong>${bridgeStatusLabel()}</strong></div>
-      <div class="detail-item"><span>Workspace Agent</span><strong>${agents[0]?.label || agents[0]?.agentId || "No eligible agent"}</strong></div>
-      <div class="detail-item"><span>Collaboration Mode</span><strong>${agents.length ? "Direct agent workspace" : "Agent required"}</strong></div>
-    </div>
-  `;
+  bridgeStatus.innerHTML = renderWorkspaceBridgeGuide(project, agents);
+  bridgeStatus.querySelectorAll(".open-workspace-button").forEach((node) => {
+    node.addEventListener("click", () => openProjectWorkspace(node.dataset.projectOpen));
+  });
 
   agentSelect.innerHTML = agents.length
     ? agents.map((agent) => `<option value="${agent.agentId}">${agent.label || agent.agentId}</option>`).join("")
     : '<option value="">No project agent available</option>';
 
-  thread.innerHTML = messages.length ? messages.map((entry) => `
-    <article class="entity-card workspace-message-card ${entry.role === "human" ? "human-message" : entry.role === "agent" ? "agent-message" : "system-message"}">
-      <div class="summary-row">
-        <strong>${entry.role === "human" ? human.displayName || human.humanId : entry.actorId || "Agent"}</strong>
-        <span>${formatTimestamp(entry.at)}</span>
-      </div>
-      <pre class="code-block compact">${escapeHtml(entry.content)}</pre>
-    </article>
-  `).join("") : '<div class="empty">No project conversation yet. Start by sending the next task to your agent.</div>';
+  thread.innerHTML = renderWorkspaceConversationThread(project, human, messages);
   renderProjectWorkspaceMembership(project, human);
 }
 

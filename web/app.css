@@ -416,6 +416,56 @@ h3 { margin: 0; }
   background: rgba(20, 31, 44, 0.82);
 }
 
+.workspace-bridge-guide,
+.workspace-thread-summary,
+.workspace-thread-recent,
+.workspace-thread-empty {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.workspace-bridge-note {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: rgba(11, 19, 28, 0.84);
+  padding: 14px;
+  display: grid;
+  gap: 8px;
+}
+
+.workspace-bridge-note p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.workspace-thread-history {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: rgba(11, 19, 28, 0.84);
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.workspace-thread-history summary {
+  cursor: pointer;
+  color: var(--text-soft);
+  font-weight: 600;
+}
+
+.workspace-thread-empty {
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-card);
+  background: rgba(11, 19, 28, 0.7);
+  padding: 18px;
+}
+
+.workspace-thread-empty p {
+  margin: 0;
+  color: var(--muted);
+}
+
 .workspace-membership-shell,
 .workspace-membership-controls,
 .workspace-membership-history {
@@ -482,6 +532,14 @@ h3 { margin: 0; }
   background: var(--panel-strong);
 }
 
+.workspace-message-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
 .workspace-message-card.agent-message {
   border-color: rgba(87, 215, 193, 0.18);
 }
@@ -492,6 +550,10 @@ h3 { margin: 0; }
 
 .workspace-message-card.system-message {
   border-color: rgba(130, 161, 191, 0.22);
+}
+
+.workspace-message-card.older-message {
+  opacity: 0.88;
 }
 
 .panel h2 { margin-top: 0; }
