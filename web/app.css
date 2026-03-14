@@ -1243,6 +1243,10 @@ details.expand-card summary::-webkit-details-marker { display: none; }
   color: var(--text-soft);
   line-height: 1.55;
   overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
 }
 
 .build-card-signal-grid {
@@ -1266,10 +1270,18 @@ details.expand-card summary::-webkit-details-marker { display: none; }
   font-size: 12px;
 }
 
+.build-card-signal strong {
+  overflow-wrap: anywhere;
+}
+
 .build-card-signal p {
   margin: 0;
   color: var(--muted);
   line-height: 1.5;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
 }
 
 .build-card-meta {
@@ -1309,6 +1321,15 @@ details.expand-card summary::-webkit-details-marker { display: none; }
   font-size: 12px;
   line-height: 1.4;
   overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.build-meta-item-activity {
+  border-color: rgba(87, 215, 193, 0.16);
+  background: rgba(87, 215, 193, 0.05);
 }
 
 .directory-signal {
@@ -1355,6 +1376,12 @@ details.expand-card summary::-webkit-details-marker { display: none; }
 
 .build-card-tags {
   min-height: 28px;
+  align-items: flex-start;
+}
+
+.subtle-tag-more {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-soft);
 }
 
 .expand-body {

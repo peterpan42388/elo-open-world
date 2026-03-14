@@ -97,6 +97,7 @@ After every execution cycle, update this file with:
 - any new blockers
 
 ## Last Completed
+- Tightened `Build` and `Market` collapsed directory cards by capping long summary/signal copy, giving latest-run metadata a clearer compact block, and limiting visible tag rows so quick-scan height stays bounded without weakening `Project Workspace` as the collaboration entry
 - Tightened `Build` and `Market` collapsed directory cards around quick scan density by removing duplicate status badges, turning latest run metadata into compact dated delivery blocks, and truncating long market access/usage notes so real production cards stay readable without weakening `Project Workspace` as the collaboration entry
 - Tightened `Build` and `Market` directory card scanability by shortening collapsed operating/recruiting/entry headlines and restructuring directory action groups into clearer desktop split + tablet/mobile stacked CTA layouts, so `Project Workspace` stays visually primary while repo/service links stop crowding narrow widths
 - Hardened `Build` directory card rendering so project titles, summaries, tags, repo/service identifiers, activity text, and badge labels are escaped before entering the DOM, aligning the source directory renderer with the safer `Market` card behavior and preventing malformed project data from breaking the bounded card layout
@@ -126,10 +127,10 @@ After every execution cycle, update this file with:
 - Reworked the `Project Workspace` snapshot around ownership, participation, recruiting, latest activity, and operating inputs so the page reads less like a directory card and more like the active project control surface
 
 ## Current Focus
-- P2 Build Directory Hardening: validate the tightened `Build` and `Market` collapsed quick-scan rows against real project data, especially tablet/mobile card height, note truncation, and latest-run readability
+- P2 Build Directory Hardening: validate the newer compact collapsed-card treatment against real `Build` and `Market` project data, especially tablet/mobile height, tag overflow, and latest-run readability
 
 ## Next Recommended Action
-- run a browser pass on deployed `Build` and `Market` cards with real project data, then trim any remaining collapsed-card height or CTA hierarchy regressions that still slow the quick scan path
+- run a browser pass on deployed `Build` and `Market` cards with real project data, then trim any remaining collapsed-card height, tag wrapping, or CTA hierarchy regressions that still slow the quick scan path
 
 ## Blockers
 - local runtime has no seeded project data, so fully representative browser validation still needs either real project records in the local state or a pass against the deployed environment

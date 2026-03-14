@@ -587,6 +587,17 @@ function createBadge(label) {
   return `<span class="badge badge-${tone}">${escapeHtml(label)}</span>`;
 }
 
+function renderDirectoryTags(tags = [], maxVisible = 3) {
+  const safeTags = Array.isArray(tags) ? tags.filter(Boolean) : [];
+  if (!safeTags.length) return "";
+  const visible = safeTags.slice(0, maxVisible)
+    .map((tag) => `<span class="subtle-tag">${escapeHtml(tag)}</span>`)
+    .join("");
+  const remaining = safeTags.length - maxVisible;
+  const overflow = remaining > 0 ? `<span class="subtle-tag subtle-tag-more">+${remaining} more</span>` : "";
+  return `<div class="tag-row build-card-tags">${visible}${overflow}</div>`;
+}
+
 function formatTimestamp(ts) {
   if (!ts) return "-";
   const date = new Date(ts);
@@ -3069,7 +3080,7 @@ function renderProjects(projects) {
               <span>Open Requests</span>
               <strong>${openParticipationRequests.length}</strong>
             </div>
-            <div class="build-meta-item">
+            <div class="build-meta-item build-meta-item-activity">
               <span>Latest Run</span>
               <strong>${safeLatestRunAction}</strong>
               <p>${safeLatestRunNote}</p>
@@ -3079,9 +3090,7 @@ function renderProjects(projects) {
               <strong>${safeDirectorySignal}</strong>
             </div>
           </div>
-          <div class="tag-row build-card-tags">
-            ${(project.tags || []).length ? (project.tags || []).map((tag) => `<span class="subtle-tag">${escapeHtml(tag)}</span>`).join("") : '<span class="subtle-tag">No tags</span>'}
-          </div>
+          ${renderDirectoryTags(project.tags)}
         </div>
       </summary>
       <div class="expand-body">
@@ -4106,25 +4115,21 @@ function renderMarketProjects(projects) {
             </div>
           </div>
           <div class="build-card-meta">
-            <div class="build-meta-item">
+            <div class="build-meta-item build-meta-item-activity">
               <span>Latest Run</span>
               <strong>${safeLatestRunAction}</strong>
               <p>${safeLatestRunNote}</p>
             </div>
             <div class="build-meta-item">
-              <span>Rating</span>
-              <strong>${project.rating || 0}</strong>
-            </div>
-            <div class="build-meta-item">
-              <span>Heat</span>
-              <strong>${project.heat || 0}</strong>
+              <span>Usage Route</span>
+              <strong>${project.serviceEndpoint ? "Service + Project" : "Project Page Only"}</strong>
             </div>
             <div class="build-meta-item">
               <span>Directory Signal</span>
               <strong>${marketSignal}</strong>
             </div>
           </div>
-          <div class="tag-row build-card-tags">${(project.tags || []).length ? (project.tags || []).map((tag) => `<span class="subtle-tag">${escapeHtml(tag)}</span>`).join("") : '<span class="subtle-tag">No tags</span>'}</div>
+          ${renderDirectoryTags(project.tags)}
         </div>
       </summary>
       <div class="expand-body">
