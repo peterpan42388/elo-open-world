@@ -112,12 +112,13 @@ After every execution cycle, update this file with:
 - Tightened `Project Workspace` progress presentation with a stage track and cleaner delivery signals, and reduced remaining cross-page collaboration language in `Build` and `Settings` so the project page is more clearly the single collaboration surface
 - Continued removing cross-page collaboration ownership by renaming external entry points to `Open Project`, clarifying `Build` and `Settings` language, and strengthening the project-page sidebar with owner, requirement, and primary-agent context
 - Strengthened the project page as a single operating surface by aligning sidebar and summary language around project mode, active agent, owner, requirement, and delivery state
+- Reworked the `Project Workspace` snapshot around ownership, participation, recruiting, latest activity, and operating inputs so the page reads less like a directory card and more like the active project control surface
 
 ## Current Focus
-- P1 Project Workspace Maturation: single-surface project operating model
+- P1 Project Workspace Maturation: make the collaboration panel and execution thread the clearest primary action area
 
 ## Next Recommended Action
-- Keep tightening the project page as the only collaboration surface, then decide whether to start a new phase around richer project execution history or participation approval UX
+- Elevate the collaboration panel inside `Project Workspace` so bridge readiness, working-agent selection, and recent exchanges are visually stronger and more obviously the center of the page
 
 ## Blockers
 - none currently

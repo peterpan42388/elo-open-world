@@ -2885,6 +2885,39 @@ function currentHumanProjectParticipation(project) {
   };
 }
 
+function currentHumanWorkspaceRequest(project) {
+  const human = currentHuman();
+  if (!human || !project) return null;
+  return (project.participationRequests || []).find((entry) => entry.humanId === human.humanId && entry.status === "pending") || null;
+}
+
+function projectWorkspaceAccessState(project) {
+  const { isOwner, isParticipant } = currentHumanProjectParticipation(project);
+  const pendingRequest = currentHumanWorkspaceRequest(project);
+  if (isOwner) {
+    return {
+      label: "Owner",
+      note: "You own the project record and control membership, delivery, and direct agent coordination here."
+    };
+  }
+  if (isParticipant) {
+    return {
+      label: "Participant",
+      note: "You are attached to the active project, so this page is the place to track progress and coordinate agent work."
+    };
+  }
+  if (pendingRequest) {
+    return {
+      label: "Request Pending",
+      note: "Your participation request is waiting for owner review before direct workspace collaboration can continue."
+    };
+  }
+  return {
+    label: "Viewer",
+    note: "Use the participation panel below before asking a project agent to work with you on this project."
+  };
+}
+
 function renderWorkspaceBridgeGuide(project, agents) {
   const bridge = state.starterBridgeStatus;
   const config = bridge?.config || {};
@@ -3362,64 +3395,97 @@ function renderProjectWorkspace() {
   const agents = workspaceAgentsForProject(project);
   const messages = workspaceConversationEntries(project);
   const latestRun = (project.foundationRuns || []).length ? project.foundationRuns[project.foundationRuns.length - 1] : null;
-  const { isOwner, isParticipant } = currentHumanProjectParticipation(project);
-  const workspaceMode = isOwner ? "Owner" : isParticipant ? "Participant" : "Viewer";
+  const { isOwner } = currentHumanProjectParticipation(project);
+  const accessState = projectWorkspaceAccessState(project);
+  const openParticipationRequests = (project.participationRequests || []).filter((entry) => entry.status === "pending");
+  const openInvites = (project.memberInvites || []).filter((invite) => invite.status === "pending");
+  const latestMessage = messages[messages.length - 1] || null;
+  const latestMembershipEvent = (project.memberHistory || []).length ? project.memberHistory[project.memberHistory.length - 1] : null;
+  const ownMemberAgent = currentHumanAgents().find((agent) => (project.memberAgentIds || []).includes(agent.agentId)) || null;
+  const workspaceRole = isOwner ? "owner" : ownMemberAgent ? projectMemberRole(project, ownMemberAgent.agentId) : "not assigned";
+  const recruitingLabel = String(project.state || "").toLowerCase() === "paused" ? "Closed" : "Open";
+  const latestActivity = latestMessage
+    ? formatTimestamp(latestMessage.at)
+    : latestRun?.generatedAt
+      ? formatTimestamp(latestRun.generatedAt)
+      : "No activity yet";
+  const executionFocus = latestMessage
+    ? `Latest workspace activity came from ${latestMessage.actorId || latestMessage.role} at ${formatTimestamp(latestMessage.at)}.`
+    : latestRun
+      ? `Latest foundation output was ${latestRun.action} for profile ${latestRun.profile || "default"} at ${formatTimestamp(latestRun.generatedAt)}.`
+      : "No direct workspace exchange or foundation output has been recorded yet.";
   title.textContent = project.title;
   lede.textContent = project.summary || "Single project page for direct collaboration, participation, and delivery work.";
   sidebar.innerHTML = `
     <div class="workspace-sidebar-block">
       <div class="summary-row">
-        <strong>${project.title}</strong>
+        <strong>${escapeHtml(project.title)}</strong>
         <div class="tag-row">
           ${createBadge(projectTypeLabel(project.kind))}
           ${createBadge(project.stage || "source")}
           ${createBadge(projectStateLabel(project.state))}
-          ${String(project.state || "").toLowerCase() === "paused" ? createBadge("Not Recruiting") : createBadge("Recruiting")}
+          ${createBadge(recruitingLabel === "Open" ? "Recruiting" : "Not Recruiting")}
         </div>
       </div>
       <div class="detail-grid compact">
-        <div class="detail-item"><span>Project Mode</span><strong>${workspaceMode}</strong></div>
-        <div class="detail-item"><span>Repository</span><strong class="detail-code">${project.repoName}</strong></div>
-        <div class="detail-item"><span>Owner</span><strong class="detail-code">${project.ownerHumanId}</strong></div>
-        <div class="detail-item"><span>Requirement</span><strong class="detail-code">${project.requirementId || "none"}</strong></div>
-        <div class="detail-item"><span>Primary Agent</span><strong>${agents[0]?.label || agents[0]?.agentId || "none"}</strong></div>
+        <div class="detail-item"><span>Your Access</span><strong>${accessState.label}</strong></div>
+        <div class="detail-item"><span>Your Role</span><strong>${escapeHtml(workspaceRole)}</strong></div>
+        <div class="detail-item"><span>Repository</span><strong class="detail-code">${escapeHtml(project.repoName)}</strong></div>
+        <div class="detail-item"><span>Owner</span><strong class="detail-code">${escapeHtml(project.ownerHumanId)}</strong></div>
+        <div class="detail-item"><span>Requirement</span><strong class="detail-code">${escapeHtml(project.requirementId || "none")}</strong></div>
+        <div class="detail-item"><span>Primary Agent</span><strong>${escapeHtml(agents[0]?.label || agents[0]?.agentId || "none")}</strong></div>
         <div class="detail-item"><span>Members</span><strong>${project.memberAgentIds?.length || 0}</strong></div>
         <div class="detail-item"><span>Plugins</span><strong>${project.pluginIds?.length || 0}</strong></div>
         <div class="detail-item"><span>Foundation Runs</span><strong>${project.foundationRuns?.length || 0}</strong></div>
       </div>
-      <p><strong>Project Record</strong><br />${project.summary || "No summary yet."}</p>
+      <p><strong>Project Record</strong><br />${escapeHtml(project.summary || "No summary yet.")}</p>
+      <p class="note">${escapeHtml(accessState.note)}</p>
+      ${project.repoUrl || project.serviceEndpoint ? `
+        <div class="action-row">
+          ${project.repoUrl ? `<a href="${project.repoUrl}" target="_blank" rel="noreferrer">Open GitHub Repo</a>` : ""}
+          ${project.serviceEndpoint ? `<a href="${project.serviceEndpoint}" target="_blank" rel="noreferrer">Open Service</a>` : ""}
+        </div>
+      ` : ""}
     </div>
     <div class="workspace-sidebar-block">
-      <strong>Stage And Delivery</strong>
+      <strong>Participation And Delivery</strong>
       <div class="detail-grid compact">
         <div class="detail-item"><span>Stage</span><strong>${project.stage || "source"}</strong></div>
         <div class="detail-item"><span>State</span><strong>${projectStateLabel(project.state)}</strong></div>
-        <div class="detail-item"><span>Recruiting</span><strong>${String(project.state || "").toLowerCase() === "paused" ? "No" : "Yes"}</strong></div>
+        <div class="detail-item"><span>Recruiting</span><strong>${recruitingLabel}</strong></div>
+        <div class="detail-item"><span>Pending Requests</span><strong>${openParticipationRequests.length}</strong></div>
+        <div class="detail-item"><span>Pending Invites</span><strong>${openInvites.length}</strong></div>
         <div class="detail-item"><span>Latest Run</span><strong>${latestRun?.action || "none"}</strong></div>
+        <div class="detail-item"><span>Latest Activity</span><strong>${latestActivity}</strong></div>
       </div>
+      <p><strong>Execution Focus</strong><br />${escapeHtml(executionFocus)}</p>
+      ${latestMembershipEvent ? `<p><strong>Latest Membership Change</strong><br />${escapeHtml(`${membershipHistoryLabel(latestMembershipEvent.type)} by ${latestMembershipEvent.actorHumanId || "-"} at ${formatTimestamp(latestMembershipEvent.at)}`)}</p>` : ""}
     </div>
     <div class="workspace-sidebar-block">
-      <strong>Project Inputs</strong>
+      <strong>Source And Operating Inputs</strong>
       <div class="tag-row">
-        ${(project.tags || []).length ? (project.tags || []).map((tag) => `<span class="subtle-tag">${tag}</span>`).join("") : '<span class="subtle-tag">No tags</span>'}
+        ${(project.tags || []).length ? (project.tags || []).map((tag) => `<span class="subtle-tag">${escapeHtml(tag)}</span>`).join("") : '<span class="subtle-tag">No tags</span>'}
       </div>
+      ${project.usageNote ? `<p><strong>Usage Note</strong><br />${escapeHtml(project.usageNote)}</p>` : ""}
+      ${project.pricingNote ? `<p><strong>Pricing Note</strong><br />${escapeHtml(project.pricingNote)}</p>` : ""}
       ${renderProjectFoundationRunSummary(project)}
       ${renderProjectFoundationRunList(project, 3)}
     </div>
   `;
 
   overview.innerHTML = [
-    ["Project Mode", workspaceMode],
-    ["Primary Agent", agents[0]?.label || agents[0]?.agentId || "No eligible agent"],
-    ["Conversation Entries", messages.length],
-    ["Repository", project.repoFullName || project.repoName],
-    ["Latest Foundation Profile", latestRun?.profile || "none"],
-    ["Rating", project.rating || 0],
-    ["Heat", project.heat || 0]
-  ].map(([label, value]) => `
+    { label: "Your Access", value: accessState.label },
+    { label: "Your Role", value: workspaceRole },
+    { label: "Primary Agent", value: agents[0]?.label || agents[0]?.agentId || "No eligible agent" },
+    { label: "Conversation Entries", value: messages.length },
+    { label: "Pending Requests", value: openParticipationRequests.length },
+    { label: "Repository", value: project.repoFullName || project.repoName, className: "detail-code" },
+    { label: "Latest Foundation Run", value: latestRun?.action || "none" },
+    { label: "Latest Activity", value: latestActivity }
+  ].map(({ label, value, className = "" }) => `
     <div class="detail-item workspace-overview-item">
-      <span>${label}</span>
-      <strong>${value}</strong>
+      <span>${escapeHtml(String(label))}</span>
+      <strong class="${className}">${escapeHtml(String(value))}</strong>
     </div>
   `).join("");
 
