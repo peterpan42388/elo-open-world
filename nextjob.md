@@ -100,6 +100,7 @@ After every execution cycle, update this file with:
 - Added full dark foundation theme and UI rules
 - Replaced `settings-guest` behavior with an access-state panel
 - Hid access prompt for GitHub-only logins and showed verification prompt only for local unverified accounts
+- Added `nextjob.md` execution queue and documented the 10-minute local automation loop
 
 ## Current Focus
 - P0 Visual Consolidation across `New Project`, `Project Workspace`, and `Build`
