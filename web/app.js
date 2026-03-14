@@ -2216,11 +2216,11 @@ function renderSettingsData() {
               <div class="membership-tools copy-stack">
                 <div class="summary-row">
                   <strong>Membership Workflow</strong>
-                  <span>Use Project Workspace</span>
+                  <span>Use Project Page</span>
                 </div>
                 <p>Owner-level invite, role, and removal controls now live in the dedicated project page so participation decisions stay attached to the active project record.</p>
                 <div class="action-row">
-                  <button type="button" class="topbar-button secondary open-workspace-button" data-project-open="${project.projectId}">Open Workspace To Manage Members</button>
+                  <button type="button" class="topbar-button secondary open-workspace-button" data-project-open="${project.projectId}">Open Project To Manage Members</button>
                 </div>
               </div>
             ` : ""}
@@ -2238,7 +2238,7 @@ function renderSettingsData() {
               </div>
             ` : ""}
             <div class="tag-row action-row">
-              <button type="button" class="topbar-button secondary open-workspace-button" data-project-open="${project.projectId}">Open Workspace</button>
+              <button type="button" class="topbar-button secondary open-workspace-button" data-project-open="${project.projectId}">Open Project</button>
               <button type="button" class="topbar-button ghost" data-route-target="build">Open In Build Directory</button>
               <a href="${project.repoUrl}" target="_blank" rel="noreferrer">Open GitHub Repo</a>
             </div>
@@ -2837,7 +2837,7 @@ function renderProjects(projects) {
           </div>
           <div class="detail-item">
             <span>Participation</span>
-            <strong>${human && !myProjectIds.has(project.projectId) ? "Request Through Project Workspace" : "Managed From Your Workspace"}</strong>
+            <strong>${human && !myProjectIds.has(project.projectId) ? "Request Through Project Page" : "Managed From Your Project Page"}</strong>
           </div>
         </div>
         ${renderProjectFoundationRunSummary(project)}
@@ -2857,7 +2857,7 @@ function renderProjects(projects) {
   root.querySelectorAll(".participation-request-button").forEach((node) => {
     node.addEventListener("click", () => {
       openProjectWorkspace(node.dataset.projectOpen);
-      setStatus(`Open ${node.dataset.projectTitle} in the project workspace to submit a participation request.`, "ok");
+      setStatus(`Open ${node.dataset.projectTitle} in the project page to submit a participation request.`, "ok");
     });
   });
 }
@@ -3363,7 +3363,7 @@ function renderProjectWorkspace() {
   const messages = workspaceConversationEntries(project);
   const latestRun = (project.foundationRuns || []).length ? project.foundationRuns[project.foundationRuns.length - 1] : null;
   title.textContent = project.title;
-  lede.textContent = project.summary || "Project workspace for direct collaboration with your development agent.";
+  lede.textContent = project.summary || "Single project page for direct collaboration, participation, and delivery work.";
   sidebar.innerHTML = `
     <div class="workspace-sidebar-block">
       <div class="summary-row">
@@ -3377,11 +3377,14 @@ function renderProjectWorkspace() {
       </div>
       <div class="detail-grid compact">
         <div class="detail-item"><span>Repository</span><strong class="detail-code">${project.repoName}</strong></div>
+        <div class="detail-item"><span>Owner</span><strong class="detail-code">${project.ownerHumanId}</strong></div>
+        <div class="detail-item"><span>Requirement</span><strong class="detail-code">${project.requirementId || "none"}</strong></div>
+        <div class="detail-item"><span>Primary Agent</span><strong>${agents[0]?.label || agents[0]?.agentId || "none"}</strong></div>
         <div class="detail-item"><span>Members</span><strong>${project.memberAgentIds?.length || 0}</strong></div>
         <div class="detail-item"><span>Plugins</span><strong>${project.pluginIds?.length || 0}</strong></div>
         <div class="detail-item"><span>Foundation Runs</span><strong>${project.foundationRuns?.length || 0}</strong></div>
       </div>
-      <p><strong>Progress</strong><br />${project.summary || "No summary yet."}</p>
+      <p><strong>Project Record</strong><br />${project.summary || "No summary yet."}</p>
     </div>
     <div class="workspace-sidebar-block">
       <strong>Stage And Delivery</strong>

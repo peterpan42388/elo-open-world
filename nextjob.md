@@ -110,12 +110,13 @@ After every execution cycle, update this file with:
 - Routed `Build` participation actions into `Project Workspace`, kept participation requests on the project page, and added project-level regression coverage for request/resolve flow so directory browsing stays separate from collaboration
 - Added stronger browser bridge guidance and long-thread presentation inside `Project Workspace`, so agent collaboration now has clearer next steps, bridge context, and a split between earlier context and recent exchanges
 - Tightened `Project Workspace` progress presentation with a stage track and cleaner delivery signals, and reduced remaining cross-page collaboration language in `Build` and `Settings` so the project page is more clearly the single collaboration surface
+- Continued removing cross-page collaboration ownership by renaming external entry points to `Open Project`, clarifying `Build` and `Settings` language, and strengthening the project-page sidebar with owner, requirement, and primary-agent context
 
 ## Current Focus
-- P1 Project Workspace Maturation: final collaboration cleanup and project-page ownership
+- P1 Project Workspace Maturation: final project-page ownership and sidebar clarity
 
 ## Next Recommended Action
-- Remove any remaining collaboration or participation ownership outside `Project Workspace`, then tighten the project page summary/sidebar so project state, participation, and agent work all read as one unified surface
+- Finish the remaining project-page ownership cleanup, then strengthen the sidebar/summary relationship so project identity, participation, and agent execution read as one unified operating surface
 
 ## Blockers
 - none currently
