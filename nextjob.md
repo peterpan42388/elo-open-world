@@ -105,12 +105,13 @@ After every execution cycle, update this file with:
 - Reworked `Project Workspace` into a clearer collaboration shell with grouped sidebar blocks, workspace summary, and stronger agent conversation hierarchy
 - Normalized `Build` directory cards with stronger header hierarchy, recruiting signal, directory snapshot blocks, and lower-noise project actions
 - Audited `World`, `Settings`, `Market`, and `Docs` for dark-theme regressions and aligned their card density, detail blocks, and page-level boundaries with the shared dark foundation rules
+- Moved membership workflow controls into `Project Workspace` and reduced `My Projects` to project visibility plus workspace entry, keeping participation actions attached to the active project page
 
 ## Current Focus
 - P1 Project Workspace Maturation
 
 ## Next Recommended Action
-- Move membership workflow and persistent conversation storage into `Project Workspace` so one project page can own collaboration, progress, and participation decisions
+- Add persistent project conversation storage so project chat survives refresh and becomes part of the project workspace instead of transient browser-only state
 
 ## Blockers
 - none currently
