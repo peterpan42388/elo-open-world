@@ -15,6 +15,28 @@ const ONBOARDER_PRESET = {
   usageNote: "Point your local agent runtime to the service endpoint and submit status updates regularly."
 };
 
+const FOUNDATION_PROJECT_WORKSPACES = {
+  "peterpan42388/elo-agent-onboarder": {
+    operating: true,
+    focus: "Agent onboarding, install plans, bootstrap reports, and runtime-ready setup artifacts for ordinary users joining ELO Open World.",
+    docs: [
+      { label: "Project Scope", href: "https://github.com/peterpan42388/elo-agent-onboarder/blob/codex/foundation-workspace/docs/PROJECT_SCOPE.md" },
+      { label: "Roadmap", href: "https://github.com/peterpan42388/elo-agent-onboarder/blob/codex/foundation-workspace/docs/ROADMAP.md" },
+      { label: "Integration", href: "https://github.com/peterpan42388/elo-agent-onboarder/blob/codex/foundation-workspace/docs/INTEGRATION.md" },
+      { label: "Install Plan Contract", href: "https://github.com/peterpan42388/elo-agent-onboarder/blob/codex/foundation-workspace/docs/INSTALL_PLAN_CONTRACT.md" }
+    ]
+  },
+  "peterpan42388/elo-agent-web-plugin": {
+    operating: true,
+    focus: "Browser bridge infrastructure that connects user-owned agents to ELO Open World starter and workspace flows.",
+    docs: [
+      { label: "README", href: "https://github.com/peterpan42388/elo-agent-web-plugin/blob/codex/browser-bridge-skeleton/README.md" },
+      { label: "Bridge Protocol", href: "https://github.com/peterpan42388/elo-agent-web-plugin/blob/codex/browser-bridge-skeleton/docs/BRIDGE_PROTOCOL.md" },
+      { label: "Installation", href: "https://github.com/peterpan42388/elo-agent-web-plugin/blob/codex/browser-bridge-skeleton/docs/INSTALLATION.md" }
+    ]
+  }
+};
+
 const state = {
   summary: null,
   authResolved: false,
@@ -137,7 +159,8 @@ function isFoundationProject(project) {
 }
 
 function isOperatingFoundationProject(project) {
-  return isFoundationProject(project) && String(project?.stage || "").toLowerCase() === "operating";
+  const workspace = project ? foundationWorkspace(project) : null;
+  return Boolean(workspace?.operating);
 }
 
 function foundationWorkspace(project) {
@@ -2507,7 +2530,7 @@ function applyBuildFiltersToProjects(projects) {
 function applyMarketFiltersToProjects(projects) {
   const query = state.marketFilters.query.trim().toLowerCase();
   const filtered = projects.filter((project) => {
-    if (project.stage !== "operating") return false;
+    if (!(project.stage === "operating" || isOperatingFoundationProject(project))) return false;
     const kindValue = String(project.kind || "").toLowerCase();
     const tags = (project.tags || []).map((item) => String(item).toLowerCase());
     const rating = Number(project.rating || 0);
