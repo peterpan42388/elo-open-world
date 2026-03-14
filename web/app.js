@@ -3094,11 +3094,13 @@ function renderProjects(projects) {
             </div>
           </div>
           <div class="build-card-meta">
-            <div class="build-meta-item ${openParticipationRequests.length ? "demand" : ""}">
-              <span>Recruiting</span>
-              <strong>${openParticipationRequests.length ? `${openParticipationRequests.length} Waiting` : "Open Intake"}</strong>
-              <p>${escapeHtml(openParticipationRequests.length ? "Review in Project Workspace." : "Start on project page.")}</p>
-            </div>
+            ${openParticipationRequests.length ? `
+              <div class="build-meta-item demand">
+                <span>Requests</span>
+                <strong>${openParticipationRequests.length} Waiting</strong>
+                <p>Review in Project Workspace.</p>
+              </div>
+            ` : ""}
             <div class="build-meta-item build-meta-item-activity">
               <span>Latest Delivery</span>
               <strong>${safeLatestRunAction}</strong>
@@ -4138,10 +4140,6 @@ function renderMarketProjects(projects) {
               <span>Latest Delivery</span>
               <strong>${safeLatestRunAction}</strong>
               <p>${safeLatestRunNote}</p>
-            </div>
-            <div class="build-meta-item">
-              <span>Entry</span>
-              <strong>${project.serviceEndpoint ? "Service + Project" : "Project Page Only"}</strong>
             </div>
             <div class="build-meta-item">
               <span>Signal</span>
