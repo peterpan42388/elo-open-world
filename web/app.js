@@ -654,8 +654,8 @@ function buildProjectStarterPrompt(requirement) {
     "## Your Task",
     "1. Understand the requirement and restate it clearly for the human.",
     "2. Propose a first implementation direction under EOW project rules.",
-    "3. When ready, tell the human to continue in Build with this requirement.",
-    "4. Once a source project exists, participate under the assigned project role.",
+    "3. When ready, tell the human to continue in New Project with this requirement draft.",
+    "4. Once a source project exists, move the collaboration into Project Workspace under the assigned project role.",
     "",
     "## Output Format",
     "- Restated requirement",
@@ -1238,7 +1238,7 @@ function renderProjectGraph(projects) {
 
   if (!projects.length) {
     state.selectedGraphProjectId = "";
-    root.innerHTML = '<div class="graph-empty">No source projects yet. Use Build to create the first project node.</div>';
+    root.innerHTML = '<div class="graph-empty">No source projects yet. Use New Project to create the first project node.</div>';
     relations.innerHTML = `
       <h3>Relations</h3>
       <div class="relation-card empty">No project relations yet.</div>
@@ -3260,7 +3260,7 @@ $("project-starter-form")?.addEventListener("submit", async (event) => {
         ``,
         form.idea.value.trim(),
         ``,
-        `Next step: continue requirement refinement and source project creation inside Build.`
+        `Next step: continue requirement refinement and source project creation inside New Project.`
       ].join("\n"),
       desiredKind: form.desiredKind.value || "app",
       tags: [form.tags.value, "starter"].filter(Boolean).join(", "),

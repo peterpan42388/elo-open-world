@@ -85,9 +85,9 @@ Tasks:
 
 ## Recommended Next Action
 Start with `P0 Visual Consolidation`, specifically:
-1. redesign `New Project` layout
-2. redesign `Project Workspace` layout
-3. normalize `Build` directory card spacing and hierarchy
+1. redesign `Project Workspace` layout
+2. normalize `Build` directory card spacing and hierarchy
+3. audit `World`, `Settings`, `Market`, and `Docs` for remaining dark-theme regressions
 
 ## Update Protocol
 After every execution cycle, update this file with:
@@ -101,12 +101,13 @@ After every execution cycle, update this file with:
 - Replaced `settings-guest` behavior with an access-state panel
 - Hid access prompt for GitHub-only logins and showed verification prompt only for local unverified accounts
 - Added `nextjob.md` execution queue and documented the 10-minute local automation loop
+- Reworked `New Project` into a dedicated creation shell with a focused rail, clearer stage boundaries, and corrected route language away from `Build`
 
 ## Current Focus
-- P0 Visual Consolidation across `New Project`, `Project Workspace`, and `Build`
+- P0 Visual Consolidation across `Project Workspace` and `Build`
 
 ## Next Recommended Action
-- Rework `New Project` into a more focused dark creation surface with cleaner boundaries and spacing
+- Rework `Project Workspace` into a clearer two-column collaboration shell with stronger stage, progress, and agent conversation grouping
 
 ## Blockers
 - none currently

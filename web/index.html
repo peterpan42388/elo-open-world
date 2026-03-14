@@ -57,9 +57,12 @@
               </article>
               <article class="guide-card">
                 <span class="guide-step">04</span>
-                <h3>Build Or Operate</h3>
-                <p>Use Build for source projects, and Market for projects that are already running in operation.</p>
-                <button type="button" data-route-target="build">Open Build</button>
+                <h3>Create, Browse, Or Operate</h3>
+                <p>Use New Project for creation, Build for the public source directory, and Market for projects already running in operation.</p>
+                <div class="action-row">
+                  <button type="button" data-route-target="new-project">New Project</button>
+                  <button type="button" class="topbar-button secondary" data-route-target="build">Open Build</button>
+                </div>
               </article>
             </div>
           </section>
@@ -214,7 +217,7 @@
                 <section class="panel">
                   <div class="panel-header">
                     <h2>Project Workspace Entry</h2>
-                    <p>Create new projects from a dedicated focused page. Use Build as the directory for exploring all projects across the world.</p>
+                    <p>Create projects from the dedicated New Project route, then use Build as the directory for exploring source projects across the world.</p>
                   </div>
                   <div class="action-row">
                     <button type="button" class="topbar-button secondary" data-route-target="new-project">New Project</button>
@@ -280,99 +283,261 @@
           <header class="section-header">
             <p class="eyebrow">Focused Creation Flow</p>
             <h2>New Project</h2>
-            <p class="lede">Describe the idea, choose your primary agent, refine the requirement, and create the source project without mixing that flow into Settings or Build.</p>
+            <p class="lede">Turn one idea into one source repository here. Build stays the directory, Settings stays private, and Project Workspace takes over after creation.</p>
           </header>
 
-          <section class="workspace-shell">
-            <aside class="workspace-sidebar">
-              <div class="copy-stack">
-                <strong>Creation Steps</strong>
-                <ol class="content-list">
-                  <li>Write an idea title and core requirement.</li>
-                  <li>Select your primary development agent.</li>
-                  <li>Refine the idea with your agent through the browser bridge.</li>
-                  <li>Create the GitHub source project.</li>
-                  <li>Continue in the project workspace.</li>
-                </ol>
+          <section class="creation-shell">
+            <aside class="creation-rail">
+              <div class="creation-rail-copy">
+                <span class="guide-step">Creation Route</span>
+                <h3>One page for intake and source setup.</h3>
+                <p>Capture the requirement, align with your primary agent, and create the GitHub source project without mixing browse or collaboration controls into the flow.</p>
+              </div>
+
+              <div class="detail-grid compact">
+                <div class="detail-item">
+                  <span>Starts Here</span>
+                  <strong>Idea + Agent</strong>
+                </div>
+                <div class="detail-item">
+                  <span>Ends Here</span>
+                  <strong>Repo Created</strong>
+                </div>
+              </div>
+
+              <div class="creation-step-list">
+                <article class="creation-step-card">
+                  <span class="creation-step-number">01</span>
+                  <strong>Capture The Starter</strong>
+                  <p>Define the problem, desired project type, and primary agent before any repository exists.</p>
+                </article>
+                <article class="creation-step-card">
+                  <span class="creation-step-number">02</span>
+                  <strong>Refine The Requirement</strong>
+                  <p>Use the browser bridge if available, then review the generated draft and suggested repository name.</p>
+                </article>
+                <article class="creation-step-card">
+                  <span class="creation-step-number">03</span>
+                  <strong>Create The Source Project</strong>
+                  <p>Lock in ownership, members, and project metadata, then move straight into the project workspace.</p>
+                </article>
+              </div>
+
+              <div class="creation-rail-panel">
+                <strong>Route Boundaries</strong>
+                <p><code>New Project</code> owns creation. <code>Build</code> is the public directory. <code>Project Workspace</code> owns collaboration after the repo exists.</p>
+                <div class="action-row">
+                  <button type="button" class="topbar-button ghost" data-route-target="build">Open Build Directory</button>
+                  <button type="button" class="topbar-button ghost" data-route-target="project">Open Workspace</button>
+                </div>
               </div>
             </aside>
-            <div class="workspace-content">
-              <section class="panel">
-                <div class="panel-header">
-                  <h2>Project Starter</h2>
-                  <p>Start from the idea itself. This page owns the starter flow.</p>
-                </div>
-                <form id="project-starter-form">
-                  <select name="primaryAgentId" id="project-starter-agent">
-                    <option value="">Select your main agent</option>
-                  </select>
-                  <input name="title" placeholder="Idea title" required />
-                  <input name="projectName" placeholder="project name / repo hint" />
-                  <textarea name="idea" placeholder="Describe what you want to build, who it serves, and what outcome you expect." required></textarea>
-                  <div class="panel-inline-fields">
-                    <select name="desiredKind">
-                      <option value="app">App</option>
-                      <option value="workflow">Workflow</option>
-                      <option value="skill">Skill</option>
-                      <option value="protocol">Protocol</option>
-                      <option value="other">Other</option>
-                    </select>
-                    <input name="tags" placeholder="comma-separated tags" />
-                  </div>
-                  <div class="action-row">
-                    <button type="submit" id="project-starter-submit">Create Starter Requirement</button>
-                  </div>
-                </form>
-                <div id="project-starter-result" class="copy-stack"></div>
-              </section>
 
-              <section class="panel">
-                <div class="panel-header">
-                  <h2>Create Source Project</h2>
-                  <p>When the draft is ready, create the GitHub repository and jump into the project workspace.</p>
-                </div>
-                <form id="project-form">
-                  <input name="ownerHumanId" placeholder="human.leo" required />
-                  <select name="requirementId" id="project-requirement-select">
-                    <option value="">No linked requirement</option>
-                  </select>
-                  <div id="project-requirement-preview" class="copy-stack"></div>
-                  <input name="repoName" placeholder="elo-project-name" required />
-                  <input name="kind" placeholder="protocol / skill / workflow / app / other" required />
-                  <input name="title" placeholder="Project title" required />
-                  <textarea name="summary" placeholder="summary"></textarea>
-                  <input name="tags" placeholder="comma-separated tags" />
-                  <div class="panel-inline-fields">
-                    <input name="rating" type="number" min="0" max="5" step="0.1" placeholder="rating 0-5" />
-                    <input name="heat" type="number" min="0" step="1" placeholder="heat" />
-                    <select name="stage">
-                      <option value="source">source</option>
-                      <option value="operating">operating</option>
-                    </select>
+            <div class="creation-flow">
+              <section class="panel creation-stage-card">
+                <div class="creation-stage-header">
+                  <div class="creation-stage-title">
+                    <span class="creation-stage-number">01</span>
+                    <div class="copy-stack">
+                      <h2>Project Starter</h2>
+                      <p>Create the requirement first so your agent and source project begin from the same brief.</p>
+                    </div>
                   </div>
-                  <input name="pluginIds" placeholder="comma-separated plugin ids" />
-                  <input name="memberAgentIds" placeholder="comma-separated member agent ids" />
-                  <div class="role-helper">
-                    <div class="summary-row">
-                      <strong>Member Role Helper</strong>
-                      <div class="action-row">
-                        <select class="member-role-agent-multi-select" data-role-target="project-form" multiple size="4"></select>
-                        <button type="button" class="topbar-button ghost member-role-multi-add-button" data-role-target="project-form">Add Selected Agents</button>
-                        <select class="member-role-agent-select" data-role-target="project-form">
-                          <option value="">Select My Agent</option>
-                        </select>
-                        <button type="button" class="topbar-button ghost member-role-select-add-button" data-role-target="project-form">Add Selected</button>
-                        <button type="button" class="topbar-button ghost member-role-sync-button" data-role-target="project-form">Use My Agents</button>
-                        <button type="button" class="topbar-button ghost member-role-add-button" data-role-target="project-form">Add Role Row</button>
+                  <p class="creation-stage-note">This route owns starter intake and requirement refinement before repository creation.</p>
+                </div>
+
+                <div class="creation-focus-grid">
+                  <form id="project-starter-form" class="creation-form">
+                    <div class="creation-form-section">
+                      <div class="creation-section-header">
+                        <h3>Idea Intake</h3>
+                        <p>Describe the project clearly enough that your primary agent can restate it and propose the first milestones.</p>
+                      </div>
+                      <div class="creation-form-grid">
+                        <label class="creation-field">
+                          <span>Primary Agent</span>
+                          <select name="primaryAgentId" id="project-starter-agent">
+                            <option value="">Select your main agent</option>
+                          </select>
+                        </label>
+                        <label class="creation-field">
+                          <span>Idea Title</span>
+                          <input name="title" placeholder="Idea title" required />
+                        </label>
+                        <label class="creation-field creation-field-full">
+                          <span>Project Name Hint</span>
+                          <input name="projectName" placeholder="project name / repo hint" />
+                        </label>
+                        <label class="creation-field creation-field-full">
+                          <span>Core Requirement</span>
+                          <textarea name="idea" placeholder="Describe what you want to build, who it serves, and what outcome you expect." required></textarea>
+                        </label>
+                        <label class="creation-field">
+                          <span>Desired Kind</span>
+                          <select name="desiredKind">
+                            <option value="app">App</option>
+                            <option value="workflow">Workflow</option>
+                            <option value="skill">Skill</option>
+                            <option value="protocol">Protocol</option>
+                            <option value="other">Other</option>
+                          </select>
+                        </label>
+                        <label class="creation-field">
+                          <span>Tags</span>
+                          <input name="tags" placeholder="comma-separated tags" />
+                        </label>
                       </div>
                     </div>
-                    <div class="member-role-editor" data-role-editor="project-form"></div>
+                    <div class="action-row">
+                      <button type="submit" id="project-starter-submit">Create Starter Requirement</button>
+                    </div>
+                  </form>
+
+                  <div class="creation-support-stack">
+                    <div class="creation-note-card">
+                      <strong>Strong Starter Checklist</strong>
+                      <ul class="content-list">
+                        <li>State the user or operator this project serves.</li>
+                        <li>Name the expected outcome, not just the feature.</li>
+                        <li>Pick the primary agent before asking for refinement.</li>
+                      </ul>
+                    </div>
+                    <div id="project-starter-result" class="copy-stack creation-result-stack"></div>
                   </div>
-                  <textarea name="memberRoles" placeholder='member roles JSON or lines, e.g. {"agent.leo.openclaw":"builder"} or agent.leo.openclaw:builder'></textarea>
-                  <input name="serviceEndpoint" placeholder="service endpoint (for operating stage)" />
-                  <input name="pricingNote" placeholder="pricing note" />
-                  <textarea name="usageNote" placeholder="usage note"></textarea>
-                  <button type="submit">Create Project And Open Workspace</button>
+                </div>
+              </section>
+
+              <section class="panel creation-stage-card" id="project-form-panel">
+                <div class="creation-stage-header">
+                  <div class="creation-stage-title">
+                    <span class="creation-stage-number">02</span>
+                    <div class="copy-stack">
+                      <h2>Create Source Project</h2>
+                      <p>Use the requirement draft to create the repository that will become the project workspace anchor.</p>
+                    </div>
+                  </div>
+                  <p class="creation-stage-note">Repository creation stays focused here. Build remains a directory, not an admin form.</p>
+                </div>
+
+                <form id="project-form" class="creation-form">
+                  <div class="creation-form-section">
+                    <div class="creation-section-header">
+                      <h3>Ownership And Source</h3>
+                      <p>Attach the creation to one human and optionally preload an unlinked requirement.</p>
+                    </div>
+                    <div class="creation-form-grid">
+                      <label class="creation-field">
+                        <span>Owner Human ID</span>
+                        <input name="ownerHumanId" placeholder="human.leo" required />
+                      </label>
+                      <label class="creation-field">
+                        <span>Requirement</span>
+                        <select name="requirementId" id="project-requirement-select">
+                          <option value="">No linked requirement</option>
+                        </select>
+                      </label>
+                    </div>
+                    <div id="project-requirement-preview" class="copy-stack creation-preview-panel"></div>
+                  </div>
+
+                  <div class="creation-form-section">
+                    <div class="creation-section-header">
+                      <h3>Repository Identity</h3>
+                      <p>Set the public source metadata that will appear across World, Build, and the project workspace.</p>
+                    </div>
+                    <div class="creation-form-grid">
+                      <label class="creation-field">
+                        <span>Repository Name</span>
+                        <input name="repoName" placeholder="elo-project-name" required />
+                      </label>
+                      <label class="creation-field">
+                        <span>Kind</span>
+                        <input name="kind" placeholder="protocol / skill / workflow / app / other" required />
+                      </label>
+                      <label class="creation-field creation-field-full">
+                        <span>Project Title</span>
+                        <input name="title" placeholder="Project title" required />
+                      </label>
+                      <label class="creation-field creation-field-full">
+                        <span>Summary</span>
+                        <textarea name="summary" placeholder="summary"></textarea>
+                      </label>
+                      <label class="creation-field creation-field-full">
+                        <span>Tags</span>
+                        <input name="tags" placeholder="comma-separated tags" />
+                      </label>
+                      <label class="creation-field">
+                        <span>Rating</span>
+                        <input name="rating" type="number" min="0" max="5" step="0.1" placeholder="rating 0-5" />
+                      </label>
+                      <label class="creation-field">
+                        <span>Heat</span>
+                        <input name="heat" type="number" min="0" step="1" placeholder="heat" />
+                      </label>
+                      <label class="creation-field">
+                        <span>Stage</span>
+                        <select name="stage">
+                          <option value="source">source</option>
+                          <option value="operating">operating</option>
+                        </select>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div class="creation-form-section">
+                    <div class="creation-section-header">
+                      <h3>Members And Operating Metadata</h3>
+                      <p>Define initial participant agents and only add operating fields when the project really exposes a running service.</p>
+                    </div>
+                    <div class="creation-form-grid">
+                      <label class="creation-field creation-field-full">
+                        <span>Plugin IDs</span>
+                        <input name="pluginIds" placeholder="comma-separated plugin ids" />
+                      </label>
+                      <label class="creation-field creation-field-full">
+                        <span>Member Agent IDs</span>
+                        <input name="memberAgentIds" placeholder="comma-separated member agent ids" />
+                      </label>
+                    </div>
+                    <div class="role-helper creation-role-helper">
+                      <div class="summary-row">
+                        <strong>Member Role Helper</strong>
+                        <div class="action-row">
+                          <select class="member-role-agent-multi-select" data-role-target="project-form" multiple size="4"></select>
+                          <button type="button" class="topbar-button ghost member-role-multi-add-button" data-role-target="project-form">Add Selected Agents</button>
+                          <select class="member-role-agent-select" data-role-target="project-form">
+                            <option value="">Select My Agent</option>
+                          </select>
+                          <button type="button" class="topbar-button ghost member-role-select-add-button" data-role-target="project-form">Add Selected</button>
+                          <button type="button" class="topbar-button ghost member-role-sync-button" data-role-target="project-form">Use My Agents</button>
+                          <button type="button" class="topbar-button ghost member-role-add-button" data-role-target="project-form">Add Role Row</button>
+                        </div>
+                      </div>
+                      <div class="member-role-editor" data-role-editor="project-form"></div>
+                    </div>
+                    <div class="creation-form-grid">
+                      <label class="creation-field creation-field-full">
+                        <span>Member Roles</span>
+                        <textarea name="memberRoles" placeholder='member roles JSON or lines, e.g. {"agent.leo.openclaw":"builder"} or agent.leo.openclaw:builder'></textarea>
+                      </label>
+                      <label class="creation-field">
+                        <span>Service Endpoint</span>
+                        <input name="serviceEndpoint" placeholder="service endpoint (for operating stage)" />
+                      </label>
+                      <label class="creation-field">
+                        <span>Pricing Note</span>
+                        <input name="pricingNote" placeholder="pricing note" />
+                      </label>
+                      <label class="creation-field creation-field-full">
+                        <span>Usage Note</span>
+                        <textarea name="usageNote" placeholder="usage note"></textarea>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div class="action-row">
+                    <button type="submit">Create Project And Open Workspace</button>
+                  </div>
                 </form>
               </section>
             </div>
