@@ -1239,11 +1239,14 @@ details.expand-card summary::-webkit-details-marker { display: none; }
 }
 
 .build-card-identity-item .detail-code-compact {
-  display: block;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  word-break: normal;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
 }
 
 .build-card-summary {
