@@ -3052,11 +3052,23 @@ function renderProjects(projects) {
         ${renderProjectFoundationRunSummary(project)}
         ${renderProjectFoundationRunList(project)}
         <div class="build-directory-actions">
-          <div class="directory-action-primary">
-            <button type="button" class="topbar-button ${primaryAction.tone} open-workspace-button" data-project-open="${project.projectId}" data-project-title="${escapeHtml(project.title)}">${primaryAction.label}</button>
+          <div class="directory-action-group directory-action-group-primary">
+            <div class="directory-action-copy">
+              <span class="directory-action-label">Project Workspace Entry</span>
+              <p>Participation, membership, and delivery stay on the project page.</p>
+            </div>
+            <div class="directory-action-primary">
+              <button type="button" class="topbar-button ${primaryAction.tone} open-workspace-button" data-project-open="${project.projectId}" data-project-title="${escapeHtml(project.title)}">${primaryAction.label}</button>
+            </div>
           </div>
-          <div class="directory-action-secondary">
-            <a class="topbar-button ghost" href="${project.repoUrl}" target="_blank" rel="noreferrer">Source Repo</a>
+          <div class="directory-action-group">
+            <div class="directory-action-copy">
+              <span class="directory-action-label">External Surface</span>
+              <p>Source inspection stays separate from collaboration controls.</p>
+            </div>
+            <div class="directory-action-secondary">
+              <a class="topbar-button ghost" href="${project.repoUrl}" target="_blank" rel="noreferrer">Source Repo</a>
+            </div>
           </div>
         </div>
       </div>
@@ -4070,12 +4082,24 @@ function renderMarketProjects(projects) {
           </div>
         </div>
         <div class="build-directory-actions">
-          <div class="directory-action-primary">
-            <button type="button" class="topbar-button secondary open-workspace-button" data-project-open="${project.projectId}">Project Workspace</button>
+          <div class="directory-action-group directory-action-group-primary">
+            <div class="directory-action-copy">
+              <span class="directory-action-label">Project Workspace Entry</span>
+              <p>Operator context, members, and delivery history stay attached to the project page.</p>
+            </div>
+            <div class="directory-action-primary">
+              <button type="button" class="topbar-button secondary open-workspace-button" data-project-open="${project.projectId}">Project Workspace</button>
+            </div>
           </div>
-          <div class="directory-action-secondary">
-            ${project.serviceEndpoint ? `<a class="topbar-button ghost" href="${project.serviceEndpoint}" target="_blank" rel="noreferrer">Live Service</a>` : ""}
-            <a class="topbar-button ghost" href="${project.repoUrl}" target="_blank" rel="noreferrer">Source Repo</a>
+          <div class="directory-action-group">
+            <div class="directory-action-copy">
+              <span class="directory-action-label">Usage Surfaces</span>
+              <p>Live service and source links stay separate from the operator entry path.</p>
+            </div>
+            <div class="directory-action-secondary">
+              ${project.serviceEndpoint ? `<a class="topbar-button ghost" href="${project.serviceEndpoint}" target="_blank" rel="noreferrer">Live Service</a>` : ""}
+              <a class="topbar-button ghost" href="${project.repoUrl}" target="_blank" rel="noreferrer">Source Repo</a>
+            </div>
           </div>
         </div>
       </div>

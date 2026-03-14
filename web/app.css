@@ -1205,9 +1205,11 @@ details.expand-card summary::-webkit-details-marker { display: none; }
 }
 
 .build-card-status {
-  display: grid;
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
-  justify-items: end;
+  justify-content: flex-end;
+  align-items: flex-start;
 }
 
 .build-card-identity-list {
@@ -1381,6 +1383,39 @@ details.expand-card summary::-webkit-details-marker { display: none; }
   min-width: 0;
 }
 
+.directory-action-group {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.directory-action-group-primary {
+  background: linear-gradient(180deg, rgba(87, 215, 193, 0.08) 0%, rgba(255, 255, 255, 0.025) 100%);
+}
+
+.directory-action-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.directory-action-label {
+  color: var(--text-soft);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.directory-action-copy p {
+  color: var(--muted);
+  line-height: 1.45;
+}
+
 .directory-action-primary,
 .directory-action-secondary {
   display: flex;
@@ -1518,9 +1553,7 @@ pre,
 @media (max-width: 720px) {
   .build-card-status {
     width: 100%;
-    grid-template-columns: repeat(2, minmax(0, max-content));
     justify-content: flex-start;
-    justify-items: start;
   }
 
   .build-card-identity-list,
