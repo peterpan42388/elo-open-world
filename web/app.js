@@ -594,6 +594,35 @@ function formatTimestamp(ts) {
   return date.toLocaleString();
 }
 
+function formatCompactTimestamp(ts) {
+  if (!ts) return "-";
+  const date = new Date(ts);
+  if (Number.isNaN(date.getTime())) return "-";
+  return new Intl.DateTimeFormat(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric"
+  }).format(date);
+}
+
+function formatActionLabel(value, fallback = "-") {
+  const normalized = String(value || "").trim();
+  if (!normalized) return fallback;
+  return normalized
+    .split(/[-_\s]+/)
+    .filter(Boolean)
+    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+    .join(" ");
+}
+
+function clampDirectionalCopy(value, maxLength = 110) {
+  const normalized = String(value || "").trim();
+  if (!normalized || normalized.length <= maxLength) return normalized;
+  const sliced = normalized.slice(0, maxLength);
+  const boundary = sliced.lastIndexOf(" ");
+  return `${(boundary > 48 ? sliced.slice(0, boundary) : sliced).trim()}...`;
+}
+
 function latestProjectFoundationRun(project) {
   const runs = project?.foundationRuns || [];
   return runs.length ? runs[0] : null;
@@ -2961,7 +2990,7 @@ function renderProjects(projects) {
     const participationState = projectDirectoryParticipationState(project, human, myProjectIds);
     const primaryAction = projectDirectoryPrimaryAction(project, human, myProjectIds);
     const latestRun = latestProjectFoundationRun(project);
-    const latestActivity = projectLatestActivity(project);
+    const latestWorkspaceMessage = latestProjectWorkspaceMessage(project);
     const openParticipationRequests = (project.participationRequests || []).filter((entry) => entry.status === "pending");
     const repoLabel = project.repoFullName || project.repoName || "No repo linked";
     const serviceLabel = project.serviceEndpoint || "";
@@ -2974,9 +3003,12 @@ function renderProjects(projects) {
     const safeOwnerHumanId = escapeHtml(project.ownerHumanId || "-");
     const safeStage = escapeHtml(project.stage || "source");
     const safeStateLabel = escapeHtml(projectStateLabel(project.state));
-    const safeLatestRunAction = escapeHtml(latestRun?.action || "none");
-    const safeLatestActivityLabel = escapeHtml(latestActivity.label);
-    const safeLatestActivityDetail = escapeHtml(latestActivity.detail);
+    const safeLatestRunAction = escapeHtml(formatActionLabel(latestRun?.action, "No Run Yet"));
+    const safeLatestRunNote = escapeHtml(latestRun
+      ? formatCompactTimestamp(latestRun.generatedAt)
+      : latestWorkspaceMessage?.at
+        ? `Workspace ${formatCompactTimestamp(latestWorkspaceMessage.at)}`
+        : "No delivery yet");
     const safeDirectorySignal = escapeHtml(directorySignal);
     return `
     <details class="expand-card build-directory-card" data-project-card="${project.projectId}">
@@ -2989,7 +3021,6 @@ function renderProjects(projects) {
                 <div class="tag-row build-card-badges">
                   ${createBadge(projectTypeLabel(project.kind))}
                   ${createBadge(project.stage || "source")}
-                  ${createBadge(projectStateLabel(project.state))}
                   ${isOperatingFoundationProject(project) ? createBadge("Operating Foundation") : ""}
                 </div>
               </div>
@@ -3041,10 +3072,7 @@ function renderProjects(projects) {
             <div class="build-meta-item">
               <span>Latest Run</span>
               <strong>${safeLatestRunAction}</strong>
-            </div>
-            <div class="build-meta-item">
-              <span>Latest Activity</span>
-              <strong>${safeLatestActivityLabel}</strong>
+              <p>${safeLatestRunNote}</p>
             </div>
             <div class="build-meta-item">
               <span>Directory Signal</span>
@@ -3088,7 +3116,7 @@ function renderProjects(projects) {
               <div class="detail-item"><span>Latest Run At</span><strong>${latestRun ? formatTimestamp(latestRun.generatedAt) : "-"}</strong></div>
             </div>
             <p>${escapeHtml(operatingState.note)}</p>
-            <p>${safeLatestActivityDetail}</p>
+            <p>${escapeHtml(projectLatestActivity(project).detail)}</p>
           </div>
         </div>
         ${renderProjectFoundationRunSummary(project)}
@@ -4027,6 +4055,8 @@ function renderMarketProjects(projects) {
       ? "Start with the service endpoint for live usage, then open the project page for operator context."
       : "This project is marked operating, but the project page still carries the clearest operator context until the endpoint is published.");
     const marketSignal = `R ${project.rating || 0} / H ${project.heat || 0}`;
+    const safeLatestRunAction = escapeHtml(formatActionLabel(latestRun?.action, "No Run Yet"));
+    const safeLatestRunNote = escapeHtml(latestRun ? formatCompactTimestamp(latestRun.generatedAt) : formatCompactTimestamp(project.updatedAt));
     return `
     <details class="expand-card market-directory-card" data-project-card="${project.projectId}">
       <summary>
@@ -4038,7 +4068,6 @@ function renderMarketProjects(projects) {
                 <div class="tag-row build-card-badges">
                   ${createBadge(projectTypeLabel(project.kind))}
                   ${createBadge(project.stage || "operating")}
-                  ${createBadge(`Rating ${project.rating || 0}`)}
                   ${isOperatingFoundationProject(project) ? createBadge("Operating Foundation") : ""}
                 </div>
               </div>
@@ -4068,26 +4097,27 @@ function renderMarketProjects(projects) {
             <div class="build-card-signal">
               <span>Access</span>
               <strong>${accessModel}</strong>
-              <p>${escapeHtml(accessNote)}</p>
+              <p>${escapeHtml(clampDirectionalCopy(accessNote))}</p>
             </div>
             <div class="build-card-signal">
               <span>Usage Entry</span>
               <strong>${project.serviceEndpoint ? "Service + Project" : "Project Page Only"}</strong>
-              <p>${escapeHtml(usageNote)}</p>
+              <p>${escapeHtml(clampDirectionalCopy(usageNote))}</p>
             </div>
           </div>
           <div class="build-card-meta">
             <div class="build-meta-item">
               <span>Latest Run</span>
-              <strong>${escapeHtml(latestRun?.action || "none")}</strong>
+              <strong>${safeLatestRunAction}</strong>
+              <p>${safeLatestRunNote}</p>
             </div>
             <div class="build-meta-item">
-              <span>Stage</span>
-              <strong>${escapeHtml(project.stage || "operating")}</strong>
+              <span>Rating</span>
+              <strong>${project.rating || 0}</strong>
             </div>
             <div class="build-meta-item">
-              <span>Access Model</span>
-              <strong>${accessModel}</strong>
+              <span>Heat</span>
+              <strong>${project.heat || 0}</strong>
             </div>
             <div class="build-meta-item">
               <span>Directory Signal</span>
