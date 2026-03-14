@@ -1,6 +1,18 @@
 import { asArray, csvArray, now, numberInRange, slug, text, token, uid } from "../lib/validation.js";
 
 const ALLOWED_MEMBER_ROLES = new Set(["builder", "reviewer", "operator", "maintainer", "observer"]);
+const FOUNDATION_PROJECT_OVERRIDES = {
+  "peterpan42388/elo-agent-onboarder": {
+    stage: "operating",
+    state: "stable",
+    operatingFoundation: true
+  },
+  "peterpan42388/elo-agent-web-plugin": {
+    stage: "operating",
+    state: "stable",
+    operatingFoundation: true
+  }
+};
 
 function normalizeMemberRoles(memberRoles, memberAgentIds) {
   let raw = memberRoles;
@@ -342,7 +354,10 @@ export class ProjectProtocol {
   }
 
   list() {
-    return [...this.projects.values()].sort((a, b) => {
+    return [...this.projects.values()].map((project) => ({
+      ...project,
+      ...(FOUNDATION_PROJECT_OVERRIDES[project.repoFullName] || {})
+    })).sort((a, b) => {
       if ((b.heat || 0) !== (a.heat || 0)) return (b.heat || 0) - (a.heat || 0);
       return a.createdAt - b.createdAt;
     });

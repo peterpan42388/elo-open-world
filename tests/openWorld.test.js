@@ -424,6 +424,56 @@ test("operating projects list should only expose operating stage items", async (
   assert.equal(operating[0].stage, "operating");
 });
 
+test("foundation repos should be elevated to operating foundation state in API views", async () => {
+  const root = await mkdtemp(join(tmpdir(), "open-world-foundation-stage-"));
+  const github = new FakeGitHubRepoService();
+  const world = await new OpenWorldFramework({
+    stateFile: join(root, "state.json"),
+    projectsRoot: join(root, "projects"),
+    githubRepoService: github
+  }).init();
+
+  await world.identity.registerHuman({
+    humanId: "human.foundation.ops",
+    email: "foundation-ops@example.com",
+    githubLogin: "peterpan42388",
+    password: "test-password-foundation-ops"
+  });
+
+  await world.projects.create({
+    ownerHumanId: "human.foundation.ops",
+    repoName: "elo-agent-onboarder",
+    kind: "app",
+    title: "ELO Agent Onboarder",
+    stage: "source",
+    state: "developing"
+  });
+
+  await world.projects.create({
+    ownerHumanId: "human.foundation.ops",
+    repoName: "elo-agent-web-plugin",
+    kind: "plugin",
+    title: "ELO Agent Web Plugin",
+    stage: "source",
+    state: "developing"
+  });
+
+  const projects = world.projects.list();
+  const onboarder = projects.find((project) => project.repoFullName === "peterpan42388/elo-agent-onboarder");
+  const webPlugin = projects.find((project) => project.repoFullName === "peterpan42388/elo-agent-web-plugin");
+
+  assert.equal(onboarder.stage, "operating");
+  assert.equal(onboarder.state, "stable");
+  assert.equal(onboarder.operatingFoundation, true);
+  assert.equal(webPlugin.stage, "operating");
+  assert.equal(webPlugin.state, "stable");
+  assert.equal(webPlugin.operatingFoundation, true);
+
+  const operating = world.projects.listOperating();
+  assert.ok(operating.some((project) => project.repoFullName === "peterpan42388/elo-agent-onboarder"));
+  assert.ok(operating.some((project) => project.repoFullName === "peterpan42388/elo-agent-web-plugin"));
+});
+
 
 test("project metadata update should persist editable fields", async () => {
   const root = await mkdtemp(join(tmpdir(), "open-world-update-"));
