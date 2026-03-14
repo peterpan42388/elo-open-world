@@ -3959,46 +3959,85 @@ function renderMarketProjects(projects) {
     root.innerHTML = '<div class="empty">No operating projects match the current market filter.</div>';
     return;
   }
-  root.innerHTML = filtered.map((project) => `
+  root.innerHTML = filtered.map((project) => {
+    const repoLabel = project.repoFullName || project.repoName || "No source repo listed";
+    const serviceLabel = project.serviceEndpoint || "Service endpoint not set";
+    const latestRun = latestProjectFoundationRun(project);
+    const accessModel = isOperatingFoundationProject(project) ? "Foundation Access" : "Project Access";
+    const accessNote = project.pricingNote || "Usage still routes through the published project surface while protocol pricing stays lightweight.";
+    const usageEntry = project.serviceEndpoint ? "Open Service Or Project" : "Open Project For Entry";
+    const usageNote = project.usageNote || (project.serviceEndpoint
+      ? "Start with the service endpoint for live usage, then open the project page for operator context."
+      : "This project is marked operating, but the project page still carries the clearest operator context until the endpoint is published.");
+    const marketSignal = `R ${project.rating || 0} / H ${project.heat || 0}`;
+    return `
     <details class="expand-card market-directory-card" data-project-card="${project.projectId}">
       <summary>
         <div class="build-card-shell">
           <div class="build-card-header">
             <div class="build-card-title-stack">
-              <div class="summary-row">
-                <strong>${project.title}</strong>
-                <div class="tag-row">
+              <div class="build-card-heading">
+                <strong class="build-card-title">${escapeHtml(project.title)}</strong>
+                <div class="tag-row build-card-badges">
                   ${createBadge(projectTypeLabel(project.kind))}
+                  ${createBadge(project.stage || "operating")}
                   ${createBadge(`Rating ${project.rating || 0}`)}
                   ${isOperatingFoundationProject(project) ? createBadge("Operating Foundation") : ""}
                 </div>
               </div>
-              <div class="build-card-repo">${project.repoFullName || project.repoName}</div>
+              <div class="build-card-identity-list">
+                <div class="build-card-identity-item">
+                  <span>Source Repo</span>
+                  <strong class="detail-code">${escapeHtml(repoLabel)}</strong>
+                </div>
+                <div class="build-card-identity-item">
+                  <span>Service</span>
+                  <strong class="detail-code">${escapeHtml(serviceLabel)}</strong>
+                </div>
+              </div>
             </div>
             <div class="build-card-status">
-              <span class="directory-signal recruiting">Operating</span>
+              <span class="directory-signal operating">Operating</span>
+              <span class="directory-signal ${project.serviceEndpoint ? "recruiting" : "building"}">${project.serviceEndpoint ? "Endpoint Live" : "Endpoint Pending"}</span>
             </div>
           </div>
-          <p class="build-card-summary">${project.summary || "No summary provided."}</p>
+          <p class="build-card-summary">${escapeHtml(project.summary || "No summary provided.")}</p>
+          <div class="build-card-signal-grid">
+            <div class="build-card-signal">
+              <span>Operating</span>
+              <strong>${project.serviceEndpoint ? "World-Facing Endpoint" : "Operator Context Published"}</strong>
+              <p>${escapeHtml(project.serviceEndpoint ? "Service endpoint is available for direct usage entry." : "This project is already treated as operating, but the endpoint is still being finalized.")}</p>
+            </div>
+            <div class="build-card-signal">
+              <span>Access</span>
+              <strong>${accessModel}</strong>
+              <p>${escapeHtml(accessNote)}</p>
+            </div>
+            <div class="build-card-signal">
+              <span>Usage Entry</span>
+              <strong>${usageEntry}</strong>
+              <p>${escapeHtml(usageNote)}</p>
+            </div>
+          </div>
           <div class="build-card-meta">
             <div class="build-meta-item">
-              <span>Heat</span>
-              <strong>${project.heat || 0}</strong>
+              <span>Latest Run</span>
+              <strong>${escapeHtml(latestRun?.action || "none")}</strong>
             </div>
             <div class="build-meta-item">
               <span>Stage</span>
-              <strong>${project.stage || "operating"}</strong>
+              <strong>${escapeHtml(project.stage || "operating")}</strong>
             </div>
             <div class="build-meta-item">
-              <span>Endpoint</span>
-              <strong class="detail-code">${project.serviceEndpoint || "Not set"}</strong>
+              <span>Access Model</span>
+              <strong>${accessModel}</strong>
             </div>
             <div class="build-meta-item">
-              <span>Source</span>
-              <strong>${project.repoName}</strong>
+              <span>Directory Signal</span>
+              <strong>${marketSignal}</strong>
             </div>
           </div>
-          <div class="tag-row build-card-tags">${(project.tags || []).length ? (project.tags || []).map((tag) => `<span class="subtle-tag">${tag}</span>`).join("") : '<span class="subtle-tag">No tags</span>'}</div>
+          <div class="tag-row build-card-tags">${(project.tags || []).length ? (project.tags || []).map((tag) => `<span class="subtle-tag">${escapeHtml(tag)}</span>`).join("") : '<span class="subtle-tag">No tags</span>'}</div>
         </div>
       </summary>
       <div class="expand-body">
@@ -4006,31 +4045,35 @@ function renderMarketProjects(projects) {
           <div class="build-directory-detail-block">
             <div class="summary-row">
               <strong>Operating Snapshot</strong>
-              <span>${project.repoName}</span>
+              <span>${escapeHtml(project.repoName || "Source project")}</span>
             </div>
             <div class="detail-grid compact">
-              <div class="detail-item"><span>Source Project</span><strong class="detail-code">${project.repoFullName}</strong></div>
-              <div class="detail-item"><span>Service Endpoint</span><strong class="detail-code">${project.serviceEndpoint || "Not set"}</strong></div>
+              <div class="detail-item detail-item-wide"><span>Source Project</span><strong class="detail-code">${escapeHtml(repoLabel)}</strong></div>
+              <div class="detail-item detail-item-wide"><span>Service Endpoint</span><strong class="detail-code">${escapeHtml(serviceLabel)}</strong></div>
               <div class="detail-item"><span>Heat</span><strong>${project.heat || 0}</strong></div>
               <div class="detail-item"><span>Rating</span><strong>${project.rating || 0}</strong></div>
+              <div class="detail-item"><span>Latest Run</span><strong>${escapeHtml(latestRun?.action || "none")}</strong></div>
+              <div class="detail-item"><span>Latest Run At</span><strong>${latestRun ? formatTimestamp(latestRun.generatedAt) : "-"}</strong></div>
             </div>
           </div>
           <div class="build-directory-detail-block">
             <div class="summary-row">
               <strong>Access Model</strong>
-              <span>${isOperatingFoundationProject(project) ? "Foundation" : "Project"}</span>
+              <span>${accessModel}</span>
             </div>
-            <p>Pricing: ${project.pricingNote || "ELO protocol plugin"}</p>
-            <p>Usage: ${project.usageNote || "Let your agent call the source project endpoint after deployment and settle through the future ELO protocol layer."}</p>
+            <p>Pricing: ${escapeHtml(project.pricingNote || "ELO protocol plugin")}</p>
+            <p>Usage: ${escapeHtml(usageNote)}</p>
           </div>
         </div>
         <div class="tag-row action-row build-directory-actions">
-          <button type="button" class="topbar-button secondary open-workspace-button" data-project-open="${project.projectId}">Open Project</button>
+          <button type="button" class="topbar-button secondary open-workspace-button" data-project-open="${project.projectId}">Open Project Workspace</button>
+          ${project.serviceEndpoint ? `<a href="${project.serviceEndpoint}" target="_blank" rel="noreferrer">Open Service</a>` : ""}
           <a href="${project.repoUrl}" target="_blank" rel="noreferrer">Open Source Project</a>
         </div>
       </div>
     </details>
-  `).join("");
+  `;
+  }).join("");
 
   root.querySelectorAll(".open-workspace-button").forEach((node) => {
     node.addEventListener("click", () => openProjectWorkspace(node.dataset.projectOpen));
