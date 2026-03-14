@@ -634,6 +634,18 @@ function clampDirectionalCopy(value, maxLength = 110) {
   return `${(boundary > 48 ? sliced.slice(0, boundary) : sliced).trim()}...`;
 }
 
+function formatLatestDeliveryNote({ latestRun = null, latestWorkspaceMessage = null, fallbackAt = 0 } = {}) {
+  if (latestRun) {
+    const parts = [formatCompactTimestamp(latestRun.generatedAt)];
+    const context = formatActionLabel(latestRun.runtimeMode || latestRun.profile || latestRun.target, "");
+    if (context) parts.push(context);
+    return parts.join(" | ");
+  }
+  if (latestWorkspaceMessage?.at) return `${formatCompactTimestamp(latestWorkspaceMessage.at)} | Workspace`;
+  if (fallbackAt) return formatCompactTimestamp(fallbackAt);
+  return "No delivery yet";
+}
+
 function latestProjectFoundationRun(project) {
   const runs = project?.foundationRuns || [];
   return runs.length ? runs[0] : null;
@@ -1360,13 +1372,13 @@ function renderMemberRoleAgentOptions() {
     const current = select.value || "";
     select.innerHTML = [
       '<option value="">Select My Agent</option>',
-      ...agents.map((agent) => `<option value="${agent.agentId}">${agent.label || agent.agentId} · ${agent.agentId}</option>`)
+      ...agents.map((agent) => `<option value="${agent.agentId}">${agent.label || agent.agentId} | ${agent.agentId}</option>`)
     ].join("");
     if (agents.some((agent) => agent.agentId === current)) select.value = current;
   });
   document.querySelectorAll(".member-role-agent-multi-select").forEach((select) => {
     const selected = new Set([...select.selectedOptions].map((option) => option.value));
-    select.innerHTML = agents.map((agent) => `<option value="${agent.agentId}">${agent.label || agent.agentId} · ${agent.agentId}</option>`).join("");
+    select.innerHTML = agents.map((agent) => `<option value="${agent.agentId}">${agent.label || agent.agentId} | ${agent.agentId}</option>`).join("");
     [...select.options].forEach((option) => {
       option.selected = selected.has(option.value);
     });
@@ -1489,12 +1501,12 @@ function renderInfrastructure(summary) {
       <div class="infra-node core"><strong>Identity Layer</strong><span>Email human, GitHub link, private settings state</span></div>
       <div class="infra-node core"><strong>Protocol Standards</strong><span>Shared project rules, manifest, healthcheck, universe identity</span></div>
     </div>
-    <div class="infra-arrow">→</div>
+    <div class="infra-arrow">-&gt;</div>
     <div class="infra-column">
       <div class="infra-node plugin"><strong>Plugins</strong><span>ELO Protocol, Market, Social, future integrations</span></div>
       <div class="infra-node plugin"><strong>Current Focus</strong><span>ELO OpenClaw Onboarding Assistant</span></div>
     </div>
-    <div class="infra-arrow">→</div>
+    <div class="infra-arrow">-&gt;</div>
     <div class="infra-column">${dynamicProjects}</div>
   `;
 }
@@ -2639,7 +2651,7 @@ function renderRequirementSelect(requirements) {
   const available = requirements.filter((item) => !item.linkedProjectId && item.status !== "rejected");
   select.innerHTML = [
     '<option value="">No linked requirement</option>',
-    ...available.map((item) => `<option value="${item.requirementId}">${item.requirementId} · ${item.title}</option>`)
+    ...available.map((item) => `<option value="${item.requirementId}">${item.requirementId} | ${item.title}</option>`)
   ].join("");
   if (available.some((item) => item.requirementId === current)) {
     select.value = current;
@@ -3014,12 +3026,12 @@ function renderProjects(projects) {
     const safeOwnerHumanId = escapeHtml(project.ownerHumanId || "-");
     const safeStage = escapeHtml(project.stage || "source");
     const safeStateLabel = escapeHtml(projectStateLabel(project.state));
-    const safeLatestRunAction = escapeHtml(formatActionLabel(latestRun?.action, "No Run Yet"));
-    const safeLatestRunNote = escapeHtml(latestRun
-      ? formatCompactTimestamp(latestRun.generatedAt)
+    const safeLatestRunAction = escapeHtml(latestRun
+      ? formatActionLabel(latestRun.action, "No Run Yet")
       : latestWorkspaceMessage?.at
-        ? `Workspace ${formatCompactTimestamp(latestWorkspaceMessage.at)}`
-        : "No delivery yet");
+        ? "Workspace Update"
+        : "No Run Yet");
+    const safeLatestRunNote = escapeHtml(formatLatestDeliveryNote({ latestRun, latestWorkspaceMessage }));
     const safeDirectorySignal = escapeHtml(directorySignal);
     return `
     <details class="expand-card build-directory-card" data-project-card="${project.projectId}">
@@ -3058,39 +3070,36 @@ function renderProjects(projects) {
             <div class="build-card-signal">
               <span>Operating</span>
               <strong>${escapeHtml(projectDirectoryOperatingHeadline(project))}</strong>
-              <p>${escapeHtml(projectDirectoryOperatingHint(project))}</p>
+              <p>${escapeHtml(clampDirectionalCopy(projectDirectoryOperatingHint(project), 72))}</p>
             </div>
             <div class="build-card-signal">
               <span>Recruiting</span>
               <strong>${escapeHtml(projectDirectoryRecruitingHeadline(project))}</strong>
-              <p>${escapeHtml(projectDirectoryRecruitingHint(project))}</p>
+              <p>${escapeHtml(clampDirectionalCopy(projectDirectoryRecruitingHint(project), 72))}</p>
             </div>
             <div class="build-card-signal">
               <span>Workspace Entry</span>
               <strong>${escapeHtml(projectDirectoryParticipationHeadline(project, human, myProjectIds))}</strong>
-              <p>${escapeHtml(projectDirectoryParticipationHint(project, human, myProjectIds))}</p>
+              <p>${escapeHtml(clampDirectionalCopy(projectDirectoryParticipationHint(project, human, myProjectIds), 72))}</p>
             </div>
           </div>
           <div class="build-card-meta">
-            <div class="build-meta-item">
-              <span>Participants</span>
-              <strong>${project.memberAgentIds?.length || 0}</strong>
-            </div>
             <div class="build-meta-item ${openParticipationRequests.length ? "demand" : ""}">
-              <span>Open Requests</span>
-              <strong>${openParticipationRequests.length}</strong>
+              <span>Recruiting</span>
+              <strong>${openParticipationRequests.length ? `${openParticipationRequests.length} Waiting` : "Open Intake"}</strong>
+              <p>${escapeHtml(openParticipationRequests.length ? "Pending owner review is already active in Project Workspace." : "New participation still starts on the project page.")}</p>
             </div>
             <div class="build-meta-item build-meta-item-activity">
-              <span>Latest Run</span>
+              <span>Latest Delivery</span>
               <strong>${safeLatestRunAction}</strong>
               <p>${safeLatestRunNote}</p>
             </div>
             <div class="build-meta-item">
-              <span>Directory Signal</span>
+              <span>Signal</span>
               <strong>${safeDirectorySignal}</strong>
             </div>
           </div>
-          ${renderDirectoryTags(project.tags)}
+          ${renderDirectoryTags(project.tags, 2)}
         </div>
       </summary>
       <div class="expand-body">
@@ -4064,8 +4073,8 @@ function renderMarketProjects(projects) {
       ? "Start with the service endpoint for live usage, then open the project page for operator context."
       : "This project is marked operating, but the project page still carries the clearest operator context until the endpoint is published.");
     const marketSignal = `R ${project.rating || 0} / H ${project.heat || 0}`;
-    const safeLatestRunAction = escapeHtml(formatActionLabel(latestRun?.action, "No Run Yet"));
-    const safeLatestRunNote = escapeHtml(latestRun ? formatCompactTimestamp(latestRun.generatedAt) : formatCompactTimestamp(project.updatedAt));
+    const safeLatestRunAction = escapeHtml(latestRun ? formatActionLabel(latestRun.action, "No Run Yet") : "Project Update");
+    const safeLatestRunNote = escapeHtml(formatLatestDeliveryNote({ latestRun, fallbackAt: project.updatedAt }));
     return `
     <details class="expand-card market-directory-card" data-project-card="${project.projectId}">
       <summary>
@@ -4116,20 +4125,20 @@ function renderMarketProjects(projects) {
           </div>
           <div class="build-card-meta">
             <div class="build-meta-item build-meta-item-activity">
-              <span>Latest Run</span>
+              <span>Latest Delivery</span>
               <strong>${safeLatestRunAction}</strong>
               <p>${safeLatestRunNote}</p>
             </div>
             <div class="build-meta-item">
-              <span>Usage Route</span>
+              <span>Entry</span>
               <strong>${project.serviceEndpoint ? "Service + Project" : "Project Page Only"}</strong>
             </div>
             <div class="build-meta-item">
-              <span>Directory Signal</span>
+              <span>Signal</span>
               <strong>${marketSignal}</strong>
             </div>
           </div>
-          ${renderDirectoryTags(project.tags)}
+          ${renderDirectoryTags(project.tags, 2)}
         </div>
       </summary>
       <div class="expand-body">

@@ -1175,7 +1175,7 @@ details.expand-card summary::-webkit-details-marker { display: none; }
 .build-card-shell,
 .build-card-title-stack {
   display: grid;
-  gap: 12px;
+  gap: 10px;
   min-width: 0;
 }
 
@@ -1214,17 +1214,17 @@ details.expand-card summary::-webkit-details-marker { display: none; }
 
 .build-card-identity-list {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
   min-width: 0;
 }
 
 .build-card-identity-item {
   border: 1px solid var(--border);
   border-radius: 14px;
-  padding: 10px 12px;
+  padding: 9px 11px;
   display: grid;
-  gap: 6px;
+  gap: 5px;
   min-width: 0;
   background: rgba(255, 255, 255, 0.03);
 }
@@ -1241,26 +1241,26 @@ details.expand-card summary::-webkit-details-marker { display: none; }
 .build-card-summary {
   margin: 0;
   color: var(--text-soft);
-  line-height: 1.55;
+  line-height: 1.5;
   overflow-wrap: anywhere;
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
   overflow: hidden;
 }
 
 .build-card-signal-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
 }
 
 .build-card-signal {
   border: 1px solid var(--border);
   border-radius: 14px;
-  padding: 12px;
+  padding: 10px 11px;
   display: grid;
-  gap: 6px;
+  gap: 5px;
   min-width: 0;
   background: rgba(255, 255, 255, 0.035);
 }
@@ -1277,25 +1277,25 @@ details.expand-card summary::-webkit-details-marker { display: none; }
 .build-card-signal p {
   margin: 0;
   color: var(--muted);
-  line-height: 1.5;
+  line-height: 1.4;
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 1;
   overflow: hidden;
 }
 
 .build-card-meta {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+  gap: 8px;
 }
 
 .build-meta-item {
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 10px 12px;
+  padding: 9px 11px;
   display: grid;
-  gap: 6px;
+  gap: 5px;
   align-content: start;
   min-width: 0;
   background: rgba(255, 255, 255, 0.03);
@@ -1323,7 +1323,7 @@ details.expand-card summary::-webkit-details-marker { display: none; }
   overflow-wrap: anywhere;
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 1;
   overflow: hidden;
 }
 
@@ -1375,7 +1375,7 @@ details.expand-card summary::-webkit-details-marker { display: none; }
 }
 
 .build-card-tags {
-  min-height: 28px;
+  min-height: 24px;
   align-items: flex-start;
 }
 
