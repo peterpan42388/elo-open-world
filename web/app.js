@@ -2131,7 +2131,7 @@ function renderSettingsData() {
           <article class="guide-card">
             <span class="guide-step">NEXT</span>
             <h3>What This Page Will Become</h3>
-            <p>This workspace will evolve into project membership, governance, and contribution management. The current version focuses on visibility and project identity.</p>
+            <p>This page now focuses on your private project inventory. Use the dedicated project page for collaboration, participation, and delivery decisions.</p>
           </article>
         </div>
       `;
@@ -2218,7 +2218,7 @@ function renderSettingsData() {
                   <strong>Membership Workflow</strong>
                   <span>Use Project Workspace</span>
                 </div>
-                <p>Owner-level invite, role, and removal controls now live in the dedicated project workspace so participation decisions stay attached to the active project conversation.</p>
+                <p>Owner-level invite, role, and removal controls now live in the dedicated project page so participation decisions stay attached to the active project record.</p>
                 <div class="action-row">
                   <button type="button" class="topbar-button secondary open-workspace-button" data-project-open="${project.projectId}">Open Workspace To Manage Members</button>
                 </div>
@@ -2991,6 +2991,30 @@ function renderProjectProgressPanel(project) {
     ? state.summary.requirements.find((item) => item.requirementId === project.requirementId)
     : null;
   const summary = requirement?.latestRefinementSummary || null;
+  const stage = String(project?.stage || "source").toLowerCase();
+  const stateLabel = projectStateLabel(project.state);
+  const stageTrack = [
+    {
+      label: "Intake",
+      description: requirement ? `Requirement ${requirement.requirementId}` : "Project idea intake still needs a linked requirement.",
+      active: Boolean(requirement)
+    },
+    {
+      label: "Refinement",
+      description: summary?.projectDirection || "Primary-agent refinement has not produced a structured direction yet.",
+      active: Boolean(summary)
+    },
+    {
+      label: "Source Project",
+      description: project.repoFullName || project.repoName || "Source repository not created yet.",
+      active: ["source", "operating"].includes(stage)
+    },
+    {
+      label: "Operating",
+      description: stage === "operating" ? "This project is running as an operating service." : "Not operating yet.",
+      active: stage === "operating"
+    }
+  ];
   const milestones = Array.isArray(summary?.milestones) && summary.milestones.length
     ? summary.milestones.map((item) => `<li>${escapeHtml(item)}</li>`).join("")
     : "<li>No milestones captured yet.</li>";
@@ -2998,6 +3022,17 @@ function renderProjectProgressPanel(project) {
     ? summary.questions.map((item) => `<li>${escapeHtml(item)}</li>`).join("")
     : "<li>No open questions recorded.</li>";
   return `
+    <div class="workspace-stage-track">
+      ${stageTrack.map((item) => `
+        <div class="workspace-stage-step ${item.active ? "active" : ""}">
+          <div class="summary-row">
+            <strong>${item.label}</strong>
+            <span>${item.active ? "Ready" : "Pending"}</span>
+          </div>
+          <p>${escapeHtml(item.description)}</p>
+        </div>
+      `).join("")}
+    </div>
     <div class="build-directory-detail-grid">
       <div class="build-directory-detail-block">
         <div class="summary-row">
@@ -3010,12 +3045,12 @@ function renderProjectProgressPanel(project) {
       <div class="build-directory-detail-block">
         <div class="summary-row">
           <strong>Delivery Signals</strong>
-          <span>${projectStateLabel(project.state)}</span>
+          <span>${stateLabel}</span>
         </div>
         <div class="detail-grid compact">
           <div class="detail-item"><span>Requirement</span><strong>${project.requirementId || "No linked requirement"}</strong></div>
           <div class="detail-item"><span>Stage</span><strong>${project.stage || "source"}</strong></div>
-          <div class="detail-item"><span>State</span><strong>${projectStateLabel(project.state)}</strong></div>
+          <div class="detail-item"><span>State</span><strong>${stateLabel}</strong></div>
           <div class="detail-item"><span>Latest Foundation Run</span><strong>${project.foundationRuns?.[0]?.action || "none"}</strong></div>
         </div>
       </div>

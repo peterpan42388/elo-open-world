@@ -109,12 +109,13 @@ After every execution cycle, update this file with:
 - Switched `Project Workspace` conversation from browser-only state to persisted project workspace conversation stored through the project API, and added a progress/delivery panel so collaboration state survives refresh and stays attached to the project record
 - Routed `Build` participation actions into `Project Workspace`, kept participation requests on the project page, and added project-level regression coverage for request/resolve flow so directory browsing stays separate from collaboration
 - Added stronger browser bridge guidance and long-thread presentation inside `Project Workspace`, so agent collaboration now has clearer next steps, bridge context, and a split between earlier context and recent exchanges
+- Tightened `Project Workspace` progress presentation with a stage track and cleaner delivery signals, and reduced remaining cross-page collaboration language in `Build` and `Settings` so the project page is more clearly the single collaboration surface
 
 ## Current Focus
-- P1 Project Workspace Maturation: project-stage clarity and final collaboration cleanup
+- P1 Project Workspace Maturation: final collaboration cleanup and project-page ownership
 
 ## Next Recommended Action
-- Tighten project-stage and progress presentation inside `Project Workspace`, then remove any remaining collaboration or participation language outside the project page so the workspace becomes the single collaboration surface
+- Remove any remaining collaboration or participation ownership outside `Project Workspace`, then tighten the project page summary/sidebar so project state, participation, and agent work all read as one unified surface
 
 ## Blockers
 - none currently

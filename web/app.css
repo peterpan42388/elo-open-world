@@ -439,6 +439,33 @@ h3 { margin: 0; }
   color: var(--muted);
 }
 
+.workspace-stage-track {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  min-width: 0;
+}
+
+.workspace-stage-step {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: rgba(11, 19, 28, 0.76);
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.workspace-stage-step.active {
+  border-color: rgba(87, 215, 193, 0.28);
+  background: rgba(15, 31, 36, 0.82);
+}
+
+.workspace-stage-step p {
+  margin: 0;
+  color: var(--muted);
+}
+
 .workspace-thread-history {
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
@@ -1248,6 +1275,7 @@ pre,
   .build-directory-detail-grid { grid-template-columns: 1fr; }
   .build-card-meta { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .workspace-membership-form { grid-template-columns: 1fr; }
+  .workspace-stage-track { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 980px) {
@@ -1263,6 +1291,7 @@ pre,
   .workspace-membership-grid { grid-template-columns: 1fr; }
   .membership-tools form { grid-template-columns: 1fr; }
   .infra-arrow { transform: rotate(90deg); }
+  .workspace-stage-track { grid-template-columns: 1fr; }
 }
 
 .workspace-sidebar label input[type="number"] {
