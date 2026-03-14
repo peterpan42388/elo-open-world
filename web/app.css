@@ -1238,6 +1238,14 @@ details.expand-card summary::-webkit-details-marker { display: none; }
   overflow-wrap: anywhere;
 }
 
+.build-card-identity-item .detail-code-compact {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  word-break: normal;
+}
+
 .build-card-summary {
   margin: 0;
   color: var(--text-soft);

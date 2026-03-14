@@ -644,6 +644,15 @@ function clampInlineLabel(value, maxLength = 32) {
   return `${normalized.slice(0, Math.max(6, maxLength - 3)).trim()}...`;
 }
 
+function formatCollapsedIdentityLabel(value, { stripProtocol = false, maxLength = 36 } = {}) {
+  const normalized = String(value || "").trim();
+  if (!normalized) return "";
+  const displayValue = stripProtocol
+    ? normalized.replace(/^https?:\/\//i, "")
+    : normalized;
+  return clampInlineLabel(displayValue, maxLength);
+}
+
 function formatLatestDeliveryNote({ latestRun = null, latestWorkspaceMessage = null, fallbackAt = 0 } = {}) {
   if (latestRun) {
     const parts = [formatCompactTimestamp(latestRun.generatedAt)];
@@ -3032,6 +3041,11 @@ function renderProjects(projects) {
     const safeSummary = escapeHtml(project.summary || "No summary provided.");
     const safeRepoLabel = escapeHtml(repoLabel);
     const safeServiceLabel = escapeHtml(serviceLabel);
+    const compactRepoLabel = escapeHtml(formatCollapsedIdentityLabel(repoLabel, { maxLength: 34 }));
+    const compactServiceLabel = escapeHtml(formatCollapsedIdentityLabel(serviceLabel, {
+      stripProtocol: true,
+      maxLength: 40
+    }));
     const safeRepoName = escapeHtml(project.repoName || "No repo linked");
     const safeOwnerHumanId = escapeHtml(project.ownerHumanId || "-");
     const safeStage = escapeHtml(project.stage || "source");
@@ -3060,12 +3074,12 @@ function renderProjects(projects) {
               <div class="build-card-identity-list">
                 <div class="build-card-identity-item">
                   <span>Repo</span>
-                  <strong class="detail-code">${safeRepoLabel}</strong>
+                  <strong class="detail-code detail-code-compact" title="${safeRepoLabel}">${compactRepoLabel}</strong>
                 </div>
                 ${serviceLabel ? `
                   <div class="build-card-identity-item">
                     <span>Service</span>
-                    <strong class="detail-code">${safeServiceLabel}</strong>
+                    <strong class="detail-code detail-code-compact" title="${safeServiceLabel}">${compactServiceLabel}</strong>
                   </div>
                 ` : ""}
               </div>
@@ -4078,6 +4092,13 @@ function renderMarketProjects(projects) {
   root.innerHTML = filtered.map((project) => {
     const repoLabel = project.repoFullName || project.repoName || "No source repo listed";
     const serviceLabel = project.serviceEndpoint || "Service endpoint not set";
+    const safeRepoLabel = escapeHtml(repoLabel);
+    const safeServiceLabel = escapeHtml(serviceLabel);
+    const compactRepoLabel = escapeHtml(formatCollapsedIdentityLabel(repoLabel, { maxLength: 34 }));
+    const compactServiceLabel = escapeHtml(formatCollapsedIdentityLabel(serviceLabel, {
+      stripProtocol: true,
+      maxLength: 40
+    }));
     const latestRun = latestProjectFoundationRun(project);
     const accessModel = isOperatingFoundationProject(project) ? "Foundation Access" : "Project Access";
     const accessNote = project.pricingNote || "Usage still routes through the published project surface while protocol pricing stays lightweight.";
@@ -4104,11 +4125,11 @@ function renderMarketProjects(projects) {
               <div class="build-card-identity-list">
                 <div class="build-card-identity-item">
                   <span>Source Repo</span>
-                  <strong class="detail-code">${escapeHtml(repoLabel)}</strong>
+                  <strong class="detail-code detail-code-compact" title="${safeRepoLabel}">${compactRepoLabel}</strong>
                 </div>
                 <div class="build-card-identity-item">
                   <span>Service</span>
-                  <strong class="detail-code">${escapeHtml(serviceLabel)}</strong>
+                  <strong class="detail-code detail-code-compact" title="${safeServiceLabel}">${compactServiceLabel}</strong>
                 </div>
               </div>
             </div>
@@ -4157,8 +4178,8 @@ function renderMarketProjects(projects) {
               <span>${escapeHtml(project.repoName || "Source project")}</span>
             </div>
             <div class="detail-grid compact">
-              <div class="detail-item detail-item-wide"><span>Source Project</span><strong class="detail-code">${escapeHtml(repoLabel)}</strong></div>
-              <div class="detail-item detail-item-wide"><span>Service Endpoint</span><strong class="detail-code">${escapeHtml(serviceLabel)}</strong></div>
+              <div class="detail-item detail-item-wide"><span>Source Project</span><strong class="detail-code">${safeRepoLabel}</strong></div>
+              <div class="detail-item detail-item-wide"><span>Service Endpoint</span><strong class="detail-code">${safeServiceLabel}</strong></div>
               <div class="detail-item"><span>Heat</span><strong>${project.heat || 0}</strong></div>
               <div class="detail-item"><span>Rating</span><strong>${project.rating || 0}</strong></div>
               <div class="detail-item"><span>Latest Run</span><strong>${escapeHtml(latestRun?.action || "none")}</strong></div>

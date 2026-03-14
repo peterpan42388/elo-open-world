@@ -97,6 +97,7 @@ After every execution cycle, update this file with:
 - any new blockers
 
 ## Last Completed
+- Tightened `Build` and `Market` collapsed directory identity rows by shortening repo and service labels into bounded quick-scan values with full tooltips while preserving full identifiers in expanded detail blocks, reducing live foundation-card height without reintroducing edit controls to the directory surface
 - Tightened `Build` and `Market` collapsed directory cards by removing duplicated entry/recruiting meta tiles, keeping pending participation requests visible only when demand actually exists, and preserving `Project Workspace` as the sole collaboration entry path while reducing quick-scan card height
 - Tightened `Build` and `Market` collapsed directory cards for quick scan density by clamping long tag and latest-delivery labels, shortening duplicate recruiting copy, and keeping signal/meta blocks in two columns on mobile until very narrow widths so collapsed cards stay shorter without weakening `Project Workspace` entry
 - Tightened `Build` and `Market` collapsed directory cards around real foundation-project data by reducing summary/signal density, shrinking visible tag rows to two items, converting latest activity into a compact delivery line, and keeping recruiting plus `Project Workspace` entry visually primary without adding edit controls to the directory surface
@@ -130,10 +131,10 @@ After every execution cycle, update this file with:
 - Reworked the `Project Workspace` snapshot around ownership, participation, recruiting, latest activity, and operating inputs so the page reads less like a directory card and more like the active project control surface
 
 ## Current Focus
-- P2 Build Directory Hardening: verify the reduced collapsed meta density against deployed `Build` and `Market` cards with real project data, then trim any remaining quick-scan overflow or CTA hierarchy regressions
+- P2 Build Directory Hardening: verify the compact collapsed repo/service identity rows against deployed `Build` and `Market` cards with real project data, then trim any remaining quick-scan overflow or CTA hierarchy regressions
 
 ## Next Recommended Action
-- run a browser pass on deployed `Build` and `Market` cards with real project data to confirm the leaner meta rows, then fix any remaining long-summary, badge-wrap, or expanded action regressions that still slow the quick scan path
+- run a browser pass on deployed `Build` and `Market` cards with real project data to confirm the new compact identity rows, then fix any remaining long-summary, badge-wrap, or expanded action regressions that still slow the quick scan path
 
 ## Blockers
 - local runtime has no seeded project data, so fully representative browser validation still needs either real project records in the local state or a pass against the deployed environment
