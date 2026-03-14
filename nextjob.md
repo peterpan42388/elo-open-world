@@ -103,12 +103,13 @@ After every execution cycle, update this file with:
 - Added `nextjob.md` execution queue and documented the 10-minute local automation loop
 - Reworked `New Project` into a dedicated creation shell with a focused rail, clearer stage boundaries, route-correct creation copy, and live readiness gating for sign-in, agents, and GitHub link state
 - Reworked `Project Workspace` into a clearer collaboration shell with grouped sidebar blocks, workspace summary, and stronger agent conversation hierarchy
+- Normalized `Build` directory cards with stronger header hierarchy, recruiting signal, directory snapshot blocks, and lower-noise project actions
 
 ## Current Focus
-- P0 Visual Consolidation across `Build`
+- P0 Visual Consolidation across `World`, `Settings`, `Market`, and `Docs`
 
 ## Next Recommended Action
-- Normalize `Build` directory cards so recruiting, participation, description, and member density read cleanly without looking like an admin panel
+- Audit the remaining routes for dark-theme regressions, spacing collisions, and lingering admin-panel density, then close the worst issues in one pass
 
 ## Blockers
 - none currently

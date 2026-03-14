@@ -2833,40 +2833,96 @@ function renderProjects(projects) {
     return;
   }
   root.innerHTML = filtered.map((project) => `
-    <details class="expand-card" data-project-card="${project.projectId}">
+    <details class="expand-card build-directory-card" data-project-card="${project.projectId}">
       <summary>
-        <div class="summary-row">
-          <strong>${project.title}</strong>
-          <div class="tag-row">
-            ${createBadge(projectTypeLabel(project.kind))}
-            ${createBadge(projectStateLabel(project.state))}
-            ${isOperatingFoundationProject(project) ? createBadge("Operating Foundation") : ""}
+        <div class="build-card-shell">
+          <div class="build-card-header">
+            <div class="build-card-title-stack">
+              <div class="summary-row">
+                <strong>${project.title}</strong>
+                <div class="tag-row">
+                  ${createBadge(projectTypeLabel(project.kind))}
+                  ${createBadge(project.stage || "source")}
+                  ${createBadge(projectStateLabel(project.state))}
+                  ${isOperatingFoundationProject(project) ? createBadge("Operating Foundation") : ""}
+                </div>
+              </div>
+              <div class="build-card-repo">${project.repoFullName || project.repoName}</div>
+            </div>
+            <div class="build-card-status">
+              <span class="directory-signal ${String(project.state || "").toLowerCase() === "paused" ? "inactive" : "recruiting"}">
+                ${String(project.state || "").toLowerCase() === "paused" ? "Not Recruiting" : "Recruiting"}
+              </span>
+            </div>
+          </div>
+          <p class="build-card-summary">${project.summary || "No summary provided."}</p>
+          <div class="build-card-meta">
+            <div class="build-meta-item">
+              <span>Participants</span>
+              <strong>${project.memberAgentIds?.length || 0}</strong>
+            </div>
+            <div class="build-meta-item">
+              <span>Owner</span>
+              <strong class="detail-code">${project.ownerHumanId}</strong>
+            </div>
+            <div class="build-meta-item">
+              <span>Rating</span>
+              <strong>${project.rating || 0}</strong>
+            </div>
+            <div class="build-meta-item">
+              <span>Heat</span>
+              <strong>${project.heat || 0}</strong>
+            </div>
+          </div>
+          <div class="tag-row build-card-tags">
+            ${(project.tags || []).length ? (project.tags || []).map((tag) => `<span class="subtle-tag">${tag}</span>`).join("") : '<span class="subtle-tag">No tags</span>'}
           </div>
         </div>
-        <span>${project.repoName}</span>
       </summary>
       <div class="expand-body">
-        <p>${project.summary || "No summary provided."}</p>
-        <div class="tag-row">${(project.tags || []).map((tag) => `<span class="subtle-tag">${tag}</span>`).join("")}</div>
+        <div class="build-directory-detail-grid">
+          <div class="build-directory-detail-block">
+            <div class="summary-row">
+              <strong>Directory Snapshot</strong>
+              <span>${project.repoName}</span>
+            </div>
+            <div class="detail-grid compact">
+              <div class="detail-item"><span>Owner</span><strong class="detail-code">${project.ownerHumanId}</strong></div>
+              <div class="detail-item"><span>Participants</span><strong>${project.memberAgentIds?.length || 0}</strong></div>
+              <div class="detail-item"><span>Recruiting</span><strong>${String(project.state || "").toLowerCase() === "paused" ? "No" : "Yes"}</strong></div>
+              <div class="detail-item"><span>Rating</span><strong>${project.rating || 0}</strong></div>
+              <div class="detail-item"><span>Heat</span><strong>${project.heat || 0}</strong></div>
+              <div class="detail-item"><span>Stage</span><strong>${project.stage || "source"}</strong></div>
+              <div class="detail-item"><span>State</span><strong>${projectStateLabel(project.state)}</strong></div>
+              <div class="detail-item"><span>GitHub</span><strong class="detail-code">${project.repoFullName}</strong></div>
+            </div>
+          </div>
+          <div class="build-directory-detail-block">
+            <div class="summary-row">
+              <strong>Member Agents</strong>
+              <span>${project.memberAgentIds?.length || 0}</span>
+            </div>
+            <div class="nested-list">${(project.memberAgentIds || []).length ? (project.memberAgentIds || []).slice(0, 5).map((agentId) => `
+              <div class="nested-item">
+                <strong>${agentId}</strong>
+                <span>Role: ${projectMemberRole(project, agentId)}</span>
+              </div>
+            `).join("") : '<div class="empty">No member agents recorded.</div>'}</div>
+          </div>
+        </div>
         <div class="detail-grid compact">
-          <div class="detail-item"><span>Owner</span><strong>${project.ownerHumanId}</strong></div>
-          <div class="detail-item"><span>Participants</span><strong>${project.memberAgentIds?.length || 0}</strong></div>
-          <div class="detail-item"><span>Recruiting</span><strong>${String(project.state || "").toLowerCase() === "paused" ? "No" : "Yes"}</strong></div>
-          <div class="detail-item"><span>Rating</span><strong>${project.rating || 0}</strong></div>
-          <div class="detail-item"><span>Heat</span><strong>${project.heat || 0}</strong></div>
-          <div class="detail-item"><span>Stage</span><strong>${project.stage || "source"}</strong></div>
-          <div class="detail-item"><span>State</span><strong>${projectStateLabel(project.state)}</strong></div>
-          <div class="detail-item"><span>GitHub</span><strong>${project.repoFullName}</strong></div>
+          <div class="detail-item">
+            <span>Directory Role</span>
+            <strong>${myProjectIds.has(project.projectId) ? "Already In Your Workspace" : "Public Source Project"}</strong>
+          </div>
+          <div class="detail-item">
+            <span>Participation</span>
+            <strong>${human && !myProjectIds.has(project.projectId) ? "Request Through Project Workspace" : "Managed From Your Workspace"}</strong>
+          </div>
         </div>
         ${renderProjectFoundationRunSummary(project)}
-        <div class="nested-list">${(project.memberAgentIds || []).length ? (project.memberAgentIds || []).slice(0, 5).map((agentId) => `
-          <div class="nested-item">
-            <strong>${agentId}</strong>
-            <span>Role: ${projectMemberRole(project, agentId)}</span>
-          </div>
-        `).join("") : '<div class="empty">No member agents recorded.</div>'}</div>
         ${renderProjectFoundationRunList(project)}
-        <div class="tag-row action-row">
+        <div class="tag-row action-row build-directory-actions">
           <button type="button" class="topbar-button secondary open-workspace-button" data-project-open="${project.projectId}">Open Project</button>
           ${human && !myProjectIds.has(project.projectId) ? `<button type="button" class="topbar-button ghost participation-request-button" data-project-title="${escapeHtml(project.title)}">Apply To Participate</button>` : ""}
           <a href="${project.repoUrl}" target="_blank" rel="noreferrer">Open GitHub Repo</a>
