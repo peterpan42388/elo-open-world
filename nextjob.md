@@ -101,13 +101,14 @@ After every execution cycle, update this file with:
 - Replaced `settings-guest` behavior with an access-state panel
 - Hid access prompt for GitHub-only logins and showed verification prompt only for local unverified accounts
 - Added `nextjob.md` execution queue and documented the 10-minute local automation loop
-- Reworked `New Project` into a dedicated creation shell with a focused rail, clearer stage boundaries, and corrected route language away from `Build`
+- Reworked `New Project` into a dedicated creation shell with a focused rail, clearer stage boundaries, route-correct creation copy, and live readiness gating for sign-in, agents, and GitHub link state
+- Reworked `Project Workspace` into a clearer collaboration shell with grouped sidebar blocks, workspace summary, and stronger agent conversation hierarchy
 
 ## Current Focus
-- P0 Visual Consolidation across `Project Workspace` and `Build`
+- P0 Visual Consolidation across `Build`
 
 ## Next Recommended Action
-- Rework `Project Workspace` into a clearer two-column collaboration shell with stronger stage, progress, and agent conversation grouping
+- Normalize `Build` directory cards so recruiting, participation, description, and member density read cleanly without looking like an admin panel
 
 ## Blockers
 - none currently

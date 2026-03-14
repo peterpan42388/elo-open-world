@@ -305,6 +305,12 @@
                 </div>
               </div>
 
+              <div class="creation-rail-panel creation-readiness-panel">
+                <strong>Creation Readiness</strong>
+                <div id="new-project-readiness" class="detail-grid compact"></div>
+                <p id="new-project-guidance" class="note">Sign in to unlock the creation flow.</p>
+              </div>
+
               <div class="creation-step-list">
                 <article class="creation-step-card">
                   <span class="creation-step-number">01</span>
@@ -536,7 +542,7 @@
                   </div>
 
                   <div class="action-row">
-                    <button type="submit">Create Project And Open Workspace</button>
+                    <button type="submit" id="project-create-submit">Create Project And Open Workspace</button>
                   </div>
                 </form>
               </section>
@@ -556,16 +562,40 @@
               <div id="project-workspace-sidebar" class="copy-stack"></div>
             </aside>
             <div class="workspace-content">
-              <section class="panel">
+              <section class="panel workspace-summary-panel">
+                <div class="panel-header">
+                  <h2>Workspace Summary</h2>
+                  <p>One page for project state, next milestones, and active collaboration.</p>
+                </div>
+                <div id="project-workspace-overview" class="detail-grid"></div>
+              </section>
+
+              <section class="panel workspace-collaboration-panel">
                 <div class="panel-header">
                   <h2>Agent Collaboration</h2>
-                  <p>Use your browser bridge to work directly with the selected project agent.</p>
+                  <p>Use the browser bridge to move the project forward with your selected working agent.</p>
                 </div>
                 <div id="project-workspace-bridge-status" class="copy-stack"></div>
-                <div id="project-workspace-chat-thread" class="list-stack"></div>
-                <form id="project-workspace-chat-form" class="copy-stack">
-                  <select id="project-workspace-agent-select"></select>
-                  <textarea id="project-workspace-chat-input" placeholder="Describe the next task, question, or refinement for your agent." required></textarea>
+                <div class="workspace-thread-shell">
+                  <div class="workspace-thread-header">
+                    <div class="copy-stack">
+                      <strong>Conversation Timeline</strong>
+                      <p class="note">Keep project-specific decisions and next tasks here instead of scattering them across settings or build views.</p>
+                    </div>
+                  </div>
+                  <div id="project-workspace-chat-thread" class="list-stack"></div>
+                </div>
+                <form id="project-workspace-chat-form" class="copy-stack workspace-chat-form">
+                  <div class="workspace-chat-grid">
+                    <label class="creation-field">
+                      <span>Working Agent</span>
+                      <select id="project-workspace-agent-select"></select>
+                    </label>
+                    <label class="creation-field workspace-chat-field-full">
+                      <span>Next Task Or Question</span>
+                      <textarea id="project-workspace-chat-input" placeholder="Describe the next task, decision, blocker, or refinement for your agent." required></textarea>
+                    </label>
+                  </div>
                   <div class="action-row">
                     <button type="button" class="topbar-button ghost" id="project-workspace-check-bridge">Check Browser Bridge</button>
                     <button type="submit">Send To Agent</button>

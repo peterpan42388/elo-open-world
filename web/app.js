@@ -806,6 +806,61 @@ function renderProjectRequirementPreview(requirement) {
   `;
 }
 
+function renderNewProjectReadiness({ human = null, agents = [] } = {}) {
+  const root = $("new-project-readiness");
+  const guidance = $("new-project-guidance");
+  const starterSubmit = $("project-starter-submit");
+  const projectSubmit = $("project-create-submit");
+  const hasGitHub = Boolean(human?.githubLogin);
+  const hasAgents = agents.length > 0;
+  const hasStarter = Boolean((human && state.latestStarterRequirement?.requirementId) || (human && state.starterRequirementId));
+
+  if (starterSubmit) starterSubmit.disabled = !(human && hasAgents);
+  if (projectSubmit) projectSubmit.disabled = !(human && hasGitHub);
+  if (!root || !guidance) return;
+
+  const readinessItems = [
+    {
+      label: "Signed In",
+      value: human ? human.humanId : "Required",
+      badge: human ? "Ready" : "Needed"
+    },
+    {
+      label: "GitHub Link",
+      value: human ? (human.githubLogin || "Required") : "Pending sign-in",
+      badge: hasGitHub ? "Ready" : "Needed"
+    },
+    {
+      label: "Agents",
+      value: human ? `${agents.length} available` : "Pending sign-in",
+      badge: hasAgents ? "Ready" : "Needed"
+    },
+    {
+      label: "Starter Draft",
+      value: hasStarter ? (state.latestStarterRequirement?.requirementId || state.starterRequirementId) : "Not created",
+      badge: hasStarter ? "Ready" : "Waiting"
+    }
+  ];
+
+  root.innerHTML = readinessItems.map((item) => `
+    <div class="detail-item creation-readiness-item">
+      <span>${item.label}</span>
+      <strong>${item.value}</strong>
+      ${createBadge(item.badge)}
+    </div>
+  `).join("");
+
+  guidance.textContent = !human
+    ? "Sign in first to unlock requirement intake and repository creation."
+    : !hasAgents
+      ? "Register at least one agent before creating the starter requirement."
+      : !hasGitHub
+        ? "Link GitHub before creating the source repository."
+        : hasStarter
+          ? "Starter draft is ready. Review the draft, then create the source project."
+          : "Create the starter requirement first, then refine it or continue into source project creation.";
+}
+
 function bridgeStatusLabel() {
   if (!state.starterBridgeStatus) return "Not checked";
   if (!state.starterBridgeStatus.available) return "Plugin not detected";
@@ -1377,6 +1432,8 @@ function renderSettingsData() {
   const starterForm = $("project-starter-form");
   const starterResult = $("project-starter-result");
   const signedActions = $("signed-agent-actions");
+  const projectForm = $("project-form");
+  renderNewProjectReadiness();
   if (!human) {
     if (profile) profile.innerHTML = "";
     if (profileActions) profileActions.innerHTML = "";
@@ -1390,6 +1447,10 @@ function renderSettingsData() {
     if (foundationsRoot) foundationsRoot.innerHTML = "";
     if (starterResult) starterResult.innerHTML = "";
     if (signedActions) signedActions.innerHTML = "";
+    if (starterForm?.primaryAgentId) {
+      starterForm.primaryAgentId.innerHTML = '<option value="">Select your main agent</option>';
+    }
+    if (projectForm?.ownerHumanId) projectForm.ownerHumanId.value = "";
     return;
   }
 
@@ -1405,6 +1466,7 @@ function renderSettingsData() {
   const workingAgents = agents.filter((agent) => agent.online && agent.model).length;
   const idleAgents = agents.filter((agent) => !agent.online && agent.model).length;
   const offlineAgents = agents.filter((agent) => !agent.online && !agent.model).length;
+  renderNewProjectReadiness({ human, agents });
 
   if (settingsSummaryGrid) {
     settingsSummaryGrid.innerHTML = [
@@ -1620,7 +1682,6 @@ function renderSettingsData() {
 
   const agentForm = $("agent-form");
   const onboarderForm = $("onboarder-form");
-  const projectForm = $("project-form");
   const requirementForm = $("requirement-form");
   if (agentForm?.humanId) agentForm.humanId.value = human.humanId;
   if (onboarderForm?.humanId) onboarderForm.humanId.value = human.humanId;
@@ -2836,11 +2897,12 @@ function renderProjectWorkspace() {
   const title = $("project-workspace-title");
   const lede = $("project-workspace-lede");
   const sidebar = $("project-workspace-sidebar");
+  const overview = $("project-workspace-overview");
   const bridgeStatus = $("project-workspace-bridge-status");
   const thread = $("project-workspace-chat-thread");
   const agentSelect = $("project-workspace-agent-select");
   const form = $("project-workspace-chat-form");
-  if (!title || !lede || !sidebar || !bridgeStatus || !thread || !agentSelect || !form) return;
+  if (!title || !lede || !sidebar || !overview || !bridgeStatus || !thread || !agentSelect || !form) return;
 
   const human = currentHuman();
   const project = activeProject();
@@ -2848,6 +2910,7 @@ function renderProjectWorkspace() {
     title.textContent = "Project Workspace";
     lede.textContent = "Open a project from Build or My Projects to start a dedicated workspace.";
     sidebar.innerHTML = '<div class="empty">No active project selected.</div>';
+    overview.innerHTML = '<div class="detail-item"><span>Workspace</span><strong>No active project</strong></div>';
     bridgeStatus.innerHTML = '<div class="empty">No bridge context yet.</div>';
     thread.innerHTML = '<div class="empty">No workspace conversation yet.</div>';
     agentSelect.innerHTML = '<option value="">No agent available</option>';
@@ -2856,10 +2919,11 @@ function renderProjectWorkspace() {
 
   const agents = workspaceAgentsForProject(project);
   const messages = state.projectWorkspaceMessages[project.projectId] || [];
+  const latestRun = (project.foundationRuns || []).length ? project.foundationRuns[project.foundationRuns.length - 1] : null;
   title.textContent = project.title;
   lede.textContent = project.summary || "Project workspace for direct collaboration with your development agent.";
   sidebar.innerHTML = `
-    <div class="copy-stack">
+    <div class="workspace-sidebar-block">
       <div class="summary-row">
         <strong>${project.title}</strong>
         <div class="tag-row">
@@ -2876,15 +2940,45 @@ function renderProjectWorkspace() {
         <div class="detail-item"><span>Foundation Runs</span><strong>${project.foundationRuns?.length || 0}</strong></div>
       </div>
       <p><strong>Progress</strong><br />${project.summary || "No summary yet."}</p>
+    </div>
+    <div class="workspace-sidebar-block">
+      <strong>Stage And Delivery</strong>
+      <div class="detail-grid compact">
+        <div class="detail-item"><span>Stage</span><strong>${project.stage || "source"}</strong></div>
+        <div class="detail-item"><span>State</span><strong>${projectStateLabel(project.state)}</strong></div>
+        <div class="detail-item"><span>Recruiting</span><strong>${String(project.state || "").toLowerCase() === "paused" ? "No" : "Yes"}</strong></div>
+        <div class="detail-item"><span>Latest Run</span><strong>${latestRun?.action || "none"}</strong></div>
+      </div>
+    </div>
+    <div class="workspace-sidebar-block">
+      <strong>Project Inputs</strong>
+      <div class="tag-row">
+        ${(project.tags || []).length ? (project.tags || []).map((tag) => `<span class="subtle-tag">${tag}</span>`).join("") : '<span class="subtle-tag">No tags</span>'}
+      </div>
       ${renderProjectFoundationRunSummary(project)}
       ${renderProjectFoundationRunList(project, 3)}
     </div>
   `;
 
+  overview.innerHTML = [
+    ["Primary Agent", agents[0]?.label || agents[0]?.agentId || "No eligible agent"],
+    ["Conversation Entries", messages.length],
+    ["Repository", project.repoFullName || project.repoName],
+    ["Latest Foundation Profile", latestRun?.profile || "none"],
+    ["Rating", project.rating || 0],
+    ["Heat", project.heat || 0]
+  ].map(([label, value]) => `
+    <div class="detail-item workspace-overview-item">
+      <span>${label}</span>
+      <strong>${value}</strong>
+    </div>
+  `).join("");
+
   bridgeStatus.innerHTML = `
     <div class="detail-grid compact">
       <div class="detail-item"><span>Browser Bridge</span><strong>${bridgeStatusLabel()}</strong></div>
       <div class="detail-item"><span>Workspace Agent</span><strong>${agents[0]?.label || agents[0]?.agentId || "No eligible agent"}</strong></div>
+      <div class="detail-item"><span>Collaboration Mode</span><strong>${agents.length ? "Direct agent workspace" : "Agent required"}</strong></div>
     </div>
   `;
 
@@ -2893,7 +2987,7 @@ function renderProjectWorkspace() {
     : '<option value="">No project agent available</option>';
 
   thread.innerHTML = messages.length ? messages.map((entry) => `
-    <article class="entity-card">
+    <article class="entity-card workspace-message-card ${entry.role === "human" ? "human-message" : "agent-message"}">
       <div class="summary-row">
         <strong>${entry.role === "human" ? human.displayName || human.humanId : entry.agentId || "Agent"}</strong>
         <span>${formatTimestamp(entry.at)}</span>
@@ -3255,7 +3349,7 @@ $("project-starter-form")?.addEventListener("submit", async (event) => {
     const payload = {
       title: form.title.value,
       summary: [
-        `Project starter created inside My Projects.`,
+        `Project starter created inside New Project.`,
         `Primary agent: ${form.primaryAgentId.value}`,
         ``,
         form.idea.value.trim(),
