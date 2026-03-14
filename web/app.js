@@ -132,6 +132,14 @@ function foundationProjects() {
   return (state.summary.projects || []).filter((project) => preferredRepos.has(project.repoFullName));
 }
 
+function isFoundationProject(project) {
+  return foundationProjects().some((item) => item.projectId === project?.projectId);
+}
+
+function isOperatingFoundationProject(project) {
+  return isFoundationProject(project) && String(project?.stage || "").toLowerCase() === "operating";
+}
+
 function foundationWorkspace(project) {
   return FOUNDATION_PROJECT_WORKSPACES[project.repoFullName] || { focus: "Foundation project.", docs: [] };
 }
@@ -1092,6 +1100,7 @@ function renderProjectGraph(projects) {
             <span>${project.repoName}</span>
             <div class="tag-row">
               ${createBadge(projectTypeLabel(project.kind))}
+              ${isOperatingFoundationProject(project) ? createBadge("Operating Foundation") : ""}
               <span class="subtle-tag">Owner: ${project.ownerHumanId}</span>
             </div>
             <span>${project.memberAgentIds?.length || 0} agent member${(project.memberAgentIds?.length || 0) === 1 ? "" : "s"}</span>
@@ -1114,6 +1123,7 @@ function renderProjectGraph(projects) {
       <div class="tag-row">
         ${createBadge(projectTypeLabel(selectedProject.kind))}
         ${createBadge(projectStateLabel(selectedProject.state))}
+        ${isOperatingFoundationProject(selectedProject) ? createBadge("Operating Foundation") : ""}
       </div>
       <span>Owner: ${selectedProject.ownerHumanId}</span>
       <span>Agents: ${selectedProject.memberAgentIds?.length || 0}</span>
@@ -1121,6 +1131,8 @@ function renderProjectGraph(projects) {
       <span>Rating: ${selectedProject.rating || 0}</span>
       <span>Heat: ${selectedProject.heat || 0}</span>
       <div class="tag-row">${(selectedProject.tags || []).map((tag) => `<span class="subtle-tag">${tag}</span>`).join("")}</div>
+      ${renderProjectFoundationRunSummary(selectedProject)}
+      ${renderProjectFoundationRunList(selectedProject, 3)}
       <a href="${selectedProject.repoUrl}" target="_blank" rel="noreferrer">Open GitHub Repo</a>
     </div>
     <div class="relation-card">
@@ -1892,6 +1904,7 @@ function renderSettingsData() {
               <div class="tag-row">
                 ${createBadge(projectTypeLabel(project.kind))}
                 ${createBadge(projectStateLabel(project.state))}
+                ${isOperatingFoundationProject(project) ? createBadge("Operating Foundation") : ""}
               </div>
             </div>
             <span>${project.repoName}</span>
@@ -1900,6 +1913,7 @@ function renderSettingsData() {
             <p>Purpose: ${project.summary || "Not specified"}</p>
             <div class="tag-row">
               ${createBadge(project.stage === "operating" ? "Operating Service" : "Source Project")}
+              ${isOperatingFoundationProject(project) ? createBadge("Operating Foundation") : ""}
               ${(project.tags || []).map((tag) => `<span class="subtle-tag">${tag}</span>`).join("")}
             </div>
             <div class="detail-grid compact">
@@ -2570,6 +2584,7 @@ function renderProjects(projects) {
           <div class="tag-row">
             ${createBadge(projectTypeLabel(project.kind))}
             ${createBadge(projectStateLabel(project.state))}
+            ${isOperatingFoundationProject(project) ? createBadge("Operating Foundation") : ""}
           </div>
         </div>
         <span>${project.repoName}</span>
@@ -2681,6 +2696,7 @@ function renderMarketProjects(projects) {
           <div class="tag-row">
             ${createBadge(projectTypeLabel(project.kind))}
             ${createBadge(`Rating ${project.rating || 0}`)}
+            ${isOperatingFoundationProject(project) ? createBadge("Operating Foundation") : ""}
           </div>
         </div>
         <span>${project.repoName}</span>
