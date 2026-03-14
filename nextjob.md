@@ -97,6 +97,7 @@ After every execution cycle, update this file with:
 - any new blockers
 
 ## Last Completed
+- Hardened `Build` directory cards for narrow widths and long repo/service values by separating card identity into bounded repo/service blocks, stacking dense metadata on small screens, and making long GitHub/service fields render as full-width wrapped detail rows
 - Tightened `Build` directory cards around operating and recruiting scanability by surfacing operating state, participation entry path, latest activity, and current run signals earlier while keeping collaboration entry pointed at `Project Workspace`
 - Elevated `Project Workspace` collaboration into a first-position command deck with stronger bridge readiness, working-agent focus, recent exchange emphasis, and UI gating so only project participants with member agents can task through the workspace form
 - Added full dark foundation theme and UI rules
@@ -117,10 +118,10 @@ After every execution cycle, update this file with:
 - Reworked the `Project Workspace` snapshot around ownership, participation, recruiting, latest activity, and operating inputs so the page reads less like a directory card and more like the active project control surface
 
 ## Current Focus
-- P2 Build Directory Hardening: keep `Build` directory-first while checking remaining card density and overflow edge cases after the operating-state pass
+- P2 Build Directory Hardening: verify the refined `Build` cards against live project data and trim any remaining density edge cases without reintroducing edit controls
 
 ## Next Recommended Action
-- audit `Build` card layout on narrow widths and long repo/service values, then trim any remaining overflow or dense metadata regressions without adding edit controls back to the directory
+- run a browser pass on `Build` with long real repo/service values and trim any remaining secondary metadata noise if it still harms scanning on tablet or mobile widths
 
 ## Blockers
 - none currently

@@ -2874,22 +2874,35 @@ function renderProjects(projects) {
     const latestRun = latestProjectFoundationRun(project);
     const latestActivity = projectLatestActivity(project);
     const openParticipationRequests = (project.participationRequests || []).filter((entry) => entry.status === "pending");
+    const repoLabel = project.repoFullName || project.repoName || "No repo linked";
+    const serviceLabel = project.serviceEndpoint || "";
     return `
     <details class="expand-card build-directory-card" data-project-card="${project.projectId}">
       <summary>
         <div class="build-card-shell">
           <div class="build-card-header">
             <div class="build-card-title-stack">
-              <div class="summary-row">
-                <strong>${project.title}</strong>
-                <div class="tag-row">
+              <div class="build-card-heading">
+                <strong class="build-card-title">${project.title}</strong>
+                <div class="tag-row build-card-badges">
                   ${createBadge(projectTypeLabel(project.kind))}
                   ${createBadge(project.stage || "source")}
                   ${createBadge(projectStateLabel(project.state))}
                   ${isOperatingFoundationProject(project) ? createBadge("Operating Foundation") : ""}
                 </div>
               </div>
-              <div class="build-card-repo">${project.repoFullName || project.repoName}</div>
+              <div class="build-card-identity-list">
+                <div class="build-card-identity-item">
+                  <span>Repo</span>
+                  <strong class="detail-code">${repoLabel}</strong>
+                </div>
+                ${serviceLabel ? `
+                  <div class="build-card-identity-item">
+                    <span>Service</span>
+                    <strong class="detail-code">${serviceLabel}</strong>
+                  </div>
+                ` : ""}
+              </div>
             </div>
             <div class="build-card-status">
               <span class="directory-signal ${operatingState.className}">${operatingState.pill}</span>
@@ -2950,7 +2963,7 @@ function renderProjects(projects) {
               <div class="detail-item"><span>State</span><strong>${projectStateLabel(project.state)}</strong></div>
               <div class="detail-item"><span>Rating</span><strong>${project.rating || 0}</strong></div>
               <div class="detail-item"><span>Heat</span><strong>${project.heat || 0}</strong></div>
-              <div class="detail-item"><span>GitHub</span><strong class="detail-code">${project.repoFullName}</strong></div>
+              <div class="detail-item detail-item-wide"><span>GitHub</span><strong class="detail-code">${repoLabel}</strong></div>
             </div>
           </div>
           <div class="build-directory-detail-block">
@@ -2963,7 +2976,7 @@ function renderProjects(projects) {
               <div class="detail-item"><span>Recruiting</span><strong>${recruitingState.label}</strong></div>
               <div class="detail-item"><span>Workspace Entry</span><strong>${participationState.label}</strong></div>
               <div class="detail-item"><span>Open Requests</span><strong>${openParticipationRequests.length}</strong></div>
-              <div class="detail-item"><span>Service Endpoint</span><strong class="detail-code">${project.serviceEndpoint || "Not set"}</strong></div>
+              <div class="detail-item detail-item-wide"><span>Service Endpoint</span><strong class="detail-code">${project.serviceEndpoint || "Not set"}</strong></div>
               <div class="detail-item"><span>Latest Run At</span><strong>${latestRun ? formatTimestamp(latestRun.generatedAt) : "-"}</strong></div>
             </div>
             <p>${recruitingState.note}</p>

@@ -1071,6 +1071,10 @@ button:focus {
   font-size: 13px;
 }
 
+.detail-item-wide {
+  grid-column: 1 / -1;
+}
+
 .detail-value-row {
   display: flex;
   align-items: flex-start;
@@ -1170,6 +1174,22 @@ details.expand-card summary::-webkit-details-marker { display: none; }
   min-width: 0;
 }
 
+.build-card-heading {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.build-card-title {
+  font-size: 18px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.build-card-badges {
+  min-width: 0;
+}
+
 .build-card-header {
   display: flex;
   justify-content: space-between;
@@ -1185,11 +1205,29 @@ details.expand-card summary::-webkit-details-marker { display: none; }
   justify-items: end;
 }
 
-.build-card-repo {
+.build-card-identity-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+  min-width: 0;
+}
+
+.build-card-identity-item {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 10px 12px;
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.build-card-identity-item span {
   color: var(--muted);
-  font-family: var(--font-mono);
   font-size: 12px;
-  line-height: 1.5;
+}
+
+.build-card-identity-item strong {
   overflow-wrap: anywhere;
 }
 
@@ -1444,6 +1482,22 @@ pre,
   .membership-tools form { grid-template-columns: 1fr; }
   .infra-arrow { transform: rotate(90deg); }
   .workspace-stage-track { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 720px) {
+  .build-card-status {
+    width: 100%;
+    grid-template-columns: repeat(2, minmax(0, max-content));
+    justify-content: flex-start;
+    justify-items: start;
+  }
+
+  .build-card-identity-list,
+  .build-card-signal-grid,
+  .build-card-meta,
+  .detail-grid.compact {
+    grid-template-columns: 1fr;
+  }
 }
 
 .workspace-sidebar label input[type="number"] {
