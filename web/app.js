@@ -584,7 +584,7 @@ function badgeTone(label) {
 
 function createBadge(label) {
   const tone = badgeTone(label);
-  return `<span class="badge badge-${tone}">${label}</span>`;
+  return `<span class="badge badge-${tone}">${escapeHtml(label)}</span>`;
 }
 
 function formatTimestamp(ts) {
@@ -2936,6 +2936,18 @@ function renderProjects(projects) {
     const repoLabel = project.repoFullName || project.repoName || "No repo linked";
     const serviceLabel = project.serviceEndpoint || "";
     const directorySignal = `R ${project.rating || 0} / H ${project.heat || 0}`;
+    const safeTitle = escapeHtml(project.title);
+    const safeSummary = escapeHtml(project.summary || "No summary provided.");
+    const safeRepoLabel = escapeHtml(repoLabel);
+    const safeServiceLabel = escapeHtml(serviceLabel);
+    const safeRepoName = escapeHtml(project.repoName || "No repo linked");
+    const safeOwnerHumanId = escapeHtml(project.ownerHumanId || "-");
+    const safeStage = escapeHtml(project.stage || "source");
+    const safeStateLabel = escapeHtml(projectStateLabel(project.state));
+    const safeLatestRunAction = escapeHtml(latestRun?.action || "none");
+    const safeLatestActivityLabel = escapeHtml(latestActivity.label);
+    const safeLatestActivityDetail = escapeHtml(latestActivity.detail);
+    const safeDirectorySignal = escapeHtml(directorySignal);
     return `
     <details class="expand-card build-directory-card" data-project-card="${project.projectId}">
       <summary>
@@ -2943,7 +2955,7 @@ function renderProjects(projects) {
           <div class="build-card-header">
             <div class="build-card-title-stack">
               <div class="build-card-heading">
-                <strong class="build-card-title">${project.title}</strong>
+                <strong class="build-card-title">${safeTitle}</strong>
                 <div class="tag-row build-card-badges">
                   ${createBadge(projectTypeLabel(project.kind))}
                   ${createBadge(project.stage || "source")}
@@ -2954,12 +2966,12 @@ function renderProjects(projects) {
               <div class="build-card-identity-list">
                 <div class="build-card-identity-item">
                   <span>Repo</span>
-                  <strong class="detail-code">${repoLabel}</strong>
+                  <strong class="detail-code">${safeRepoLabel}</strong>
                 </div>
                 ${serviceLabel ? `
                   <div class="build-card-identity-item">
                     <span>Service</span>
-                    <strong class="detail-code">${serviceLabel}</strong>
+                    <strong class="detail-code">${safeServiceLabel}</strong>
                   </div>
                 ` : ""}
               </div>
@@ -2969,22 +2981,22 @@ function renderProjects(projects) {
               <span class="directory-signal ${recruitingState.className}">${recruitingState.pill}</span>
             </div>
           </div>
-          <p class="build-card-summary">${project.summary || "No summary provided."}</p>
+          <p class="build-card-summary">${safeSummary}</p>
           <div class="build-card-signal-grid">
             <div class="build-card-signal">
               <span>Operating</span>
-              <strong>${operatingState.label}</strong>
-              <p>${projectDirectoryOperatingHint(project)}</p>
+              <strong>${escapeHtml(operatingState.label)}</strong>
+              <p>${escapeHtml(projectDirectoryOperatingHint(project))}</p>
             </div>
             <div class="build-card-signal">
               <span>Recruiting</span>
-              <strong>${recruitingState.label}</strong>
-              <p>${projectDirectoryRecruitingHint(project)}</p>
+              <strong>${escapeHtml(recruitingState.label)}</strong>
+              <p>${escapeHtml(projectDirectoryRecruitingHint(project))}</p>
             </div>
             <div class="build-card-signal">
               <span>Workspace Entry</span>
-              <strong>${participationState.label}</strong>
-              <p>${projectDirectoryParticipationHint(project, human, myProjectIds)}</p>
+              <strong>${escapeHtml(participationState.label)}</strong>
+              <p>${escapeHtml(projectDirectoryParticipationHint(project, human, myProjectIds))}</p>
             </div>
           </div>
           <div class="build-card-meta">
@@ -2998,19 +3010,19 @@ function renderProjects(projects) {
             </div>
             <div class="build-meta-item">
               <span>Latest Run</span>
-              <strong>${latestRun?.action || "none"}</strong>
+              <strong>${safeLatestRunAction}</strong>
             </div>
             <div class="build-meta-item">
               <span>Latest Activity</span>
-              <strong>${latestActivity.label}</strong>
+              <strong>${safeLatestActivityLabel}</strong>
             </div>
             <div class="build-meta-item">
               <span>Directory Signal</span>
-              <strong>${directorySignal}</strong>
+              <strong>${safeDirectorySignal}</strong>
             </div>
           </div>
           <div class="tag-row build-card-tags">
-            ${(project.tags || []).length ? (project.tags || []).map((tag) => `<span class="subtle-tag">${tag}</span>`).join("") : '<span class="subtle-tag">No tags</span>'}
+            ${(project.tags || []).length ? (project.tags || []).map((tag) => `<span class="subtle-tag">${escapeHtml(tag)}</span>`).join("") : '<span class="subtle-tag">No tags</span>'}
           </div>
         </div>
       </summary>
@@ -3019,16 +3031,16 @@ function renderProjects(projects) {
           <div class="build-directory-detail-block">
             <div class="summary-row">
               <strong>Directory Snapshot</strong>
-              <span>${project.repoName}</span>
+              <span>${safeRepoName}</span>
             </div>
             <div class="detail-grid compact">
-              <div class="detail-item"><span>Owner</span><strong class="detail-code">${project.ownerHumanId}</strong></div>
+              <div class="detail-item"><span>Owner</span><strong class="detail-code">${safeOwnerHumanId}</strong></div>
               <div class="detail-item"><span>Participants</span><strong>${project.memberAgentIds?.length || 0}</strong></div>
-              <div class="detail-item"><span>Stage</span><strong>${project.stage || "source"}</strong></div>
-              <div class="detail-item"><span>State</span><strong>${projectStateLabel(project.state)}</strong></div>
+              <div class="detail-item"><span>Stage</span><strong>${safeStage}</strong></div>
+              <div class="detail-item"><span>State</span><strong>${safeStateLabel}</strong></div>
               <div class="detail-item"><span>Rating</span><strong>${project.rating || 0}</strong></div>
               <div class="detail-item"><span>Heat</span><strong>${project.heat || 0}</strong></div>
-              <div class="detail-item detail-item-wide"><span>GitHub</span><strong class="detail-code">${repoLabel}</strong></div>
+              <div class="detail-item detail-item-wide"><span>GitHub</span><strong class="detail-code">${safeRepoLabel}</strong></div>
             </div>
           </div>
           <div class="build-directory-detail-block">
@@ -3038,15 +3050,15 @@ function renderProjects(projects) {
             </div>
             <div class="detail-grid compact">
               <div class="detail-item"><span>Entry Route</span><strong>Project Workspace</strong></div>
-              <div class="detail-item"><span>Participation</span><strong>${participationState.label}</strong></div>
-              <div class="detail-item"><span>Recruiting</span><strong>${recruitingState.label}</strong></div>
+              <div class="detail-item"><span>Participation</span><strong>${escapeHtml(participationState.label)}</strong></div>
+              <div class="detail-item"><span>Recruiting</span><strong>${escapeHtml(recruitingState.label)}</strong></div>
               <div class="detail-item"><span>Open Requests</span><strong>${openParticipationRequests.length}</strong></div>
-              <div class="detail-item"><span>Directory Signal</span><strong>${directorySignal}</strong></div>
-              <div class="detail-item detail-item-wide"><span>Service Endpoint</span><strong class="detail-code">${project.serviceEndpoint || "Not set"}</strong></div>
+              <div class="detail-item"><span>Directory Signal</span><strong>${safeDirectorySignal}</strong></div>
+              <div class="detail-item detail-item-wide"><span>Service Endpoint</span><strong class="detail-code">${safeServiceLabel || "Not set"}</strong></div>
               <div class="detail-item"><span>Latest Run At</span><strong>${latestRun ? formatTimestamp(latestRun.generatedAt) : "-"}</strong></div>
             </div>
-            <p>${operatingState.note}</p>
-            <p>${latestActivity.detail}</p>
+            <p>${escapeHtml(operatingState.note)}</p>
+            <p>${safeLatestActivityDetail}</p>
           </div>
         </div>
         ${renderProjectFoundationRunSummary(project)}
