@@ -674,6 +674,16 @@ function projectDirectoryOperatingHint(project) {
   return "Still shaping source infrastructure.";
 }
 
+function projectDirectoryOperatingHeadline(project) {
+  const stageValue = String(project?.stage || "source").toLowerCase();
+  const stateValue = String(project?.state || "initialized").toLowerCase();
+  if (stateValue === "paused") return "Paused";
+  if (project?.serviceEndpoint) return "Endpoint Live";
+  if (stageValue === "operating" || stateValue === "operating") return "Endpoint Pending";
+  if (stateValue === "developing") return "Source Build Active";
+  return "Source Setup";
+}
+
 function projectDirectoryRecruitingState(project) {
   const paused = String(project?.state || "").toLowerCase() === "paused";
   return paused
@@ -699,6 +709,16 @@ function projectDirectoryRecruitingHint(project) {
     return `${openParticipationRequests.length} pending request${openParticipationRequests.length === 1 ? "" : "s"} waiting in Project Workspace.`;
   }
   return "New participation starts in Project Workspace.";
+}
+
+function projectDirectoryRecruitingHeadline(project) {
+  const openParticipationRequests = (project?.participationRequests || []).filter((entry) => entry.status === "pending");
+  const paused = String(project?.state || "").toLowerCase() === "paused";
+  if (paused) return "Paused";
+  if (openParticipationRequests.length) {
+    return `${openParticipationRequests.length} Waiting`;
+  }
+  return "Open Intake";
 }
 
 function projectDirectoryParticipationState(project, human, myProjectIds) {
@@ -737,6 +757,16 @@ function projectDirectoryParticipationHint(project, human, myProjectIds) {
   if (pendingRequest) return "Track owner review and next steps on the project page.";
   if (!human) return "Sign in, then continue on the project page.";
   return "Apply on the project page. Build stays directory-only.";
+}
+
+function projectDirectoryParticipationHeadline(project, human, myProjectIds) {
+  if (myProjectIds.has(project.projectId)) return "Open Workspace";
+  const pendingRequest = human
+    ? (project.participationRequests || []).find((entry) => entry.humanId === human.humanId && entry.status === "pending")
+    : null;
+  if (pendingRequest) return "Review Pending";
+  if (!human) return "Sign In First";
+  return "Request Entry";
 }
 
 function projectDirectoryPrimaryAction(project, human, myProjectIds) {
@@ -2985,17 +3015,17 @@ function renderProjects(projects) {
           <div class="build-card-signal-grid">
             <div class="build-card-signal">
               <span>Operating</span>
-              <strong>${escapeHtml(operatingState.label)}</strong>
+              <strong>${escapeHtml(projectDirectoryOperatingHeadline(project))}</strong>
               <p>${escapeHtml(projectDirectoryOperatingHint(project))}</p>
             </div>
             <div class="build-card-signal">
               <span>Recruiting</span>
-              <strong>${escapeHtml(recruitingState.label)}</strong>
+              <strong>${escapeHtml(projectDirectoryRecruitingHeadline(project))}</strong>
               <p>${escapeHtml(projectDirectoryRecruitingHint(project))}</p>
             </div>
             <div class="build-card-signal">
               <span>Workspace Entry</span>
-              <strong>${escapeHtml(participationState.label)}</strong>
+              <strong>${escapeHtml(projectDirectoryParticipationHeadline(project, human, myProjectIds))}</strong>
               <p>${escapeHtml(projectDirectoryParticipationHint(project, human, myProjectIds))}</p>
             </div>
           </div>
@@ -3993,7 +4023,6 @@ function renderMarketProjects(projects) {
     const latestRun = latestProjectFoundationRun(project);
     const accessModel = isOperatingFoundationProject(project) ? "Foundation Access" : "Project Access";
     const accessNote = project.pricingNote || "Usage still routes through the published project surface while protocol pricing stays lightweight.";
-    const usageEntry = project.serviceEndpoint ? "Open Service Or Project" : "Open Project For Entry";
     const usageNote = project.usageNote || (project.serviceEndpoint
       ? "Start with the service endpoint for live usage, then open the project page for operator context."
       : "This project is marked operating, but the project page still carries the clearest operator context until the endpoint is published.");
@@ -4033,7 +4062,7 @@ function renderMarketProjects(projects) {
           <div class="build-card-signal-grid">
             <div class="build-card-signal">
               <span>Operating</span>
-              <strong>${project.serviceEndpoint ? "World-Facing Endpoint" : "Operator Context Published"}</strong>
+              <strong>${project.serviceEndpoint ? "Endpoint Live" : "Endpoint Pending"}</strong>
               <p>${escapeHtml(project.serviceEndpoint ? "Service endpoint is available for direct usage entry." : "This project is already treated as operating, but the endpoint is still being finalized.")}</p>
             </div>
             <div class="build-card-signal">
@@ -4043,7 +4072,7 @@ function renderMarketProjects(projects) {
             </div>
             <div class="build-card-signal">
               <span>Usage Entry</span>
-              <strong>${usageEntry}</strong>
+              <strong>${project.serviceEndpoint ? "Service + Project" : "Project Page Only"}</strong>
               <p>${escapeHtml(usageNote)}</p>
             </div>
           </div>

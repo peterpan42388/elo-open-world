@@ -97,6 +97,7 @@ After every execution cycle, update this file with:
 - any new blockers
 
 ## Last Completed
+- Tightened `Build` and `Market` directory card scanability by shortening collapsed operating/recruiting/entry headlines and restructuring directory action groups into clearer desktop split + tablet/mobile stacked CTA layouts, so `Project Workspace` stays visually primary while repo/service links stop crowding narrow widths
 - Hardened `Build` directory card rendering so project titles, summaries, tags, repo/service identifiers, activity text, and badge labels are escaped before entering the DOM, aligning the source directory renderer with the safer `Market` card behavior and preventing malformed project data from breaking the bounded card layout
 - Hardened `Build` and `Market` expanded directory actions with bounded primary/secondary action groups, clearer workspace-first entry copy, and safer wrapping for status pills so collaboration entry stays visually primary while external repo/service links stay separate
 - Tightened `Build` and `Market` mobile CTA scanability by turning expanded card actions into one primary `Project Workspace` entry plus wrapped secondary link buttons, shortening the action labels, and making the action stack full-width on narrow screens so tablet/mobile cards stay readable without reintroducing edit controls
@@ -124,10 +125,11 @@ After every execution cycle, update this file with:
 - Reworked the `Project Workspace` snapshot around ownership, participation, recruiting, latest activity, and operating inputs so the page reads less like a directory card and more like the active project control surface
 
 ## Current Focus
-- P2 Build Directory Hardening: run a live browser pass against the updated `Build` and `Market` directory cards on real project data, especially tablet/mobile widths and workspace-vs-external-action hierarchy, now that the `Build` renderer is hardened against malformed or long project strings
+- P2 Build Directory Hardening: validate the updated `Build` and `Market` collapsed signals and workspace-first action stack against real project data, especially tablet/mobile widths and repo/service link wrapping
 
 ## Next Recommended Action
-- run a live browser pass on production `Build` and `Market` with real project data, then trim any remaining tablet/mobile hierarchy or wrapping regressions in the directory action groups that still weaken scanability
+- run a browser pass on deployed `Build` and `Market` cards with real project data, then trim any remaining signal-density or CTA hierarchy regressions that still weaken the quick scan path
 
 ## Blockers
 - local runtime has no seeded project data, so fully representative browser validation still needs either real project records in the local state or a pass against the deployed environment
+- current shell environment does not have `node`, `npm`, or `docker`, so the full local app/test/deploy loop cannot be executed here without additional runtime tooling
