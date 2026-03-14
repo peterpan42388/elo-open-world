@@ -760,7 +760,7 @@ pre,
   max-height: 120px;
 }
 
-.settings-guest { display: grid; gap: 12px; }
+.settings-access-panel { display: grid; gap: 12px; }
 .status-line { min-height: 24px; margin: 8px 4px 0; font-weight: 600; }
 .status-line[data-kind="ok"] { color: var(--ok); }
 .status-line[data-kind="error"] { color: var(--error); }

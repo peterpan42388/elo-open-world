@@ -3044,19 +3044,65 @@ function renderMarketProjects(projects) {
 
 function renderSettingsShell() {
   const human = currentHuman();
-  const guest = $("settings-guest");
+  const accessPanel = $("settings-access-panel");
   const shell = $("settings-shell");
-  if (!guest || !shell) return;
+  if (!accessPanel || !shell) return;
+  const hasSession = Boolean(state.sessionHumanId);
+  let accessMode = "hidden";
+
   if (!state.authResolved) {
-    guest.hidden = true;
+    accessMode = "hidden";
+    shell.hidden = true;
+  } else if (!hasSession) {
+    accessMode = "guest";
     shell.hidden = true;
   } else if (!human) {
-    guest.hidden = false;
+    accessMode = "syncing";
     shell.hidden = true;
   } else {
-    guest.hidden = true;
+    const authMethods = new Set(human.authMethods || []);
+    const isGitHubOnly = authMethods.has("github") && !authMethods.has("password");
+    accessMode = !human.emailVerified && !isGitHubOnly ? "verify" : "hidden";
     shell.hidden = false;
   }
+
+  if (accessMode === "guest") {
+    accessPanel.hidden = false;
+    accessPanel.innerHTML = `
+      <h2>No Active User</h2>
+      <p>You are not signed in. Create or select a human identity first.</p>
+      <button type="button" data-route-target="join">Go To Join</button>
+    `;
+  } else if (accessMode === "syncing") {
+    accessPanel.hidden = false;
+    accessPanel.innerHTML = `
+      <h2>Syncing Workspace</h2>
+      <p>Your session is active. The workspace is refreshing your private identity state now.</p>
+    `;
+  } else if (accessMode === "verify") {
+    accessPanel.hidden = false;
+    accessPanel.innerHTML = `
+      <h2>Verify Your Email</h2>
+      <p>Your workspace is active, but this account should complete email verification before long-term use.</p>
+      <button type="button" id="settings-access-verify">Send Verification Email</button>
+    `;
+    $("settings-access-verify")?.addEventListener("click", async () => {
+      try {
+        const result = await request("/api/auth/email/send-verification", "POST", { humanId: human.humanId });
+        setStatus(`Verification email sent to ${result.email}`, "ok");
+        await refresh();
+      } catch (error) {
+        setStatus(error.message, "error");
+      }
+    });
+  } else {
+    accessPanel.hidden = true;
+    accessPanel.innerHTML = "";
+  }
+
+  accessPanel.querySelectorAll("[data-route-target]").forEach((node) => {
+    node.addEventListener("click", () => goToRoute(node.dataset.routeTarget));
+  });
   document.querySelectorAll("[data-settings-panel]").forEach((node) => {
     node.hidden = node.dataset.settingsPanel !== state.activeSettingsSection;
   });
