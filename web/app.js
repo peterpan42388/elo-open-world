@@ -547,200 +547,6 @@ function membershipHistoryLabel(type) {
   }[type] || type;
 }
 
-async function inviteProjectMember(projectId, ownerHumanId, agentId, role) {
-  await request("/api/projects/members/invite", "POST", {
-    projectId,
-    ownerHumanId,
-    agentId,
-    role
-  });
-}
-
-async function acceptProjectInvite(projectId, ownerHumanId, inviteId) {
-  await request("/api/projects/members/accept", "POST", {
-    projectId,
-    ownerHumanId,
-    inviteId
-  });
-}
-
-async function changeProjectMemberRole(projectId, ownerHumanId, agentId, role) {
-  await request("/api/projects/members/role", "POST", {
-    projectId,
-    ownerHumanId,
-    agentId,
-    role
-  });
-}
-
-async function removeProjectMember(projectId, ownerHumanId, agentId) {
-  await request("/api/projects/members/remove", "POST", {
-    projectId,
-    ownerHumanId,
-    agentId
-  });
-}
-
-function renderProjectWorkspaceMembership(project, human) {
-  const invites = project.memberInvites || [];
-  const history = project.memberHistory || [];
-  return `
-    <div class="workspace-membership-shell">
-      <div class="build-directory-detail-grid">
-        <div class="build-directory-detail-block">
-          <div class="summary-row">
-            <strong>Current Members</strong>
-            <span>${project.memberAgentIds?.length || 0}</span>
-          </div>
-          <div class="nested-list">
-            ${(project.memberAgentIds || []).length ? (project.memberAgentIds || []).map((agentId) => `
-              <div class="nested-item">
-                <strong>${agentId}</strong>
-                <span>Role: ${projectMemberRole(project, agentId)}</span>
-              </div>
-            `).join("") : '<div class="empty">No member agents recorded.</div>'}
-          </div>
-        </div>
-        <div class="build-directory-detail-block">
-          <div class="summary-row">
-            <strong>Pending Invites</strong>
-            <span>${invites.length}</span>
-          </div>
-          ${invites.length ? `
-            <div class="nested-list">
-              ${invites.map((invite) => `
-                <div class="nested-item">
-                  <strong>${invite.agentId}</strong>
-                  <span>Role: ${invite.role}</span>
-                  <span>Status: ${invite.status}</span>
-                  ${project.ownerHumanId === human.humanId && invite.status === "pending" ? `<button type="button" class="topbar-button ghost workspace-membership-accept-button" data-project-id="${project.projectId}" data-invite-id="${invite.inviteId}">Accept Invite</button>` : ""}
-                </div>
-              `).join("")}
-            </div>
-          ` : '<div class="empty">No pending invites.</div>'}
-        </div>
-      </div>
-      ${(project.ownerHumanId === human.humanId) ? `
-        <div class="workspace-membership-controls copy-stack">
-          <div class="summary-row">
-            <strong>Owner Controls</strong>
-            <span>Manage participation here</span>
-          </div>
-          <form class="membership-invite-form workspace-membership-form" data-project-id="${project.projectId}">
-            <input name="agentId" placeholder="agent id to invite" required />
-            <select name="role">
-              <option value="builder">builder</option>
-              <option value="reviewer">reviewer</option>
-              <option value="operator">operator</option>
-              <option value="maintainer">maintainer</option>
-              <option value="observer">observer</option>
-            </select>
-            <button type="submit">Invite Member</button>
-          </form>
-          <form class="membership-role-form workspace-membership-form" data-project-id="${project.projectId}">
-            <select name="agentId">
-              <option value="">Select member</option>
-              ${(project.memberAgentIds || []).map((agentId) => `<option value="${agentId}">${agentId}</option>`).join("")}
-            </select>
-            <select name="role">
-              <option value="builder">builder</option>
-              <option value="reviewer">reviewer</option>
-              <option value="operator">operator</option>
-              <option value="maintainer">maintainer</option>
-              <option value="observer">observer</option>
-            </select>
-            <button type="submit">Change Role</button>
-          </form>
-          <form class="membership-remove-form workspace-membership-form" data-project-id="${project.projectId}">
-            <select name="agentId">
-              <option value="">Select member</option>
-              ${(project.memberAgentIds || []).map((agentId) => `<option value="${agentId}">${agentId}</option>`).join("")}
-            </select>
-            <button type="submit">Remove Member</button>
-          </form>
-        </div>
-      ` : `
-        <div class="guide-card workspace-membership-note">
-          <span class="guide-step">PARTICIPATION</span>
-          <h3>Membership Managed By Owner</h3>
-          <p>This workspace shows member state and invite history. Owner controls stay available only to the project owner.</p>
-        </div>
-      `}
-      ${history.length ? `
-        <div class="workspace-membership-history copy-stack">
-          <div class="summary-row">
-            <strong>Membership History</strong>
-            <span>${history.length}</span>
-          </div>
-          <div class="nested-list">
-            ${history.slice().reverse().slice(0, 8).map((entry) => `
-              <div class="nested-item">
-                <strong>${membershipHistoryLabel(entry.type)}</strong>
-                <span>${entry.agentId || "-"}</span>
-                <span>${entry.role || "-"}</span>
-                <span>${entry.actorHumanId || "-"}</span>
-                <span>${formatTimestamp(entry.at)}</span>
-              </div>
-            `).join("")}
-          </div>
-        </div>
-      ` : ""}
-    </div>
-  `;
-}
-
-function bindWorkspaceMembershipControls(project, human) {
-  const root = $("project-workspace-membership");
-  if (!root || !project || !human) return;
-  root.querySelectorAll(".membership-invite-form").forEach((form) => {
-    form.addEventListener("submit", async (event) => {
-      event.preventDefault();
-      try {
-        await inviteProjectMember(project.projectId, human.humanId, form.agentId.value, form.role.value);
-        setStatus(`Invite created for ${form.agentId.value}`, "ok");
-        await refresh();
-      } catch (error) {
-        setStatus(error.message, "error");
-      }
-    });
-  });
-  root.querySelectorAll(".workspace-membership-accept-button").forEach((button) => {
-    button.addEventListener("click", async () => {
-      try {
-        await acceptProjectInvite(project.projectId, human.humanId, button.dataset.inviteId);
-        setStatus("Invite accepted.", "ok");
-        await refresh();
-      } catch (error) {
-        setStatus(error.message, "error");
-      }
-    });
-  });
-  root.querySelectorAll(".membership-role-form").forEach((form) => {
-    form.addEventListener("submit", async (event) => {
-      event.preventDefault();
-      try {
-        await changeProjectMemberRole(project.projectId, human.humanId, form.agentId.value, form.role.value);
-        setStatus(`Role updated for ${form.agentId.value}`, "ok");
-        await refresh();
-      } catch (error) {
-        setStatus(error.message, "error");
-      }
-    });
-  });
-  root.querySelectorAll(".membership-remove-form").forEach((form) => {
-    form.addEventListener("submit", async (event) => {
-      event.preventDefault();
-      try {
-        await removeProjectMember(project.projectId, human.humanId, form.agentId.value);
-        setStatus(`Removed ${form.agentId.value} from ${project.title}`, "ok");
-        await refresh();
-      } catch (error) {
-        setStatus(error.message, "error");
-      }
-    });
-  });
-}
-
 function humanReadableAgentStatus(agent) {
   if (agent.online) return "Online";
   if (agent.model) return "Idle";
@@ -3063,6 +2869,198 @@ function workspaceAgentsForProject(project) {
   return ordered.map((agentId) => myAgents.find((agent) => agent.agentId === agentId)).filter(Boolean);
 }
 
+function workspaceConversationEntries(project) {
+  return Array.isArray(project?.workspaceConversation) ? project.workspaceConversation : [];
+}
+
+function projectMemberRoleOptions(selected = "builder") {
+  return ["builder", "reviewer", "operator", "maintainer", "observer"].map((role) => `
+    <option value="${role}" ${role === selected ? "selected" : ""}>${role}</option>
+  `).join("");
+}
+
+function renderProjectWorkspaceMembership(project, human) {
+  const root = $("project-workspace-membership");
+  if (!root) return;
+  if (!project || !human) {
+    root.innerHTML = '<div class="empty">No active project selected.</div>';
+    return;
+  }
+
+  const isOwner = project.ownerHumanId === human.humanId;
+  const workspaceReadyAgents = new Set(workspaceAgentsForProject(project).map((agent) => agent.agentId));
+  root.innerHTML = `
+    <div class="workspace-membership-grid">
+      <div class="workspace-membership-block">
+        <div class="summary-row">
+          <strong>Current Members</strong>
+          <span>${project.memberAgentIds?.length || 0}</span>
+        </div>
+        <div class="nested-list">
+          ${(project.memberAgentIds || []).length ? (project.memberAgentIds || []).map((agentId) => `
+            <div class="nested-item">
+              <strong class="detail-code">${agentId}</strong>
+              <span>Role: ${projectMemberRole(project, agentId)}</span>
+              <span>${workspaceReadyAgents.has(agentId) ? "Workspace ready" : "Participant"}</span>
+            </div>
+          `).join("") : '<div class="empty">No member agents recorded.</div>'}
+        </div>
+      </div>
+      <div class="workspace-membership-block">
+        <div class="summary-row">
+          <strong>Pending Invites</strong>
+          <span>${project.memberInvites?.length || 0}</span>
+        </div>
+        ${(project.memberInvites || []).length ? `
+          <div class="nested-list">
+            ${(project.memberInvites || []).map((invite) => `
+              <div class="nested-item">
+                <strong class="detail-code">${invite.agentId}</strong>
+                <span>Role: ${invite.role}</span>
+                <span>Status: ${invite.status}</span>
+                <span>${formatTimestamp(invite.createdAt)}</span>
+                ${isOwner && invite.status === "pending" ? `<button type="button" class="topbar-button ghost workspace-membership-accept" data-invite-id="${invite.inviteId}">Accept Invite</button>` : ""}
+              </div>
+            `).join("")}
+          </div>
+        ` : '<div class="empty">No pending invites.</div>'}
+      </div>
+      <div class="workspace-membership-block workspace-membership-history">
+        <div class="summary-row">
+          <strong>Membership History</strong>
+          <span>${project.memberHistory?.length || 0}</span>
+        </div>
+        ${(project.memberHistory || []).length ? `
+          <div class="nested-list">
+            ${(project.memberHistory || []).slice().reverse().slice(0, 8).map((entry) => `
+              <div class="nested-item">
+                <strong>${membershipHistoryLabel(entry.type)}</strong>
+                <span>${entry.agentId || "-"}</span>
+                <span>${entry.role || "-"}</span>
+                <span>${entry.actorHumanId || "-"}</span>
+                <span>${formatTimestamp(entry.at)}</span>
+              </div>
+            `).join("")}
+          </div>
+        ` : '<div class="empty">No membership history yet.</div>'}
+      </div>
+      <div class="workspace-membership-block">
+        <div class="summary-row">
+          <strong>Owner Controls</strong>
+          <span>${isOwner ? "Enabled" : "Owner only"}</span>
+        </div>
+        ${isOwner ? `
+          <div class="copy-stack">
+            <form class="workspace-membership-form" id="workspace-membership-invite-form">
+              <label class="creation-field">
+                <span>Agent ID To Invite</span>
+                <input name="agentId" placeholder="agent id to invite" required />
+              </label>
+              <label class="creation-field">
+                <span>Invite Role</span>
+                <select name="role">${projectMemberRoleOptions()}</select>
+              </label>
+              <button type="submit">Invite Member</button>
+            </form>
+            <form class="workspace-membership-form" id="workspace-membership-role-form">
+              <label class="creation-field">
+                <span>Current Member</span>
+                <select name="agentId" required>
+                  <option value="">Select member</option>
+                  ${(project.memberAgentIds || []).map((agentId) => `<option value="${agentId}">${agentId}</option>`).join("")}
+                </select>
+              </label>
+              <label class="creation-field">
+                <span>New Role</span>
+                <select name="role">${projectMemberRoleOptions()}</select>
+              </label>
+              <button type="submit">Change Role</button>
+            </form>
+            <form class="workspace-membership-form" id="workspace-membership-remove-form">
+              <label class="creation-field">
+                <span>Member To Remove</span>
+                <select name="agentId" required>
+                  <option value="">Select member</option>
+                  ${(project.memberAgentIds || []).map((agentId) => `<option value="${agentId}">${agentId}</option>`).join("")}
+                </select>
+              </label>
+              <button type="submit" class="topbar-button ghost">Remove Member</button>
+            </form>
+          </div>
+        ` : '<p class="note">Open this page as the project owner to invite members, accept pending invites, or change roles.</p>'}
+      </div>
+    </div>
+  `;
+
+  if (!isOwner) return;
+
+  $("workspace-membership-invite-form")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    try {
+      await request("/api/projects/members/invite", "POST", {
+        projectId: project.projectId,
+        ownerHumanId: human.humanId,
+        agentId: form.agentId.value,
+        role: form.role.value
+      });
+      setStatus(`Invite created for ${form.agentId.value}`, "ok");
+      await refresh();
+    } catch (error) {
+      setStatus(error.message, "error");
+    }
+  });
+
+  $("workspace-membership-role-form")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    try {
+      await request("/api/projects/members/role", "POST", {
+        projectId: project.projectId,
+        ownerHumanId: human.humanId,
+        agentId: form.agentId.value,
+        role: form.role.value
+      });
+      setStatus(`Role updated for ${form.agentId.value}`, "ok");
+      await refresh();
+    } catch (error) {
+      setStatus(error.message, "error");
+    }
+  });
+
+  $("workspace-membership-remove-form")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    try {
+      await request("/api/projects/members/remove", "POST", {
+        projectId: project.projectId,
+        ownerHumanId: human.humanId,
+        agentId: form.agentId.value
+      });
+      setStatus(`Removed ${form.agentId.value} from project`, "ok");
+      await refresh();
+    } catch (error) {
+      setStatus(error.message, "error");
+    }
+  });
+
+  root.querySelectorAll(".workspace-membership-accept").forEach((button) => {
+    button.addEventListener("click", async () => {
+      try {
+        await request("/api/projects/members/accept", "POST", {
+          projectId: project.projectId,
+          ownerHumanId: human.humanId,
+          inviteId: button.dataset.inviteId
+        });
+        setStatus("Invite accepted.", "ok");
+        await refresh();
+      } catch (error) {
+        setStatus(error.message, "error");
+      }
+    });
+  });
+}
+
 function renderProjectWorkspace() {
   const title = $("project-workspace-title");
   const lede = $("project-workspace-lede");
@@ -3090,7 +3088,7 @@ function renderProjectWorkspace() {
   }
 
   const agents = workspaceAgentsForProject(project);
-  const messages = state.projectWorkspaceMessages[project.projectId] || [];
+  const messages = workspaceConversationEntries(project);
   const latestRun = (project.foundationRuns || []).length ? project.foundationRuns[project.foundationRuns.length - 1] : null;
   title.textContent = project.title;
   lede.textContent = project.summary || "Project workspace for direct collaboration with your development agent.";
@@ -3161,7 +3159,7 @@ function renderProjectWorkspace() {
   thread.innerHTML = messages.length ? messages.map((entry) => `
     <article class="entity-card workspace-message-card ${entry.role === "human" ? "human-message" : "agent-message"}">
       <div class="summary-row">
-        <strong>${entry.role === "human" ? human.displayName || human.humanId : entry.agentId || "Agent"}</strong>
+        <strong>${entry.role === "human" ? human.displayName || human.humanId : entry.actorId || entry.agentId || "Agent"}</strong>
         <span>${formatTimestamp(entry.at)}</span>
       </div>
       <pre class="code-block compact">${escapeHtml(entry.content)}</pre>
@@ -3200,19 +3198,26 @@ async function sendProjectWorkspacePrompt() {
       agentId
     }
   });
-
-  state.projectWorkspaceMessages[project.projectId] = [
-    ...(state.projectWorkspaceMessages[project.projectId] || []),
-    { role: "human", content: prompt, at: Date.now() },
-    {
-      role: "agent",
-      agentId,
-      content: typeof response?.response === "string" ? response.response : JSON.stringify(response?.response ?? response, null, 2),
-      at: Date.now()
-    }
-  ].slice(-20);
+  await request("/api/projects/workspace/conversation", "POST", {
+    projectId: project.projectId,
+    humanId: currentHuman()?.humanId,
+    entries: [
+      {
+        actorType: "human",
+        actorId: currentHuman()?.humanId,
+        content: prompt,
+        at: Date.now()
+      },
+      {
+        actorType: "agent",
+        actorId: agentId,
+        content: typeof response?.response === "string" ? response.response : JSON.stringify(response?.response ?? response, null, 2),
+        at: Date.now()
+      }
+    ]
+  });
   input.value = "";
-  renderProjectWorkspace();
+  await refresh();
   setStatus(`Workspace response received from ${agentId}.`, "ok");
 }
 

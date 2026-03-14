@@ -106,12 +106,13 @@ After every execution cycle, update this file with:
 - Normalized `Build` directory cards with stronger header hierarchy, recruiting signal, directory snapshot blocks, and lower-noise project actions
 - Audited `World`, `Settings`, `Market`, and `Docs` for dark-theme regressions and aligned their card density, detail blocks, and page-level boundaries with the shared dark foundation rules
 - Moved membership workflow controls into `Project Workspace` and reduced `My Projects` to project visibility plus workspace entry, keeping participation actions attached to the active project page
+- Switched `Project Workspace` conversation from browser-only state to persisted project workspace conversation stored through the project API, so chat survives refresh and stays attached to the project record
 
 ## Current Focus
 - P1 Project Workspace Maturation
 
 ## Next Recommended Action
-- Add persistent project conversation storage so project chat survives refresh and becomes part of the project workspace instead of transient browser-only state
+- Add clearer project progress blocks and participation request flow inside `Project Workspace`, then remove any remaining cross-page ownership of collaboration actions
 
 ## Blockers
 - none currently

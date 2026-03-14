@@ -140,6 +140,7 @@ export class ProjectProtocol {
       memberInvites: [],
       memberHistory: initialMemberHistory,
       foundationRuns: [],
+      workspaceConversation: [],
       state: "initialized",
       createdAt: now(),
       updatedAt: now()
@@ -355,6 +356,60 @@ export class ProjectProtocol {
     return { ...project, latestFoundationRun: run };
   }
 
+  async appendWorkspaceConversation({ projectId, humanId, entries = [] }) {
+    const { project, human } = this.#assertWorkspaceAccess({ projectId, humanId });
+    if (!Array.isArray(entries) || !entries.length) {
+      throw new Error("workspace conversation entries are required");
+    }
+
+    const allowedActorTypes = new Set(["human", "agent", "system"]);
+    const ownAgentIds = new Set(
+      this.identityRegistry.summary().agents
+        .filter((agent) => agent.humanId === human.humanId)
+        .map((agent) => agent.agentId)
+    );
+    const nextEntries = entries.map((entry) => {
+      const actorType = token("actorType", String(entry?.actorType || "human"), 16).toLowerCase();
+      if (!allowedActorTypes.has(actorType)) {
+        throw new Error("actorType must be one of: human, agent, system");
+      }
+
+      let actorId = text("actorId", entry?.actorId || "", 128);
+      if (actorType === "human") {
+        actorId = actorId || human.humanId;
+        if (actorId !== human.humanId) {
+          throw new Error("human workspace entries must match the acting human");
+        }
+      }
+      if (actorType === "agent") {
+        actorId = token("agentId", actorId || String(entry?.agentId || ""), 128);
+        if (!ownAgentIds.has(actorId)) {
+          throw new Error("agent workspace entries must use one of your registered agents");
+        }
+        if (!(project.memberAgentIds || []).includes(actorId)) {
+          throw new Error("workspace agent must already be a project member");
+        }
+      }
+      if (actorType === "system") {
+        actorId = actorId || "workspace";
+      }
+
+      return {
+        entryId: uid("wmsg"),
+        actorType,
+        actorId,
+        role: actorType === "human" ? "human" : actorType === "agent" ? "agent" : "system",
+        content: text("content", entry?.content || "", 8000),
+        at: Number.isFinite(Number(entry?.at)) ? Number(entry.at) : now()
+      };
+    });
+
+    project.workspaceConversation = [...(project.workspaceConversation || []), ...nextEntries].slice(-40);
+    project.updatedAt = now();
+    await this.onChange();
+    return { ...project };
+  }
+
   list() {
     return [...this.projects.values()].map((project) => ({
       ...project,
@@ -382,6 +437,24 @@ export class ProjectProtocol {
       throw new Error("only the project owner can manage membership");
     }
     return project;
+  }
+
+  #assertWorkspaceAccess({ projectId, humanId }) {
+    const safeProjectId = token("projectId", projectId);
+    const project = this.projects.get(safeProjectId);
+    if (!project) throw new Error(`unknown projectId: ${safeProjectId}`);
+    const human = this.identityRegistry.getHuman(humanId);
+    if (project.ownerHumanId === human.humanId) return { project, human };
+    const ownAgentIds = new Set(
+      this.identityRegistry.summary().agents
+        .filter((agent) => agent.humanId === human.humanId)
+        .map((agent) => agent.agentId)
+    );
+    const isParticipant = (project.memberAgentIds || []).some((agentId) => ownAgentIds.has(agentId));
+    if (!isParticipant) {
+      throw new Error("only the project owner or a participating member can use the workspace");
+    }
+    return { project, human };
   }
 
   async #syncProjectMembershipDocs(project) {
