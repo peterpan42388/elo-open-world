@@ -201,6 +201,41 @@ function renderOnboarderServicePage() {
   </html>`;
 }
 
+function renderWebPluginServicePage() {
+  return `<!doctype html>
+  <html lang="en">
+    <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>ELO Agent Web Plugin</title>
+      <link rel="stylesheet" href="/app.css" />
+    </head>
+    <body>
+      <div class="page">
+        <header class="topbar">
+          <a class="brand" href="/#home">ELO Open World</a>
+          <div class="topbar-actions"><a class="topbar-button secondary" href="/#settings">Back To Settings</a></div>
+        </header>
+        <main>
+          <section class="panel guide-page">
+            <div class="panel-header">
+              <h2>ELO Agent Web Plugin</h2>
+              <p>Browser bridge service for connecting user-owned agents to ELO Open World starter and workspace flows.</p>
+            </div>
+            <ul class="content-list">
+              <li><code>/services/elo-agent-web-plugin</code> — service landing page</li>
+              <li><code>/services/elo-agent-web-plugin/health</code> — health probe</li>
+              <li><code>/services/elo-agent-web-plugin/manifest</code> — service descriptor</li>
+              <li><code>/services/elo-agent-web-plugin/bridge-pack</code> — browser bridge pack API</li>
+              <li><code>/services/elo-agent-web-plugin/artifact-zip</code> — zip export API</li>
+            </ul>
+          </section>
+        </main>
+      </div>
+    </body>
+  </html>`;
+}
+
 async function readJson(req) {
   let raw = "";
   for await (const chunk of req) raw += chunk;
@@ -428,6 +463,59 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "POST" && path === "/services/elo-agent-onboarder/bundle") {
       const body = await readJson(req);
       return json(res, 200, framework.onboarder.generateBundle(body));
+    }
+
+    if (req.method === "GET" && path === "/services/elo-agent-web-plugin") {
+      return html(res, 200, renderWebPluginServicePage());
+    }
+
+    if (req.method === "GET" && path === "/services/elo-agent-web-plugin/health") {
+      return json(res, 200, {
+        ok: true,
+        service: "elo-agent-web-plugin",
+        version: "v1",
+        generatedAt: Date.now()
+      });
+    }
+
+    if (req.method === "GET" && path === "/services/elo-agent-web-plugin/manifest") {
+      return json(res, 200, {
+        serviceId: "service.elo-agent-web-plugin",
+        project: "elo-agent-web-plugin",
+        title: "ELO Agent Web Plugin",
+        kind: "plugin",
+        contract: "elo-agent-web-plugin.bridge-pack.v1",
+        endpoints: {
+          landing: "/services/elo-agent-web-plugin",
+          health: "/services/elo-agent-web-plugin/health",
+          manifest: "/services/elo-agent-web-plugin/manifest",
+          bridgePack: "/services/elo-agent-web-plugin/bridge-pack",
+          artifactZip: "/services/elo-agent-web-plugin/artifact-zip"
+        },
+        outputs: {
+          readme: "markdown",
+          bridgeConfig: "json",
+          extensionSettings: "json",
+          localAdapterExample: "json",
+          artifactZip: "zip"
+        },
+        browsers: ["chromium", "arc", "edge"],
+        modes: ["unpacked", "developer"]
+      });
+    }
+
+    if (req.method === "POST" && path === "/services/elo-agent-web-plugin/bridge-pack") {
+      const body = await readJson(req);
+      return json(res, 200, framework.webPluginFoundation.generateBridgePack(body));
+    }
+
+    if (req.method === "POST" && path === "/services/elo-agent-web-plugin/artifact-zip") {
+      const body = await readJson(req);
+      const result = await buildArtifactZip({
+        bundle: body.artifactBundle,
+        basename: "elo-agent-web-plugin-bridge-pack"
+      });
+      return binary(res, 200, result.data, result.contentType, result.filename);
     }
 
     if (req.method === "POST" && path === "/api/humans/register") {

@@ -5,12 +5,14 @@ const FOUNDATION_PROJECT_OVERRIDES = {
   "peterpan42388/elo-agent-onboarder": {
     stage: "operating",
     state: "stable",
-    operatingFoundation: true
+    operatingFoundation: true,
+    serviceEndpoint: "https://world.metavie.co/services/elo-agent-onboarder"
   },
   "peterpan42388/elo-agent-web-plugin": {
     stage: "operating",
     state: "stable",
-    operatingFoundation: true
+    operatingFoundation: true,
+    serviceEndpoint: "https://world.metavie.co/services/elo-agent-web-plugin"
   }
 };
 

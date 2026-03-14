@@ -167,6 +167,13 @@ function foundationWorkspace(project) {
   return FOUNDATION_PROJECT_WORKSPACES[project.repoFullName] || { focus: "Foundation project.", docs: [] };
 }
 
+function foundationServicePath(project) {
+  if (!project?.repoFullName) return "";
+  if (project.repoFullName === "peterpan42388/elo-agent-onboarder") return "/services/elo-agent-onboarder";
+  if (project.repoFullName === "peterpan42388/elo-agent-web-plugin") return "/services/elo-agent-web-plugin";
+  return "";
+}
+
 function foundationToolDefaults() {
   return {
     profile: "",
@@ -176,6 +183,15 @@ function foundationToolDefaults() {
     runtimeMode: "local-process",
     installRoot: "~/elo-open-world",
     machineLabel: "local-machine"
+  };
+}
+
+function foundationBridgeDefaults() {
+  return {
+    browser: "chromium",
+    extensionMode: "unpacked",
+    siteOrigin: window.location.origin,
+    agentEndpoint: "http://127.0.0.1:18789"
   };
 }
 
@@ -214,18 +230,14 @@ function foundationPresetMap() {
 function renderFoundationArtifactActions(project) {
   const artifact = state.latestFoundationArtifacts?.[project.projectId];
   if (!artifact?.result) return "";
-  const setupPack = artifact.result.setupPack || {};
-  const templates = artifact.result.templates || artifact.result.plan?.templates || {};
+  const servicePath = foundationServicePath(project);
   return `
     <div class="action-row foundation-artifact-actions">
       <button type="button" class="topbar-button ghost foundation-copy-json" data-project-id="${project.projectId}">Copy JSON</button>
       <button type="button" class="topbar-button ghost foundation-download-json" data-project-id="${project.projectId}">Download JSON</button>
       ${artifact.result.artifactBundle ? `<button type="button" class="topbar-button ghost foundation-download-bundle" data-project-id="${project.projectId}">Download Artifact Bundle</button>` : ""}
-      ${artifact.result.artifactBundle ? `<button type="button" class="topbar-button ghost foundation-download-zip" data-project-id="${project.projectId}">Download ZIP</button>` : ""}
-      ${artifact.action === "setup-pack" && setupPack.readme ? `<button type="button" class="topbar-button ghost foundation-download-file" data-project-id="${project.projectId}" data-foundation-file="readme">Download README</button>` : ""}
-      ${artifact.action === "setup-pack" && setupPack.registerScript ? `<button type="button" class="topbar-button ghost foundation-download-file" data-project-id="${project.projectId}" data-foundation-file="registerScript">Download Script</button>` : ""}
-      ${artifact.action === "setup-pack" && setupPack.agentConfig ? `<button type="button" class="topbar-button ghost foundation-download-file" data-project-id="${project.projectId}" data-foundation-file="agentConfig">Download Config</button>` : ""}
-      ${Object.keys(templates).map((name) => `<button type="button" class="topbar-button ghost foundation-download-template" data-project-id="${project.projectId}" data-template-name="${encodeURIComponent(name)}">Download ${name}</button>`).join("")}
+      ${artifact.result.artifactBundle && servicePath ? `<button type="button" class="topbar-button ghost foundation-download-zip" data-project-id="${project.projectId}" data-service-path="${servicePath}">Download ZIP</button>` : ""}
+      ${Object.keys(artifact.result.artifactBundle?.files || {}).map((name) => `<button type="button" class="topbar-button ghost foundation-download-bundle-file" data-project-id="${project.projectId}" data-bundle-file="${encodeURIComponent(name)}">Download ${name}</button>`).join("")}
     </div>
   `;
 }
@@ -249,6 +261,29 @@ function renderFoundationRuntimeNotice() {
       <div class="action-row">
         <a href="/guides/runtime-modes.html" target="_blank" rel="noreferrer">Open Runtime Modes Guide</a>
         <a href="https://github.com/peterpan42388/elo-agent-onboarder/blob/codex/foundation-workspace/docs/INSTALL_PLAN_CONTRACT.md" target="_blank" rel="noreferrer">Install Plan Contract</a>
+      </div>
+    </div>
+  `;
+}
+
+function renderWebPluginRuntimeNotice() {
+  return `
+    <div class="foundation-runtime-note">
+      <div class="summary-row">
+        <strong>Bridge Modes</strong>
+        <span>Browser bridge package</span>
+      </div>
+      <p>
+        Generated artifacts configure the browser extension bridge between a user-owned local agent and ELO Open World workspace flows.
+      </p>
+      <ul class="content-list">
+        <li><strong>Bridge Pack:</strong> configures popup settings, local adapter expectations, and site origin binding.</li>
+        <li><strong>Local Agent:</strong> must expose <code>/health</code> and <code>/eow/bridge/chat</code>.</li>
+        <li><strong>Browser Extension:</strong> load the unpacked plugin and apply the generated settings bundle.</li>
+      </ul>
+      <div class="action-row">
+        <a href="https://github.com/peterpan42388/elo-agent-web-plugin/blob/codex/browser-bridge-skeleton/docs/BRIDGE_PROTOCOL.md" target="_blank" rel="noreferrer">Bridge Protocol</a>
+        <a href="https://github.com/peterpan42388/elo-agent-web-plugin/blob/codex/browser-bridge-skeleton/docs/INSTALLATION.md" target="_blank" rel="noreferrer">Installation</a>
       </div>
     </div>
   `;
@@ -325,7 +360,7 @@ function renderProjectFoundationRunList(project, limit = 5) {
 }
 
 function renderFoundationOperator(project, agents) {
-  if (project.repoFullName !== "peterpan42388/elo-agent-onboarder") return "";
+  if (project.repoFullName === "peterpan42388/elo-agent-onboarder") {
   const defaults = foundationToolDefaults();
   const artifact = state.latestFoundationArtifacts?.[project.projectId];
   const outputText = artifact?.result ? JSON.stringify(artifact.result, null, 2) : "No foundation artifact generated yet.";
@@ -397,6 +432,62 @@ function renderFoundationOperator(project, agents) {
       <pre class="code-block compact foundation-output" id="foundation-output-${project.projectId}">${outputText}</pre>
     </div>
   `;
+  }
+  if (project.repoFullName === "peterpan42388/elo-agent-web-plugin") {
+    const defaults = foundationBridgeDefaults();
+    const artifact = state.latestFoundationArtifacts?.[project.projectId];
+    const outputText = artifact?.result ? JSON.stringify(artifact.result, null, 2) : "No browser bridge artifact generated yet.";
+    return `
+      <div class="foundation-operator copy-stack">
+        <div class="summary-row">
+          <strong>Foundation Operator</strong>
+          <span>Generate browser bridge artifacts from EOW</span>
+        </div>
+        ${renderWebPluginRuntimeNotice()}
+        <form class="foundation-tool-form" data-project-id="${project.projectId}">
+          <div class="form-grid compact-grid">
+            <label>
+              <span>Agent</span>
+              <select name="agentId" required>
+                <option value="">Select one of your agents</option>
+                ${agents.map((agent) => `<option value="${agent.agentId}">${agent.label || agent.agentId}</option>`).join("")}
+              </select>
+            </label>
+            <label>
+              <span>Browser</span>
+              <select name="browser">
+                <option value="chromium">chromium</option>
+                <option value="arc">arc</option>
+                <option value="edge">edge</option>
+              </select>
+            </label>
+            <label>
+              <span>Extension Mode</span>
+              <select name="extensionMode">
+                <option value="unpacked">unpacked</option>
+                <option value="developer">developer</option>
+              </select>
+            </label>
+            <label>
+              <span>Site Origin</span>
+              <input name="siteOrigin" value="${defaults.siteOrigin}" />
+            </label>
+            <label>
+              <span>Agent Endpoint</span>
+              <input name="agentEndpoint" value="${defaults.agentEndpoint}" />
+            </label>
+          </div>
+          <div class="action-row">
+            <button type="button" class="topbar-button secondary foundation-run-button" data-foundation-action="bridge-pack" data-project-id="${project.projectId}">Generate Bridge Pack</button>
+          </div>
+        </form>
+        ${renderFoundationRunHistory(project)}
+        ${renderFoundationArtifactActions(project)}
+        <pre class="code-block compact foundation-output" id="foundation-output-${project.projectId}">${outputText}</pre>
+      </div>
+    `;
+  }
+  return "";
 }
 
 function filterProjectsByScope(projects, humanId) {
@@ -1753,26 +1844,38 @@ function renderSettingsData() {
             const agentId = form.agentId.value;
             const action = node.dataset.foundationAction || '';
             if (!agentId) throw new Error('Select one of your agents first.');
-            const endpoint = `/services/elo-agent-onboarder/${action}`;
-            const result = await request(endpoint, 'POST', {
+            const project = foundations.find((item) => item.projectId === projectId);
+            const servicePath = foundationServicePath(project);
+            if (!servicePath) throw new Error('No foundation service is configured for this project.');
+            const payload = {
               humanId: human.humanId,
               agentId,
-              worldUrl: window.location.origin,
-              profile: form.profile.value,
-              machineLabel: form.machineLabel.value,
-              target: form.target.value,
-              platform: form.platform.value,
-              packageMode: form.packageMode.value,
-              runtimeMode: form.runtimeMode.value,
-              installRoot: form.installRoot.value
-            });
+              worldUrl: window.location.origin
+            };
+            if (project?.repoFullName === "peterpan42388/elo-agent-onboarder") {
+              payload.profile = form.profile.value;
+              payload.machineLabel = form.machineLabel.value;
+              payload.target = form.target.value;
+              payload.platform = form.platform.value;
+              payload.packageMode = form.packageMode.value;
+              payload.runtimeMode = form.runtimeMode.value;
+              payload.installRoot = form.installRoot.value;
+            }
+            if (project?.repoFullName === "peterpan42388/elo-agent-web-plugin") {
+              payload.browser = form.browser.value;
+              payload.extensionMode = form.extensionMode.value;
+              payload.siteOrigin = form.siteOrigin.value;
+              payload.agentEndpoint = form.agentEndpoint.value;
+            }
+            const endpoint = `${servicePath}/${action}`;
+            const result = await request(endpoint, 'POST', payload);
             state.latestFoundationArtifacts[projectId] = { action, result, agentId };
             await request('/api/projects/foundation-runs/record', 'POST', {
               projectId,
               ownerHumanId: human.humanId,
               action,
               agentId,
-              profile: form.profile.value,
+              profile: form.profile?.value || form.browser?.value || "",
               result
             });
             await refresh();
@@ -1825,7 +1928,9 @@ function renderSettingsData() {
         node.addEventListener('click', async () => {
           const artifact = state.latestFoundationArtifacts?.[node.dataset.projectId || ''];
           if (!artifact?.result?.artifactBundle) return;
-          const response = await fetch('/services/elo-agent-onboarder/artifact-zip', {
+          const servicePath = node.dataset.servicePath || '';
+          if (!servicePath) return;
+          const response = await fetch(`${servicePath}/artifact-zip`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -1841,7 +1946,8 @@ function renderSettingsData() {
           const url = URL.createObjectURL(blob);
           const link = document.createElement('a');
           link.href = url;
-          link.download = `elo-agent-onboarder-${artifact.action || 'artifact'}.zip`;
+          const serviceName = servicePath.split('/').pop() || 'foundation';
+          link.download = `${serviceName}-${artifact.action || 'artifact'}.zip`;
           document.body.appendChild(link);
           link.click();
           link.remove();
@@ -1849,26 +1955,14 @@ function renderSettingsData() {
           setStatus('Artifact zip downloaded.', 'ok');
         });
       });
-      foundationsRoot.querySelectorAll('.foundation-download-file').forEach((node) => {
+      foundationsRoot.querySelectorAll('.foundation-download-bundle-file').forEach((node) => {
         node.addEventListener('click', () => {
           const artifact = state.latestFoundationArtifacts?.[node.dataset.projectId || ''];
-          if (!artifact?.result?.setupPack) return;
-          const field = node.dataset.foundationFile || '';
-          const value = artifact.result.setupPack[field];
+          const files = artifact?.result?.artifactBundle?.files || {};
+          const name = decodeURIComponent(node.dataset.bundleFile || '');
+          const value = files[name];
           if (!value) return;
-          const suffix = field === 'readme' ? 'README.md' : field === 'registerScript' ? 'register-agent.sh' : 'agent.config.json';
-          const mime = field === 'agentConfig' ? 'application/json;charset=utf-8' : 'text/plain;charset=utf-8';
-          downloadTextFile(`${node.dataset.projectId}.${suffix}`, value, mime);
-        });
-      });
-      foundationsRoot.querySelectorAll('.foundation-download-template').forEach((node) => {
-        node.addEventListener('click', () => {
-          const artifact = state.latestFoundationArtifacts?.[node.dataset.projectId || ''];
-          const templates = artifact?.result?.templates || artifact?.result?.plan?.templates || {};
-          const name = decodeURIComponent(node.dataset.templateName || '');
-          const value = templates[name];
-          if (!value) return;
-          const mime = name.endsWith('.json') || name === '.env' ? 'text/plain;charset=utf-8' : 'text/plain;charset=utf-8';
+          const mime = name.endsWith('.json') ? 'application/json;charset=utf-8' : 'text/plain;charset=utf-8';
           downloadTextFile(name, value, mime);
         });
       });

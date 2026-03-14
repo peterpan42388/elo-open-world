@@ -359,6 +359,34 @@ test("onboarder install-plan and bootstrap report should align with setup-pack c
   assert.equal(report.diagnostics.checks.length, 2);
 });
 
+test("web plugin bridge-pack should expose foundation artifact bundle", async () => {
+  const root = await mkdtemp(join(tmpdir(), "open-world-web-plugin-"));
+  const world = await new OpenWorldFramework({
+    stateFile: join(root, "state.json"),
+    projectsRoot: join(root, "projects")
+  }).init();
+
+  const bridgePack = world.webPluginFoundation.generateBridgePack({
+    humanId: "human.github.peterpan42388",
+    agentId: "agent.grace.openclaw",
+    worldUrl: "https://world.metavie.co",
+    browser: "chromium",
+    extensionMode: "unpacked",
+    siteOrigin: "https://world.metavie.co",
+    agentEndpoint: "http://127.0.0.1:18789"
+  });
+
+  assert.equal(bridgePack.contract, "elo-agent-web-plugin.bridge-pack.v1");
+  assert.equal(bridgePack.target.browser, "chromium");
+  assert.equal(bridgePack.target.extensionMode, "unpacked");
+  assert.ok(bridgePack.artifactBundle);
+  assert.equal(bridgePack.artifactBundle.contract, "elo-agent-web-plugin.artifact-bundle.v1");
+  assert.ok(bridgePack.artifactBundle.files["README.md"]);
+  assert.ok(bridgePack.artifactBundle.files["bridge.config.json"]);
+  assert.ok(bridgePack.artifactBundle.files["extension-settings.json"]);
+  assert.ok(bridgePack.artifactBundle.files["local-agent-adapter.example.json"]);
+});
+
 test("universe manifest should expose federation baseline", async () => {
   const root = await mkdtemp(join(tmpdir(), "open-world-manifest-"));
   const world = await new OpenWorldFramework({

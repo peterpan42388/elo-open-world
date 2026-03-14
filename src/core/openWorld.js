@@ -9,6 +9,7 @@ import { StateStore } from "../services/stateStore.js";
 import { GitHubRepoService } from "../services/githubRepoService.js";
 import { ProjectInitializer } from "../services/projectInitializer.js";
 import { OpenClawOnboardingService } from "../services/openClawOnboardingService.js";
+import { WebPluginFoundationService } from "../services/webPluginFoundationService.js";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
 
@@ -31,6 +32,7 @@ export class OpenWorldFramework {
       protocolVersion: universeConfig.protocolVersion || "openworld.universe.v1"
     };
     this.onboarder = null;
+    this.webPluginFoundation = null;
     this.identity = null;
     this.plugins = null;
     this.requirements = null;
@@ -58,6 +60,7 @@ export class OpenWorldFramework {
       projectInitializer: this.projectInitializer
     });
     this.onboarder = new OpenClawOnboardingService({ identityRegistry: this.identity });
+    this.webPluginFoundation = new WebPluginFoundationService();
     return this;
   }
 
