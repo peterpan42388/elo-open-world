@@ -615,6 +615,28 @@ function renderDirectoryTags(tags = [], maxVisible = 3) {
   return `<div class="tag-row build-card-tags">${visible}${overflow}</div>`;
 }
 
+function renderBoundedNoteList(items = []) {
+  const safeItems = Array.isArray(items)
+    ? items
+        .map((item) => ({
+          label: String(item?.label || "").trim(),
+          value: String(item?.value || "").trim()
+        }))
+        .filter((item) => item.label && item.value)
+    : [];
+  if (!safeItems.length) return "";
+  return `
+    <div class="nested-list">
+      ${safeItems.map((item) => `
+        <div class="nested-item">
+          <strong>${escapeHtml(item.label)}</strong>
+          <span>${escapeHtml(item.value)}</span>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
 function formatTimestamp(ts) {
   if (!ts) return "-";
   const date = new Date(ts);
@@ -3067,6 +3089,7 @@ function renderProjects(projects) {
         : "No Run Yet");
     const safeLatestRunNote = escapeHtml(formatLatestDeliveryNote({ latestRun, latestWorkspaceMessage }));
     const safeDirectorySignal = escapeHtml(directorySignal);
+    const latestActivity = projectLatestActivity(project);
     return `
     <details class="expand-card build-directory-card" data-project-card="${project.projectId}">
       <summary>
@@ -3169,8 +3192,11 @@ function renderProjects(projects) {
               <div class="detail-item detail-item-wide"><span>Service Endpoint</span><strong class="detail-code">${safeServiceLabel || "Not set"}</strong></div>
               <div class="detail-item"><span>Latest Run At</span><strong>${latestRun ? formatTimestamp(latestRun.generatedAt) : "-"}</strong></div>
             </div>
-            <p>${escapeHtml(operatingState.note)}</p>
-            <p>${escapeHtml(projectLatestActivity(project).detail)}</p>
+            ${renderBoundedNoteList([
+              { label: "Operating Context", value: operatingState.note },
+              { label: "Recruiting Path", value: recruitingState.note },
+              { label: "Latest Activity", value: latestActivity.detail }
+            ])}
           </div>
         </div>
         ${renderProjectFoundationRunSummary(project)}
@@ -4206,8 +4232,11 @@ function renderMarketProjects(projects) {
               <strong>Access Model</strong>
               <span>${accessModel}</span>
             </div>
-            <p>Pricing: ${escapeHtml(project.pricingNote || "ELO protocol plugin")}</p>
-            <p>Usage: ${escapeHtml(usageNote)}</p>
+            ${renderBoundedNoteList([
+              { label: "Pricing", value: project.pricingNote || "ELO protocol plugin" },
+              { label: "Usage", value: usageNote },
+              { label: "Workspace Entry", value: "Operator context, members, and delivery history stay attached to the project page." }
+            ])}
           </div>
         </div>
         <div class="build-directory-actions">

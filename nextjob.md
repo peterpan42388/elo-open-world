@@ -97,6 +97,7 @@ After every execution cycle, update this file with:
 - any new blockers
 
 ## Last Completed
+- Tightened `Build` and `Market` expanded directory context by replacing the remaining free-floating operating, recruiting, pricing, and usage paragraphs with bounded nested note blocks, so expanded cards keep the dark card hierarchy and scan cleanly without mixing long context copy into unbounded text walls
 - Tightened `Build` directory recruiting scanability by making the collapsed recruiting signal distinguish paused intake, pending request load, first-member demand, solo-builder growth, and broader open intake, and added regression coverage for the shared recruiting-state helper so quick-scan copy stays stable without reintroducing collaboration controls into the directory surface
 - Hardened `Build` and `Market` directory external surfaces by sanitizing repo/service links before rendering, adding bounded fallback notes when links are missing or invalid, and loosening status-pill plus action-row wrapping so long live labels do not force overflow on dark directory cards
 - Hardened `Build` and `Market` collapsed repo/service identity rows on narrow cards by removing the CSS end-ellipsis from pre-compacted labels and allowing bounded two-line wrap, so the prefix-plus-tail quick-scan values keep their distinguishing tail visible with live deployed foundation-project data
@@ -135,10 +136,10 @@ After every execution cycle, update this file with:
 - Reworked the `Project Workspace` snapshot around ownership, participation, recruiting, latest activity, and operating inputs so the page reads less like a directory card and more like the active project control surface
 
 ## Current Focus
-- P2 Build Directory Hardening: run a rendered browser pass against deployed `Build` and `Market` cards now that recruiting-state quick-scan copy, compact identity rows, external-link fallbacks, and badge/action wrapping have all been tightened, then trim any remaining quick-scan overflow or CTA hierarchy regressions
+- P2 Build Directory Hardening: run a rendered browser pass against deployed `Build` and `Market` cards now that recruiting-state quick-scan copy, compact identity rows, external-link fallbacks, badge/action wrapping, and expanded bounded note blocks have all been tightened, then trim any remaining quick-scan overflow or CTA hierarchy regressions
 
 ## Next Recommended Action
-- run a rendered browser pass on deployed `Build` and `Market` cards with real project data to confirm the new recruiting-state copy, safe link fallbacks, and status/action wrapping, then fix any remaining long-summary, badge-wrap, or expanded action regressions that still slow the quick scan path
+- run a rendered browser pass on deployed `Build` and `Market` cards with real project data to confirm the new recruiting-state copy, safe link fallbacks, status/action wrapping, and expanded bounded note blocks, then fix any remaining long-summary, badge-wrap, or expanded action regressions that still slow the quick scan path
 
 ## Blockers
 - local runtime has no seeded project data, so fully representative browser validation still needs either real project records in the local state or a pass against the deployed environment
