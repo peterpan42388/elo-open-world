@@ -1503,6 +1503,10 @@ details.expand-card summary::-webkit-details-marker { display: none; }
   overflow-wrap: anywhere;
 }
 
+.directory-action-secondary .directory-action-note {
+  flex: 1 1 100%;
+}
+
 .directory-action-primary > *,
 .directory-action-secondary > * {
   min-width: 0;

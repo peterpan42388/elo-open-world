@@ -1,4 +1,4 @@
-import { sanitizeExternalHref } from "./lib/externalLinks.js";
+import { classifyExternalLinks, sanitizeExternalHref } from "./lib/externalLinks.js";
 import { getProjectRecruitingSignal } from "./lib/directorySignals.js";
 
 const $ = (id) => document.getElementById(id);
@@ -122,13 +122,17 @@ function escapeHtml(value) {
 }
 
 function renderDirectoryExternalLinks(links, emptyMessage) {
-  const availableLinks = links.filter((link) => link.href);
-  if (!availableLinks.length) {
-    return `<span class="directory-action-note">${escapeHtml(emptyMessage)}</span>`;
-  }
-  return availableLinks.map((link) => `
+  const { availableLinks, missingLinks } = classifyExternalLinks(links);
+  const linkMarkup = availableLinks.map((link) => `
     <a class="topbar-button ghost" href="${escapeHtml(link.href)}" target="_blank" rel="noreferrer">${escapeHtml(link.label)}</a>
   `).join("");
+  const missingNotes = missingLinks.map((link) => `
+    <span class="directory-action-note">${escapeHtml(link.missingMessage || `${link.label} publishes after that surface is available.`)}</span>
+  `).join("");
+  if (!linkMarkup && !missingNotes) {
+    return `<span class="directory-action-note">${escapeHtml(emptyMessage)}</span>`;
+  }
+  return `${linkMarkup}${missingNotes}`;
 }
 
 function setStatus(message, kind = "ok") {
@@ -3218,7 +3222,11 @@ function renderProjects(projects) {
             </div>
             <div class="directory-action-secondary">
               ${renderDirectoryExternalLinks(
-                [{ label: "Source Repo", href: repoHref }],
+                [{
+                  label: "Source Repo",
+                  href: repoHref,
+                  missingMessage: "Repository link publishes after the source surface is connected."
+                }],
                 "Repository link publishes after the source surface is connected."
               )}
             </div>
@@ -4257,8 +4265,16 @@ function renderMarketProjects(projects) {
             <div class="directory-action-secondary">
               ${renderDirectoryExternalLinks(
                 [
-                  { label: "Live Service", href: serviceHref },
-                  { label: "Source Repo", href: repoHref }
+                  {
+                    label: "Live Service",
+                    href: serviceHref,
+                    missingMessage: "Live service publishes after the operating endpoint is available."
+                  },
+                  {
+                    label: "Source Repo",
+                    href: repoHref,
+                    missingMessage: "Source repo publishes after the source surface is connected."
+                  }
                 ],
                 "Usage links publish after the live endpoint or source repo is available."
               )}
