@@ -1,4 +1,5 @@
 import { sanitizeExternalHref } from "./lib/externalLinks.js";
+import { getProjectRecruitingSignal } from "./lib/directorySignals.js";
 
 const $ = (id) => document.getElementById(id);
 const SESSION_KEY = "elo-open-world.session";
@@ -788,40 +789,16 @@ function projectDirectoryOperatingHeadline(project) {
 }
 
 function projectDirectoryRecruitingState(project) {
-  const paused = String(project?.state || "").toLowerCase() === "paused";
-  return paused
-    ? {
-        pill: "Recruiting Closed",
-        className: "inactive",
-        label: "Closed To New Participants",
-        note: "Participation stays attached to the project page, but owner intake is paused right now."
-      }
-    : {
-        pill: "Recruiting Open",
-        className: "recruiting",
-        label: "Open To New Participants",
-        note: "Build stays directory-only. Open the project page when you want to request participation."
-      };
+  const { pill, className, label, note } = getProjectRecruitingSignal(project);
+  return { pill, className, label, note };
 }
 
 function projectDirectoryRecruitingHint(project) {
-  const openParticipationRequests = (project?.participationRequests || []).filter((entry) => entry.status === "pending");
-  const paused = String(project?.state || "").toLowerCase() === "paused";
-  if (paused) return "Owner intake is paused.";
-  if (openParticipationRequests.length) {
-    return `${openParticipationRequests.length} pending request${openParticipationRequests.length === 1 ? "" : "s"} waiting in Project Workspace.`;
-  }
-  return "New participation starts in Project Workspace.";
+  return getProjectRecruitingSignal(project).hint;
 }
 
 function projectDirectoryRecruitingHeadline(project) {
-  const openParticipationRequests = (project?.participationRequests || []).filter((entry) => entry.status === "pending");
-  const paused = String(project?.state || "").toLowerCase() === "paused";
-  if (paused) return "Paused";
-  if (openParticipationRequests.length) {
-    return `${openParticipationRequests.length} Waiting`;
-  }
-  return "Open Intake";
+  return getProjectRecruitingSignal(project).headline;
 }
 
 function projectDirectoryParticipationState(project, human, myProjectIds) {
