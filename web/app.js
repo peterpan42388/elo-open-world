@@ -1,3 +1,5 @@
+import { sanitizeExternalHref } from "./lib/externalLinks.js";
+
 const $ = (id) => document.getElementById(id);
 const SESSION_KEY = "elo-open-world.session";
 const SETTINGS_DEFAULT_SECTION = "profile";
@@ -116,6 +118,16 @@ function escapeHtml(value) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+function renderDirectoryExternalLinks(links, emptyMessage) {
+  const availableLinks = links.filter((link) => link.href);
+  if (!availableLinks.length) {
+    return `<span class="directory-action-note">${escapeHtml(emptyMessage)}</span>`;
+  }
+  return availableLinks.map((link) => `
+    <a class="topbar-button ghost" href="${escapeHtml(link.href)}" target="_blank" rel="noreferrer">${escapeHtml(link.label)}</a>
+  `).join("");
 }
 
 function setStatus(message, kind = "ok") {
@@ -3061,6 +3073,7 @@ function renderProjects(projects) {
     const safeSummary = escapeHtml(project.summary || "No summary provided.");
     const safeRepoLabel = escapeHtml(repoLabel);
     const safeServiceLabel = escapeHtml(serviceLabel);
+    const repoHref = sanitizeExternalHref(project.repoUrl);
     const compactRepoLabel = escapeHtml(formatCollapsedIdentityLabel(repoLabel, { maxLength: 34 }));
     const compactServiceLabel = escapeHtml(formatCollapsedIdentityLabel(serviceLabel, {
       stripProtocol: true,
@@ -3201,7 +3214,10 @@ function renderProjects(projects) {
               <p>Source inspection stays separate from collaboration controls.</p>
             </div>
             <div class="directory-action-secondary">
-              <a class="topbar-button ghost" href="${project.repoUrl}" target="_blank" rel="noreferrer">Source Repo</a>
+              ${renderDirectoryExternalLinks(
+                [{ label: "Source Repo", href: repoHref }],
+                "Repository link publishes after the source surface is connected."
+              )}
             </div>
           </div>
         </div>
@@ -4114,6 +4130,8 @@ function renderMarketProjects(projects) {
     const serviceLabel = project.serviceEndpoint || "Service endpoint not set";
     const safeRepoLabel = escapeHtml(repoLabel);
     const safeServiceLabel = escapeHtml(serviceLabel);
+    const repoHref = sanitizeExternalHref(project.repoUrl);
+    const serviceHref = sanitizeExternalHref(project.serviceEndpoint);
     const compactRepoLabel = escapeHtml(formatCollapsedIdentityLabel(repoLabel, { maxLength: 34 }));
     const compactServiceLabel = escapeHtml(formatCollapsedIdentityLabel(serviceLabel, {
       stripProtocol: true,
@@ -4231,8 +4249,13 @@ function renderMarketProjects(projects) {
               <p>Live service and source links stay separate from the operator entry path.</p>
             </div>
             <div class="directory-action-secondary">
-              ${project.serviceEndpoint ? `<a class="topbar-button ghost" href="${project.serviceEndpoint}" target="_blank" rel="noreferrer">Live Service</a>` : ""}
-              <a class="topbar-button ghost" href="${project.repoUrl}" target="_blank" rel="noreferrer">Source Repo</a>
+              ${renderDirectoryExternalLinks(
+                [
+                  { label: "Live Service", href: serviceHref },
+                  { label: "Source Repo", href: repoHref }
+                ],
+                "Usage links publish after the live endpoint or source repo is available."
+              )}
             </div>
           </div>
         </div>
