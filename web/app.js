@@ -874,7 +874,7 @@ function projectDirectoryParticipationHeadline(project, human, myProjectIds) {
 function projectDirectoryPrimaryAction(project, human, myProjectIds) {
   if (myProjectIds.has(project.projectId)) {
     return {
-      label: "Project Workspace",
+      label: "Open Project Workspace",
       tone: "secondary"
     };
   }
@@ -883,18 +883,18 @@ function projectDirectoryPrimaryAction(project, human, myProjectIds) {
     : null;
   if (pendingRequest) {
     return {
-      label: "Pending Request",
+      label: "Open Project Workspace",
       tone: "secondary"
     };
   }
   if (!human) {
     return {
-      label: "Project Entry",
+      label: "Open Project Workspace",
       tone: "ghost"
     };
   }
   return {
-    label: "Project Entry",
+    label: "Open Project Workspace",
     tone: "secondary"
   };
 }
@@ -3205,7 +3205,7 @@ function renderProjects(projects) {
           <div class="directory-action-group directory-action-group-primary">
             <div class="directory-action-copy">
               <span class="directory-action-label">Project Workspace Entry</span>
-              <p>Participation, membership, and delivery stay on the project page.</p>
+              <p>${escapeHtml(clampDirectionalCopy(`${participationState.label}. ${participationState.note}`, 120))}</p>
             </div>
             <div class="directory-action-primary">
               <button type="button" class="topbar-button ${primaryAction.tone} open-workspace-button" data-project-open="${project.projectId}" data-project-title="${escapeHtml(project.title)}">${primaryAction.label}</button>
@@ -4246,7 +4246,7 @@ function renderMarketProjects(projects) {
               <p>Operator context, members, and delivery history stay attached to the project page.</p>
             </div>
             <div class="directory-action-primary">
-              <button type="button" class="topbar-button secondary open-workspace-button" data-project-open="${project.projectId}">Project Workspace</button>
+              <button type="button" class="topbar-button secondary open-workspace-button" data-project-open="${project.projectId}">Open Project Workspace</button>
             </div>
           </div>
           <div class="directory-action-group">
