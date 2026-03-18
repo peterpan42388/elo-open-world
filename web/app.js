@@ -63,6 +63,13 @@ const state = {
   selectedWorldNodeId: "",
   hoveredWorldNodeId: "",
   worldDrawerOpen: false,
+  worldGraphFilters: {
+    universe: true,
+    owner: true,
+    agent: true,
+    plugin: true,
+    foundation: true
+  },
   buildFilters: {
     kind: "",
     status: "",
@@ -1659,6 +1666,12 @@ function worldProjectNodeSize(project) {
   return 7 + heatBoost + ratingBoost + foundationBoost;
 }
 
+function worldProjectShouldForceLabel(project, orderedProjects, index) {
+  if (isOperatingFoundationProject(project)) return true;
+  if (orderedProjects.length <= 6) return true;
+  return index < 3;
+}
+
 function worldGraphRingPlan(count) {
   const rings = [];
   let remaining = count;
@@ -1735,7 +1748,7 @@ function buildWorldGraphData(projects) {
         size: worldProjectNodeSize(project),
         color: worldNodeBaseColor(project),
         zIndex: operatingFoundation ? 6 : 4,
-        forceLabel: operatingFoundation
+        forceLabel: worldProjectShouldForceLabel(project, orderedProjects, offset)
       };
       graph.addNode(nodeId, nodeAttributes);
       nodeMap.set(nodeId, {
@@ -1810,6 +1823,20 @@ function renderWorldLegend(projects) {
   if (!legend) return;
   const { sharedOwners, topPlugins, linkedAgents } = buildGraphRelations(projects);
   const foundationCount = projects.filter((project) => isOperatingFoundationProject(project)).length;
+  const quickProjects = [...projects]
+    .sort((left, right) => {
+      const foundationDelta = Number(isOperatingFoundationProject(right)) - Number(isOperatingFoundationProject(left));
+      if (foundationDelta) return foundationDelta;
+      return Number(right.heat || 0) - Number(left.heat || 0);
+    })
+    .slice(0, 6);
+  const filters = [
+    ["universe", "Universe"],
+    ["owner", "Owner"],
+    ["agent", "Agent"],
+    ["plugin", "Plugin"],
+    ["foundation", "Foundation"]
+  ];
   legend.innerHTML = `
     <div class="world-control-header">
       <div>
@@ -1835,6 +1862,24 @@ function renderWorldLegend(projects) {
       <article><span>Owner Clusters</span><strong>${sharedOwners.length}</strong></article>
       <article><span>Agent Links</span><strong>${linkedAgents}</strong></article>
     </div>
+    <div class="world-filter-bar">
+      ${filters.map(([key, label]) => `
+        <button type="button" class="world-filter-pill ${state.worldGraphFilters[key] ? "active" : ""}" data-world-filter="${key}">
+          ${escapeHtml(label)}
+        </button>
+      `).join("")}
+    </div>
+    <div class="world-project-shortcuts">
+      <span class="world-shortcuts-label">Quick Select</span>
+      <div class="world-shortcuts-list">
+        ${quickProjects.map((project) => `
+          <button type="button" class="world-project-chip" data-world-project-shortcut="${escapeHtml(project.projectId)}">
+            <span>${escapeHtml(clampInlineLabel(project.title, 22))}</span>
+            ${isOperatingFoundationProject(project) ? '<span class="world-project-chip-dot"></span>' : ""}
+          </button>
+        `).join("")}
+      </div>
+    </div>
     <div class="world-control-footnote">
       <strong>Top Plugins</strong>
       <span>${topPlugins.length ? topPlugins.map(([pluginId, count]) => `${pluginId} (${count})`).join(", ") : "No plugin clusters yet."}</span>
@@ -1847,6 +1892,23 @@ function renderWorldLegend(projects) {
   $("world-reset-selection")?.addEventListener("click", () => {
     closeWorldDrawer();
     fitWorldGraph();
+  });
+  legend.querySelectorAll("[data-world-filter]").forEach((node) => {
+    node.addEventListener("click", () => {
+      const key = node.dataset.worldFilter;
+      state.worldGraphFilters[key] = !state.worldGraphFilters[key];
+      renderWorldLegend(projects);
+      state.worldGraphRenderer?.refresh?.();
+      setStatus(`World relation filter updated: ${key} ${state.worldGraphFilters[key] ? "on" : "off"}.`, "ok");
+    });
+  });
+  legend.querySelectorAll("[data-world-project-shortcut]").forEach((node) => {
+    node.addEventListener("click", () => {
+      const nodeId = worldNodeIdForProject(node.dataset.worldProjectShortcut);
+      openWorldDrawer(nodeId);
+      renderWorldSelectionDrawer(nodeId, projects);
+      fitWorldGraph();
+    });
   });
 }
 
@@ -2031,6 +2093,22 @@ function renderWorldSelectionDrawer(nodeId, projects) {
   });
 }
 
+function worldEdgeTypeVisible(edgeType) {
+  return {
+    "universe-link": state.worldGraphFilters.universe,
+    "owner-link": state.worldGraphFilters.owner,
+    "agent-link": state.worldGraphFilters.agent,
+    "plugin-link": state.worldGraphFilters.plugin,
+    "foundation-link": state.worldGraphFilters.foundation
+  }[edgeType] !== false;
+}
+
+function worldNodeConnectedToSelection(graph, nodeId) {
+  if (!state.selectedWorldNodeId || nodeId === state.selectedWorldNodeId) return true;
+  const edges = graph.edges(state.selectedWorldNodeId, nodeId);
+  return edges.some((edge) => worldEdgeTypeVisible(graph.getEdgeAttribute(edge, "edgeType")));
+}
+
 function destroyWorldGraphRenderer() {
   if (state.worldGraphRenderer?.kill) state.worldGraphRenderer.kill();
   state.worldGraphRenderer = null;
@@ -2089,18 +2167,24 @@ async function renderProjectGraph(projects) {
       const selected = state.worldDrawerOpen && state.selectedWorldNodeId === node;
       const hovered = state.hoveredWorldNodeId === node;
       const connected = selected
-        ? node === state.selectedWorldNodeId || graph.neighbors(state.selectedWorldNodeId).includes(node)
+        ? worldNodeConnectedToSelection(graph, node)
         : true;
       return {
         ...data,
         color: !selected && !hovered && state.selectedWorldNodeId && !connected ? "rgba(77, 92, 119, 0.45)" : data.color,
-        size: selected ? data.size + 4 : hovered ? data.size + 1.5 : data.size,
+        size: selected ? data.size + 5 : hovered ? data.size + 2 : data.size,
         label: hovered || selected || data.forceLabel ? data.fullLabel || data.label : data.label,
         forceLabel: hovered || selected || data.forceLabel,
         zIndex: selected ? 20 : hovered ? 12 : data.zIndex
       };
     },
     edgeReducer: (edge, data) => {
+      if (!worldEdgeTypeVisible(data.edgeType)) {
+        return {
+          ...data,
+          hidden: true
+        };
+      }
       if (!state.worldDrawerOpen || !state.selectedWorldNodeId) return data;
       const source = graph.source(edge);
       const target = graph.target(edge);

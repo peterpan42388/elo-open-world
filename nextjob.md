@@ -85,9 +85,9 @@ Tasks:
 
 ## Recommended Next Action
 Move to `P0 World Engine Phase 2`, specifically:
-1. add node grouping and richer project-node labeling so the graph reads better with more than two projects
-2. add edge visibility controls for owner / agent / plugin / foundation relations
-3. refine project-node click targets and drawer transitions so project selection is easier than universe selection
+1. refine project-node click targets and drawer transitions so project selection is easier than universe selection
+2. add richer clustering once more than a handful of projects exist
+3. introduce hover-side metadata hints without reopening the fixed right-column layout
 
 ## Update Protocol
 After every execution cycle, update this file with:
@@ -97,6 +97,7 @@ After every execution cycle, update this file with:
 - any new blockers
 
 ## Last Completed
+- Added `World Phase 2` controls with relation-filter pills, quick project selection chips, and stronger always-on labeling for high-signal or foundation projects so the graph stays legible without relying entirely on small-node clicks
 - Completed `World` engine migration phase 1 by replacing the old DOM project card tree with a `Sigma.js + Graphology` graph explorer, adding a right-side slide-over drawer, and keeping the existing project semantics while rendering real graph edges for universe, owner, agent, plugin, and foundation relations
 - Hardened the `World` migration with static asset delivery fixes by serving `/lib/*` correctly, disabling static asset caching after deploys, and correcting graph construction bugs around ring indexing and multi-relation project pairs
 - Recentered the `World` layout so the graph now reads like a dark graph explorer instead of a dashboard card tree, with graph controls, a real canvas, and drawer-driven detail presentation
@@ -141,10 +142,10 @@ After every execution cycle, update this file with:
 - Reworked the `Project Workspace` snapshot around ownership, participation, recruiting, latest activity, and operating inputs so the page reads less like a directory card and more like the active project control surface
 
 ## Current Focus
-- P0 World Engine Phase 2: refine the new graph explorer now that phase 1 is live, with emphasis on better project-node readability, easier project click targets, and relation controls that help the graph stay legible as project count grows
+- P0 World Engine Phase 2: refine the new graph explorer now that phase 1 and the first control pass are live, with emphasis on easier project-node selection, stronger drawer transitions, and scaling the layout beyond the current two-foundation-project dataset
 
 ## Next Recommended Action
-- add a second-stage `World` control row for relation filtering and graph reset, then tune node sizing, label persistence, and project-node hit targets against the live foundation projects
+- tune project-node click affordances and drawer behavior on the live graph, then prepare the graph for larger project counts with smarter clustering / grouping
 
 ## Blockers
 - local runtime still has no seeded project data, so representative graph validation continues to depend on the deployed environment
