@@ -1771,10 +1771,18 @@ function buildWorldGraphData(projects) {
   orderedProjects.forEach((project) => {
     const projectNodeId = worldNodeIdForProject(project.projectId);
     addEdge(universeId, projectNodeId, "universe-link");
-    if (isOperatingFoundationProject(project)) {
-      addEdge(universeId, projectNodeId, "foundation-link");
-    }
   });
+
+  const foundationProjects = orderedProjects.filter((project) => isOperatingFoundationProject(project));
+  for (let index = 0; index < foundationProjects.length; index += 1) {
+    for (let compare = index + 1; compare < foundationProjects.length; compare += 1) {
+      addEdge(
+        worldNodeIdForProject(foundationProjects[index].projectId),
+        worldNodeIdForProject(foundationProjects[compare].projectId),
+        "foundation-link"
+      );
+    }
+  }
 
   for (let index = 0; index < orderedProjects.length; index += 1) {
     for (let compare = index + 1; compare < orderedProjects.length; compare += 1) {
