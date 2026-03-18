@@ -84,10 +84,10 @@ Tasks:
 - Continue improving artifact readability and delivery UX where needed.
 
 ## Recommended Next Action
-Move to `P2 Build Directory Hardening`, specifically:
-1. tighten `Build` directory card scanability around recruiting and operating state
-2. keep participation entry pointed at `Project Workspace`
-3. preserve the no-heavy-edit-controls rule on the directory surface
+Move to `P0 World Engine Phase 2`, specifically:
+1. add node grouping and richer project-node labeling so the graph reads better with more than two projects
+2. add edge visibility controls for owner / agent / plugin / foundation relations
+3. refine project-node click targets and drawer transitions so project selection is easier than universe selection
 
 ## Update Protocol
 After every execution cycle, update this file with:
@@ -97,6 +97,9 @@ After every execution cycle, update this file with:
 - any new blockers
 
 ## Last Completed
+- Completed `World` engine migration phase 1 by replacing the old DOM project card tree with a `Sigma.js + Graphology` graph explorer, adding a right-side slide-over drawer, and keeping the existing project semantics while rendering real graph edges for universe, owner, agent, plugin, and foundation relations
+- Hardened the `World` migration with static asset delivery fixes by serving `/lib/*` correctly, disabling static asset caching after deploys, and correcting graph construction bugs around ring indexing and multi-relation project pairs
+- Recentered the `World` layout so the graph now reads like a dark graph explorer instead of a dashboard card tree, with graph controls, a real canvas, and drawer-driven detail presentation
 - Hardened `Build` and `Market` expanded external-surface actions so partially configured repo/service states no longer silently drop one surface: the shared link classifier now keeps sanitized links, shows per-surface fallback notes inside the bounded action area, and adds regression coverage for mixed valid/invalid external-link states
 - Tightened `Build` and `Market` directory CTA hierarchy by making the primary action consistently route-explicit as `Open Project Workspace` and moving `Build` participation state into bounded supporting copy, so quick-scan cards stop presenting status text as the main action while keeping all collaboration entry pointed at `Project Workspace`
 - Tightened `Build` and `Market` expanded directory context by replacing the remaining free-floating operating, recruiting, pricing, and usage paragraphs with bounded nested note blocks, so expanded cards keep the dark card hierarchy and scan cleanly without mixing long context copy into unbounded text walls
@@ -138,11 +141,10 @@ After every execution cycle, update this file with:
 - Reworked the `Project Workspace` snapshot around ownership, participation, recruiting, latest activity, and operating inputs so the page reads less like a directory card and more like the active project control surface
 
 ## Current Focus
-- P2 Build Directory Hardening: run a rendered browser pass against deployed `Build` and `Market` cards now that recruiting-state quick-scan copy, compact identity rows, per-surface external-link fallback notes, bounded note blocks, and route-explicit `Project Workspace` CTAs have all been tightened, then trim any remaining quick-scan overflow or CTA hierarchy regressions
+- P0 World Engine Phase 2: refine the new graph explorer now that phase 1 is live, with emphasis on better project-node readability, easier project click targets, and relation controls that help the graph stay legible as project count grows
 
 ## Next Recommended Action
-- run a rendered browser pass on deployed `Build` and `Market` cards with real project data to confirm the route-explicit `Project Workspace` CTA labels, participation-state supporting copy, per-surface safe link fallbacks, status/action wrapping, and expanded bounded note blocks, then fix any remaining long-summary, badge-wrap, or expanded action regressions that still slow the quick scan path
+- add a second-stage `World` control row for relation filtering and graph reset, then tune node sizing, label persistence, and project-node hit targets against the live foundation projects
 
 ## Blockers
-- local runtime has no seeded project data, so fully representative browser validation still needs either real project records in the local state or a pass against the deployed environment
-- current shell environment has no local browser runtime or screenshot tooling, so rendered card verification still requires a separate browser-capable environment even when live API data is available
+- local runtime still has no seeded project data, so representative graph validation continues to depend on the deployed environment
