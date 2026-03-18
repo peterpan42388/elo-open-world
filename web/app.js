@@ -1674,7 +1674,7 @@ function worldGraphRingPlan(count) {
 
 function buildWorldGraphData(projects) {
   const { Graph } = state.worldGraphEngine;
-  const graph = new Graph({ multi: false, allowSelfLoops: false, type: "undirected" });
+  const graph = new Graph({ multi: true, allowSelfLoops: false, type: "undirected" });
   const nodeMap = new Map();
   const edgeMap = new Map();
   const universeId = "universe:elo-universe-0";
