@@ -1087,6 +1087,12 @@ button:focus {
   background: rgba(18, 28, 39, 0.7);
 }
 
+.graph-empty[hidden],
+.world-selection-drawer[hidden],
+.world-drawer-backdrop[hidden] {
+  display: none !important;
+}
+
 .settings-shell,
 .workspace-shell {
   grid-template-columns: 260px minmax(0, 1fr);
