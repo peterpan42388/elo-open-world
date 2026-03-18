@@ -253,7 +253,10 @@ async function serveStatic(pathname, res) {
     ".css": "text/css; charset=utf-8",
     ".js": "application/javascript; charset=utf-8"
   };
-  res.writeHead(200, { "Content-Type": types[extname(fullPath)] || "text/plain; charset=utf-8" });
+  res.writeHead(200, {
+    "Content-Type": types[extname(fullPath)] || "text/plain; charset=utf-8",
+    "Cache-Control": "no-store"
+  });
   res.end(data);
 }
 
