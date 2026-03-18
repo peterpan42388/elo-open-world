@@ -311,9 +311,20 @@ const server = http.createServer(async (req, res) => {
     const path = url.pathname;
 
     if ((req.method === "GET" || req.method === "HEAD") && (
-      path === "/" || path === "/index.html" || path === "/app.css" || path === "/app.js" || path.startsWith("/guides/")
+      path === "/" ||
+      path === "/index.html" ||
+      path === "/app.css" ||
+      path === "/app.js" ||
+      path.startsWith("/guides/") ||
+      path.startsWith("/lib/")
     )) {
       return await serveStatic(path, res);
+    }
+
+    if (req.method === "GET" && path === "/favicon.ico") {
+      res.writeHead(204);
+      res.end();
+      return;
     }
 
     if (req.method === "GET" && path === "/api/world/summary") {

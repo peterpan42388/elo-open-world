@@ -637,12 +637,16 @@
           <section class="panel world-graph-panel">
             <div class="panel-header">
               <h2>Project Graph</h2>
-              <p>Inspired by graph-based repository exploration, but here the project is the atomic unit.</p>
+              <p>GitNexus-style graph explorer for source projects, rendered through a real graph engine instead of static cards.</p>
             </div>
-            <div class="graph-layout">
+            <div class="world-graph-shell">
               <div id="graph-legend" class="graph-legend"></div>
-              <div id="project-graph" class="project-graph"></div>
-              <div id="graph-relations" class="graph-relations"></div>
+              <div class="project-graph-frame">
+                <div id="project-graph" class="project-graph"></div>
+                <div id="world-graph-empty" class="graph-empty" hidden>No source projects yet. Use New Project to create the first project node.</div>
+              </div>
+              <button type="button" id="world-drawer-backdrop" class="world-drawer-backdrop" hidden aria-label="Close world detail drawer"></button>
+              <aside id="world-selection-drawer" class="world-selection-drawer" hidden aria-live="polite"></aside>
             </div>
           </section>
 

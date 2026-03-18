@@ -54,7 +54,15 @@ const state = {
     state: "",
     tag: ""
   },
-  selectedGraphProjectId: "",
+  worldGraphEngine: null,
+  worldGraphEnginePromise: null,
+  worldGraphRenderer: null,
+  worldGraph: null,
+  worldGraphNodeMap: new Map(),
+  worldGraphEdgeMap: new Map(),
+  selectedWorldNodeId: "",
+  hoveredWorldNodeId: "",
+  worldDrawerOpen: false,
   buildFilters: {
     kind: "",
     status: "",
@@ -1475,6 +1483,11 @@ function showRoute(route) {
   });
   renderTopbarActions();
   renderSettingsShell();
+  if (nextRoute === "world" && state.summary) {
+    void renderProjectGraph(state.summary.projects || []);
+  } else {
+    closeWorldDrawer();
+  }
 }
 
 function renderHomeGuides() {
@@ -1527,7 +1540,6 @@ function renderSummary(summary) {
 
   renderHomeGuides();
   renderInfrastructure(summary);
-  renderProjectGraph(summary.projects || []);
   renderRequirements(summary.requirements || []);
   renderRequirementSelect(summary.requirements || []);
   renderPlugins(summary.plugins || []);
@@ -1593,131 +1605,524 @@ function relatedProjectsForSelection(projects, selectedProject) {
   };
 }
 
-function renderProjectGraph(projects) {
-  const root = $("project-graph");
+async function ensureWorldGraphEngine() {
+  if (state.worldGraphEngine) return state.worldGraphEngine;
+  if (!state.worldGraphEnginePromise) {
+    state.worldGraphEnginePromise = Promise.all([
+      import("https://cdn.jsdelivr.net/npm/graphology@0.26.0/+esm"),
+      import("https://cdn.jsdelivr.net/npm/sigma@3.0.2/+esm")
+    ]).then(([graphologyModule, sigmaModule]) => {
+      const Graph = graphologyModule.default || graphologyModule.Graph || graphologyModule;
+      const Sigma = sigmaModule.default || sigmaModule.Sigma || sigmaModule;
+      state.worldGraphEngine = { Graph, Sigma };
+      return state.worldGraphEngine;
+    });
+  }
+  return state.worldGraphEnginePromise;
+}
+
+function worldNodeIdForProject(projectId) {
+  return `project:${projectId}`;
+}
+
+function worldNodeBaseColor(project) {
+  if (isOperatingFoundationProject(project)) return "#f6c96d";
+  const stage = String(project?.stage || "").toLowerCase();
+  const stateValue = String(project?.state || "").toLowerCase();
+  if (stateValue === "paused") return "#60748a";
+  if (stage === "operating" || stateValue === "operating") return "#57d7c1";
+  if (stateValue === "developing") return "#8b72f6";
+  return "#7aa2ff";
+}
+
+function worldEdgeColor(edgeType) {
+  return {
+    "universe-link": "rgba(111, 132, 161, 0.38)",
+    "owner-link": "rgba(245, 175, 70, 0.7)",
+    "agent-link": "rgba(90, 214, 255, 0.7)",
+    "plugin-link": "rgba(163, 112, 255, 0.7)",
+    "foundation-link": "rgba(246, 201, 109, 0.95)"
+  }[edgeType] || "rgba(111, 132, 161, 0.45)";
+}
+
+function worldGraphPairKey(prefix, source, target) {
+  const [left, right] = [source, target].sort();
+  return `${prefix}:${left}:${right}`;
+}
+
+function worldProjectNodeSize(project) {
+  const rating = Number(project?.rating || 0);
+  const heat = Number(project?.heat || 0);
+  const heatBoost = Math.min(4, heat / 250);
+  const ratingBoost = Math.min(3.5, rating * 0.6);
+  const foundationBoost = isOperatingFoundationProject(project) ? 3 : 0;
+  return 7 + heatBoost + ratingBoost + foundationBoost;
+}
+
+function worldGraphRingPlan(count) {
+  const rings = [];
+  let remaining = count;
+  let capacity = 8;
+  while (remaining > 0) {
+    const take = Math.min(capacity, remaining);
+    rings.push(take);
+    remaining -= take;
+    capacity += 6;
+  }
+  return rings;
+}
+
+function buildWorldGraphData(projects) {
+  const { Graph } = state.worldGraphEngine;
+  const graph = new Graph({ multi: false, allowSelfLoops: false, type: "undirected" });
+  const nodeMap = new Map();
+  const edgeMap = new Map();
+  const universeId = "universe:elo-universe-0";
+
+  graph.addNode(universeId, {
+    id: universeId,
+    label: "elo-universe-0",
+    kind: "universe",
+    x: 0,
+    y: 0,
+    size: 18,
+    color: "#57d7c1",
+    forceLabel: true,
+    zIndex: 10
+  });
+  nodeMap.set(universeId, {
+    nodeId: universeId,
+    kind: "universe"
+  });
+
+  const orderedProjects = [...projects].sort((left, right) => {
+    const foundationDelta = Number(isOperatingFoundationProject(right)) - Number(isOperatingFoundationProject(left));
+    if (foundationDelta) return foundationDelta;
+    return Number(right.heat || 0) - Number(left.heat || 0);
+  });
+  const ringPlan = worldGraphRingPlan(orderedProjects.length);
+  let offset = 0;
+  ringPlan.forEach((ringSize, ringIndex) => {
+    const radius = 7.5 + ringIndex * 4.1;
+    const angleOffset = ringIndex * 0.35;
+    for (let localIndex = 0; localIndex < ringSize; localIndex += 1) {
+      const project = orderedProjects[offset + localIndex];
+      const nodeId = worldNodeIdForProject(project.projectId);
+      const angle = ((Math.PI * 2) / ringSize) * localIndex + angleOffset;
+      const x = Math.cos(angle) * radius;
+      const y = Math.sin(angle) * radius;
+      const operatingFoundation = isOperatingFoundationProject(project);
+      const nodeAttributes = {
+        id: nodeId,
+        label: clampInlineLabel(project.title, 20),
+        fullLabel: project.title,
+        kind: "project",
+        projectId: project.projectId,
+        repoName: project.repoName,
+        repoFullName: project.repoFullName,
+        ownerHumanId: project.ownerHumanId,
+        projectKind: project.kind,
+        stage: project.stage,
+        state: project.state,
+        tags: project.tags || [],
+        rating: Number(project.rating || 0),
+        heat: Number(project.heat || 0),
+        memberCount: (project.memberAgentIds || []).length,
+        pluginCount: (project.pluginIds || []).length,
+        operatingFoundation,
+        x,
+        y,
+        size: worldProjectNodeSize(project),
+        color: worldNodeBaseColor(project),
+        zIndex: operatingFoundation ? 6 : 4,
+        forceLabel: operatingFoundation
+      };
+      graph.addNode(nodeId, nodeAttributes);
+      nodeMap.set(nodeId, {
+        nodeId,
+        kind: "project",
+        project
+      });
+      offset += 1;
+    }
+  });
+
+  const addEdge = (source, target, edgeType, attributes = {}) => {
+    if (!source || !target || source === target) return;
+    const key = worldGraphPairKey(edgeType, source, target);
+    if (graph.hasEdge(key)) return;
+    const edgeAttributes = {
+      edgeType,
+      color: worldEdgeColor(edgeType),
+      size: edgeType === "foundation-link" ? 3.2 : edgeType === "universe-link" ? 1.4 : 2,
+      zIndex: edgeType === "foundation-link" ? 5 : 2,
+      ...attributes
+    };
+    graph.addEdgeWithKey(key, source, target, edgeAttributes);
+    edgeMap.set(key, {
+      edgeId: key,
+      edgeType,
+      source,
+      target,
+      ...edgeAttributes
+    });
+  };
+
+  orderedProjects.forEach((project) => {
+    const projectNodeId = worldNodeIdForProject(project.projectId);
+    addEdge(universeId, projectNodeId, "universe-link");
+    if (isOperatingFoundationProject(project)) {
+      addEdge(universeId, projectNodeId, "foundation-link");
+    }
+  });
+
+  for (let index = 0; index < orderedProjects.length; index += 1) {
+    for (let compare = index + 1; compare < orderedProjects.length; compare += 1) {
+      const left = orderedProjects[index];
+      const right = orderedProjects[compare];
+      const leftId = worldNodeIdForProject(left.projectId);
+      const rightId = worldNodeIdForProject(right.projectId);
+      if (left.ownerHumanId && left.ownerHumanId === right.ownerHumanId) {
+        addEdge(leftId, rightId, "owner-link");
+      }
+      if ((left.memberAgentIds || []).some((agentId) => (right.memberAgentIds || []).includes(agentId))) {
+        addEdge(leftId, rightId, "agent-link");
+      }
+      if ((left.pluginIds || []).some((pluginId) => (right.pluginIds || []).includes(pluginId))) {
+        addEdge(leftId, rightId, "plugin-link");
+      }
+    }
+  }
+
+  return { graph, nodeMap, edgeMap };
+}
+
+function renderWorldLegend(projects) {
   const legend = $("graph-legend");
-  const relations = $("graph-relations");
-  if (!root || !legend || !relations) return;
-
+  if (!legend) return;
+  const { sharedOwners, topPlugins, linkedAgents } = buildGraphRelations(projects);
+  const foundationCount = projects.filter((project) => isOperatingFoundationProject(project)).length;
   legend.innerHTML = `
-    <h3>Legend</h3>
-    <div class="legend-item"><span class="legend-dot universe"></span><span>Universe Root</span></div>
-    <div class="legend-item"><span class="legend-dot project"></span><span>Source Project</span></div>
-    <div class="legend-item"><span class="legend-dot owner"></span><span>Shared Owner Link</span></div>
-    <div class="legend-item"><span class="legend-dot plugin"></span><span>Plugin Attachment</span></div>
-    <div class="legend-item"><span class="legend-dot agent"></span><span>Shared Agent Participation</span></div>
+    <div class="world-control-header">
+      <div>
+        <span class="eyebrow">Explorer</span>
+        <h3>Graph Controls</h3>
+      </div>
+      <div class="world-control-actions">
+        <button type="button" class="topbar-button ghost" id="world-fit-graph">Fit Graph</button>
+        <button type="button" class="topbar-button ghost" id="world-reset-selection">Reset Selection</button>
+      </div>
+    </div>
+    <div class="world-legend-grid">
+      <div class="legend-item"><span class="legend-dot universe"></span><span>Universe Root</span></div>
+      <div class="legend-item"><span class="legend-dot project"></span><span>Source Project</span></div>
+      <div class="legend-item"><span class="legend-dot foundation"></span><span>Operating Foundation</span></div>
+      <div class="legend-item"><span class="legend-dot owner"></span><span>Shared Owner</span></div>
+      <div class="legend-item"><span class="legend-dot plugin"></span><span>Shared Plugin</span></div>
+      <div class="legend-item"><span class="legend-dot agent"></span><span>Shared Agent</span></div>
+    </div>
+    <div class="world-control-stats">
+      <article><span>Projects</span><strong>${projects.length}</strong></article>
+      <article><span>Foundations</span><strong>${foundationCount}</strong></article>
+      <article><span>Owner Clusters</span><strong>${sharedOwners.length}</strong></article>
+      <article><span>Agent Links</span><strong>${linkedAgents}</strong></article>
+    </div>
+    <div class="world-control-footnote">
+      <strong>Top Plugins</strong>
+      <span>${topPlugins.length ? topPlugins.map(([pluginId, count]) => `${pluginId} (${count})`).join(", ") : "No plugin clusters yet."}</span>
+    </div>
   `;
+  $("world-fit-graph")?.addEventListener("click", () => {
+    fitWorldGraph();
+    setStatus("World graph camera reset.", "ok");
+  });
+  $("world-reset-selection")?.addEventListener("click", () => {
+    closeWorldDrawer();
+    fitWorldGraph();
+  });
+}
 
+function fitWorldGraph() {
+  const renderer = state.worldGraphRenderer;
+  if (!renderer) return;
+  const camera = renderer.getCamera?.();
+  if (camera?.animatedReset) {
+    camera.animatedReset({ duration: 450 });
+  } else if (camera?.setState) {
+    camera.setState({ x: 0, y: 0, ratio: 1, angle: 0 });
+  }
+  renderer.refresh?.();
+}
+
+function openWorldDrawer(nodeId) {
+  state.selectedWorldNodeId = nodeId || "";
+  state.worldDrawerOpen = Boolean(nodeId);
+  if (state.worldGraphRenderer) state.worldGraphRenderer.refresh?.();
+}
+
+function closeWorldDrawer() {
+  state.selectedWorldNodeId = "";
+  state.hoveredWorldNodeId = "";
+  state.worldDrawerOpen = false;
+  const drawer = $("world-selection-drawer");
+  const backdrop = $("world-drawer-backdrop");
+  if (drawer) {
+    drawer.classList.remove("open");
+    drawer.setAttribute("hidden", "hidden");
+    drawer.innerHTML = "";
+  }
+  if (backdrop) {
+    backdrop.classList.remove("open");
+    backdrop.setAttribute("hidden", "hidden");
+  }
+  if (state.worldGraphRenderer) state.worldGraphRenderer.refresh?.();
+}
+
+function worldUniverseSummary(projects) {
+  const { sharedOwners, topPlugins, linkedAgents } = buildGraphRelations(projects);
+  const owners = new Set(projects.map((project) => project.ownerHumanId).filter(Boolean));
+  return {
+    projectCount: projects.length,
+    operatingProjectCount: projects.filter((project) => String(project.stage || "").toLowerCase() === "operating" || String(project.state || "").toLowerCase() === "operating").length,
+    foundationCount: projects.filter((project) => isOperatingFoundationProject(project)).length,
+    ownerCount: owners.size,
+    linkedAgents,
+    topPlugins,
+    sharedOwners
+  };
+}
+
+function renderWorldProjectDrawer(projects, project) {
+  const recruitingState = projectDirectoryRecruitingState(project);
+  const related = relatedProjectsForSelection(projects, project);
+  const serviceHref = sanitizeExternalHref(project.serviceEndpoint || "");
+  return `
+    <div class="world-drawer-header">
+      <div>
+        <span class="eyebrow">Project Node</span>
+        <h3>${escapeHtml(project.title)}</h3>
+      </div>
+      <button type="button" class="world-drawer-close" id="world-drawer-close" aria-label="Close project details">×</button>
+    </div>
+    <div class="world-drawer-body">
+      <section class="world-drawer-section">
+        <div class="world-drawer-code">${escapeHtml(project.repoFullName || project.repoName)}</div>
+        <div class="tag-row">
+          ${createBadge(projectTypeLabel(project.kind))}
+          ${createBadge(project.stage || "source")}
+          ${createBadge(projectStateLabel(project.state))}
+          ${isOperatingFoundationProject(project) ? createBadge("Operating Foundation") : ""}
+        </div>
+      </section>
+      <section class="world-drawer-section detail-grid compact">
+        <div class="detail-item"><span>Owner</span><strong class="detail-code">${escapeHtml(project.ownerHumanId || "-")}</strong></div>
+        <div class="detail-item"><span>Agents</span><strong>${project.memberAgentIds?.length || 0}</strong></div>
+        <div class="detail-item"><span>Plugins</span><strong>${project.pluginIds?.length || 0}</strong></div>
+        <div class="detail-item"><span>Recruiting</span><strong>${escapeHtml(recruitingState.label)}</strong></div>
+        <div class="detail-item"><span>Rating</span><strong>${project.rating || 0}</strong></div>
+        <div class="detail-item"><span>Heat</span><strong>${project.heat || 0}</strong></div>
+      </section>
+      <section class="world-drawer-section">
+        <h4>Tags</h4>
+        ${renderDirectoryTags(project.tags || [], 6) || '<div class="empty compact">No tags yet.</div>'}
+      </section>
+      <section class="world-drawer-section">
+        <h4>Foundation Runs</h4>
+        ${renderProjectFoundationRunSummary(project)}
+        ${renderProjectFoundationRunList(project, 3)}
+      </section>
+      <section class="world-drawer-section">
+        <h4>Relationship Summary</h4>
+        ${renderBoundedNoteList([
+          { label: "Shared Owners", value: related.ownerMatches.length ? related.ownerMatches.map((item) => item.title).join(", ") : "No same-owner project links." },
+          { label: "Shared Agents", value: related.agentMatches.length ? related.agentMatches.map((item) => item.title).join(", ") : "No shared-agent project links." },
+          { label: "Shared Plugins", value: related.pluginMatches.length ? related.pluginMatches.map((item) => item.title).join(", ") : "No shared-plugin project links." }
+        ])}
+      </section>
+      <section class="world-drawer-section world-drawer-actions">
+        <button type="button" class="topbar-button" data-open-project-id="${escapeHtml(project.projectId)}">Open Project</button>
+        <a class="topbar-button ghost" href="${escapeHtml(project.repoUrl)}" target="_blank" rel="noreferrer">Open GitHub Repo</a>
+        ${serviceHref ? `<a class="topbar-button ghost" href="${escapeHtml(serviceHref)}" target="_blank" rel="noreferrer">Open Service</a>` : ""}
+      </section>
+    </div>
+  `;
+}
+
+function renderWorldUniverseDrawer(projects) {
+  const universe = worldUniverseSummary(projects);
+  return `
+    <div class="world-drawer-header">
+      <div>
+        <span class="eyebrow">Universe Node</span>
+        <h3>elo-universe-0</h3>
+      </div>
+      <button type="button" class="world-drawer-close" id="world-drawer-close" aria-label="Close universe details">×</button>
+    </div>
+    <div class="world-drawer-body">
+      <section class="world-drawer-section">
+        <p>The universe node anchors all source projects and highlights the strongest owner, plugin, and foundation clusters in this deployment.</p>
+      </section>
+      <section class="world-drawer-section detail-grid compact">
+        <div class="detail-item"><span>Projects</span><strong>${universe.projectCount}</strong></div>
+        <div class="detail-item"><span>Operating</span><strong>${universe.operatingProjectCount}</strong></div>
+        <div class="detail-item"><span>Foundations</span><strong>${universe.foundationCount}</strong></div>
+        <div class="detail-item"><span>Owners</span><strong>${universe.ownerCount}</strong></div>
+        <div class="detail-item"><span>Agent Links</span><strong>${universe.linkedAgents}</strong></div>
+        <div class="detail-item"><span>Owner Clusters</span><strong>${universe.sharedOwners.length}</strong></div>
+      </section>
+      <section class="world-drawer-section">
+        <h4>Top Plugin Attachments</h4>
+        ${universe.topPlugins.length
+          ? `<div class="nested-list">${universe.topPlugins.map(([pluginId, count]) => `<div class="nested-item"><strong>${escapeHtml(pluginId)}</strong><span>${count} project link${count === 1 ? "" : "s"}</span></div>`).join("")}</div>`
+          : '<div class="empty compact">No plugin clusters yet.</div>'}
+      </section>
+      <section class="world-drawer-section world-drawer-actions">
+        <button type="button" class="topbar-button" data-route-target="build">Open Project Directory</button>
+      </section>
+    </div>
+  `;
+}
+
+function renderWorldSelectionDrawer(nodeId, projects) {
+  const drawer = $("world-selection-drawer");
+  const backdrop = $("world-drawer-backdrop");
+  if (!drawer || !backdrop) return;
+  if (!nodeId) {
+    closeWorldDrawer();
+    return;
+  }
+  const nodeMeta = state.worldGraphNodeMap.get(nodeId);
+  if (!nodeMeta) {
+    closeWorldDrawer();
+    return;
+  }
+  drawer.innerHTML = nodeMeta.kind === "universe"
+    ? renderWorldUniverseDrawer(projects)
+    : renderWorldProjectDrawer(projects, nodeMeta.project);
+  drawer.hidden = false;
+  backdrop.hidden = false;
+  requestAnimationFrame(() => {
+    drawer.classList.add("open");
+    backdrop.classList.add("open");
+  });
+  $("world-drawer-close")?.addEventListener("click", () => closeWorldDrawer());
+  backdrop.onclick = () => closeWorldDrawer();
+  drawer.querySelectorAll("[data-open-project-id]").forEach((node) => {
+    node.addEventListener("click", () => {
+      openProjectWorkspace(node.dataset.openProjectId);
+      closeWorldDrawer();
+    });
+  });
+  drawer.querySelectorAll("[data-route-target]").forEach((node) => {
+    node.addEventListener("click", () => {
+      closeWorldDrawer();
+      goToRoute(node.dataset.routeTarget);
+    });
+  });
+}
+
+function destroyWorldGraphRenderer() {
+  if (state.worldGraphRenderer?.kill) state.worldGraphRenderer.kill();
+  state.worldGraphRenderer = null;
+  state.worldGraph = null;
+  state.worldGraphNodeMap = new Map();
+  state.worldGraphEdgeMap = new Map();
+}
+
+async function renderProjectGraph(projects) {
+  const root = $("project-graph");
+  const empty = $("world-graph-empty");
+  if (!root || currentRoute() !== "world") return;
+  renderWorldLegend(projects);
   if (!projects.length) {
-    state.selectedGraphProjectId = "";
-    root.innerHTML = '<div class="graph-empty">No source projects yet. Use New Project to create the first project node.</div>';
-    relations.innerHTML = `
-      <h3>Relations</h3>
-      <div class="relation-card empty">No project relations yet.</div>
-    `;
+    destroyWorldGraphRenderer();
+    state.selectedWorldNodeId = "";
+    root.innerHTML = "";
+    if (empty) {
+      empty.hidden = false;
+      empty.textContent = "No source projects yet. Use New Project to create the first project node.";
+    }
+    closeWorldDrawer();
     return;
   }
 
-  const selectedProject = projects.find((project) => project.projectId === state.selectedGraphProjectId) || projects[0];
-  state.selectedGraphProjectId = selectedProject.projectId;
+  if (empty) empty.hidden = true;
+  const { Sigma } = await ensureWorldGraphEngine();
+  if (currentRoute() !== "world") return;
 
-  const universeNode = `
-    <div class="graph-node universe">
-      <strong>elo-universe-0</strong>
-      <span>MetaVie deployment</span>
-      <span>${projects.length} connected source project${projects.length > 1 ? "s" : ""}</span>
-    </div>
-  `;
+  root.innerHTML = "";
+  const mount = document.createElement("div");
+  mount.className = "world-graph-canvas";
+  root.appendChild(mount);
 
-  const projectNodes = projects.map((project) => {
-    const selected = project.projectId === state.selectedGraphProjectId;
-    return `
-      <div class="graph-column">
-        <div class="graph-link"></div>
-        <button type="button" class="graph-node-button ${selected ? "selected" : ""}" data-graph-project="${project.projectId}">
-          <div class="graph-node project ${selected ? "selected" : ""}">
-            <div class="graph-node-top">
-              <strong>${project.title}</strong>
-              ${createBadge(projectStateLabel(project.state))}
-            </div>
-            <span>${project.repoName}</span>
-            <div class="tag-row">
-              ${createBadge(projectTypeLabel(project.kind))}
-              ${isOperatingFoundationProject(project) ? createBadge("Operating Foundation") : ""}
-              <span class="subtle-tag">Owner: ${project.ownerHumanId}</span>
-            </div>
-            <span>${project.memberAgentIds?.length || 0} agent member${(project.memberAgentIds?.length || 0) === 1 ? "" : "s"}</span>
-            <span>${project.pluginIds?.length || 0} plugin link${(project.pluginIds?.length || 0) === 1 ? "" : "s"}</span>
-            <div class="tag-row">${(project.tags || []).slice(0, 3).map((tag) => `<span class="subtle-tag">${tag}</span>`).join("")}</div>
-          </div>
-        </button>
-      </div>
-    `;
-  }).join("");
+  destroyWorldGraphRenderer();
+  const { graph, nodeMap, edgeMap } = buildWorldGraphData(projects);
+  state.worldGraph = graph;
+  state.worldGraphNodeMap = nodeMap;
+  state.worldGraphEdgeMap = edgeMap;
+  if (!state.selectedWorldNodeId || !nodeMap.has(state.selectedWorldNodeId)) {
+    state.selectedWorldNodeId = "";
+    state.worldDrawerOpen = false;
+  }
 
-  const { sharedOwners, topPlugins, linkedAgents } = buildGraphRelations(projects);
-  const related = relatedProjectsForSelection(projects, selectedProject);
-
-  relations.innerHTML = `
-    <h3>Relations</h3>
-    <div class="relation-card selected-project-card">
-      <div class="summary-row">
-        <strong>Selected Project</strong>
-        <span>${selectedProject.repoName}</span>
-      </div>
-      <span>${selectedProject.title}</span>
-      <div class="tag-row">
-        ${createBadge(projectTypeLabel(selectedProject.kind))}
-        ${createBadge(selectedProject.stage || "source")}
-        ${createBadge(projectStateLabel(selectedProject.state))}
-        ${isOperatingFoundationProject(selectedProject) ? createBadge("Operating Foundation") : ""}
-      </div>
-      <div class="detail-grid compact">
-        <div class="detail-item"><span>Owner</span><strong class="detail-code">${selectedProject.ownerHumanId}</strong></div>
-        <div class="detail-item"><span>Agents</span><strong>${selectedProject.memberAgentIds?.length || 0}</strong></div>
-        <div class="detail-item"><span>Plugins</span><strong>${selectedProject.pluginIds?.length || 0}</strong></div>
-        <div class="detail-item"><span>Rating</span><strong>${selectedProject.rating || 0}</strong></div>
-        <div class="detail-item"><span>Heat</span><strong>${selectedProject.heat || 0}</strong></div>
-        <div class="detail-item"><span>Recruiting</span><strong>${String(selectedProject.state || "").toLowerCase() === "paused" ? "No" : "Yes"}</strong></div>
-      </div>
-      <div class="tag-row">${(selectedProject.tags || []).map((tag) => `<span class="subtle-tag">${tag}</span>`).join("")}</div>
-      ${renderProjectFoundationRunSummary(selectedProject)}
-      ${renderProjectFoundationRunList(selectedProject, 3)}
-      <a href="${selectedProject.repoUrl}" target="_blank" rel="noreferrer">Open GitHub Repo</a>
-    </div>
-    <div class="relation-card">
-      <strong>Shared Owner Links</strong>
-      <span>${related.ownerMatches.length ? related.ownerMatches.map((project) => project.title).join(", ") : "No same-owner neighbor projects."}</span>
-    </div>
-    <div class="relation-card">
-      <strong>Shared Plugin Links</strong>
-      <span>${related.pluginMatches.length ? related.pluginMatches.map((project) => project.title).join(", ") : "No shared-plugin neighbor projects."}</span>
-    </div>
-    <div class="relation-card">
-      <strong>Shared Agent Links</strong>
-      <span>${related.agentMatches.length ? related.agentMatches.map((project) => project.title).join(", ") : "No shared-agent neighbor projects."}</span>
-    </div>
-    <div class="relation-card compact-summary">
-      <strong>Universe Summary</strong>
-      <span>Owners with multiple projects: ${sharedOwners.length || 0}</span>
-      <span>Top plugin attachments: ${topPlugins.length ? topPlugins.map(([pluginId, count]) => `${pluginId} (${count})`).join(", ") : "none"}</span>
-      <span>Linked agent references: ${linkedAgents}</span>
-    </div>
-  `;
-
-  root.innerHTML = `
-    <div class="graph-stage">
-      <div class="graph-root">${universeNode}</div>
-      <div class="graph-children">${projectNodes}</div>
-    </div>
-  `;
-
-  root.querySelectorAll("[data-graph-project]").forEach((node) => {
-    node.addEventListener("click", () => {
-      state.selectedGraphProjectId = node.dataset.graphProject;
-      renderProjectGraph(projects);
-    });
+  const renderer = new Sigma(graph, mount, {
+    renderLabels: true,
+    labelDensity: 0.06,
+    labelGridCellSize: 90,
+    labelRenderedSizeThreshold: 8,
+    defaultNodeType: "circle",
+    defaultEdgeType: "line",
+    zIndex: true,
+    minCameraRatio: 0.15,
+    maxCameraRatio: 4,
+    nodeReducer: (node, data) => {
+      const selected = state.worldDrawerOpen && state.selectedWorldNodeId === node;
+      const hovered = state.hoveredWorldNodeId === node;
+      const connected = selected
+        ? node === state.selectedWorldNodeId || graph.neighbors(state.selectedWorldNodeId).includes(node)
+        : true;
+      return {
+        ...data,
+        color: !selected && !hovered && state.selectedWorldNodeId && !connected ? "rgba(77, 92, 119, 0.45)" : data.color,
+        size: selected ? data.size + 4 : hovered ? data.size + 1.5 : data.size,
+        label: hovered || selected || data.forceLabel ? data.fullLabel || data.label : data.label,
+        forceLabel: hovered || selected || data.forceLabel,
+        zIndex: selected ? 20 : hovered ? 12 : data.zIndex
+      };
+    },
+    edgeReducer: (edge, data) => {
+      if (!state.worldDrawerOpen || !state.selectedWorldNodeId) return data;
+      const source = graph.source(edge);
+      const target = graph.target(edge);
+      const related = source === state.selectedWorldNodeId || target === state.selectedWorldNodeId;
+      return {
+        ...data,
+        hidden: !related && data.edgeType !== "foundation-link" && data.edgeType !== "universe-link",
+        color: related ? data.color : "rgba(77, 92, 119, 0.12)",
+        size: related ? data.size + 0.4 : Math.max(0.4, data.size * 0.45)
+      };
+    }
   });
+  state.worldGraphRenderer = renderer;
+  renderer.on("clickNode", ({ node }) => {
+    openWorldDrawer(node);
+    renderWorldSelectionDrawer(node, projects);
+  });
+  renderer.on("enterNode", ({ node }) => {
+    state.hoveredWorldNodeId = node;
+    renderer.refresh?.();
+  });
+  renderer.on("leaveNode", () => {
+    state.hoveredWorldNodeId = "";
+    renderer.refresh?.();
+  });
+  renderer.on("clickStage", () => {
+    closeWorldDrawer();
+  });
+  fitWorldGraph();
+  if (state.worldDrawerOpen && state.selectedWorldNodeId) {
+    renderWorldSelectionDrawer(state.selectedWorldNodeId, projects);
+  }
 }
 
 function renderSettingsData() {
