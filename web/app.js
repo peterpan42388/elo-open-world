@@ -1683,8 +1683,8 @@ function buildWorldGraphData(projects) {
     id: universeId,
     label: "elo-universe-0",
     kind: "universe",
-    x: 0,
-    y: 0,
+    x: 0.5,
+    y: 0.5,
     size: 18,
     color: "#57d7c1",
     forceLabel: true,
@@ -1703,14 +1703,14 @@ function buildWorldGraphData(projects) {
   const ringPlan = worldGraphRingPlan(orderedProjects.length);
   let offset = 0;
   ringPlan.forEach((ringSize, ringIndex) => {
-    const radius = 7.5 + ringIndex * 4.1;
+    const radius = 0.22 + ringIndex * 0.14;
     const angleOffset = ringIndex * 0.35;
     for (let localIndex = 0; localIndex < ringSize; localIndex += 1) {
       const project = orderedProjects[offset];
       const nodeId = worldNodeIdForProject(project.projectId);
       const angle = ((Math.PI * 2) / ringSize) * localIndex + angleOffset;
-      const x = Math.cos(angle) * radius;
-      const y = Math.sin(angle) * radius;
+      const x = 0.5 + (Math.cos(angle) * radius);
+      const y = 0.5 + (Math.sin(angle) * radius);
       const operatingFoundation = isOperatingFoundationProject(project);
       const nodeAttributes = {
         id: nodeId,
@@ -1854,10 +1854,12 @@ function fitWorldGraph() {
   const renderer = state.worldGraphRenderer;
   if (!renderer) return;
   const camera = renderer.getCamera?.();
-  if (camera?.animatedReset) {
+  if (camera?.animate) {
+    camera.animate({ x: 0.5, y: 0.5, ratio: 1.05, angle: 0 }, { duration: 450 });
+  } else if (camera?.animatedReset) {
     camera.animatedReset({ duration: 450 });
   } else if (camera?.setState) {
-    camera.setState({ x: 0, y: 0, ratio: 1, angle: 0 });
+    camera.setState({ x: 0.5, y: 0.5, ratio: 1.05, angle: 0 });
   }
   renderer.refresh?.();
 }
