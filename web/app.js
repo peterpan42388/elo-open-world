@@ -1706,7 +1706,7 @@ function buildWorldGraphData(projects) {
     const radius = 7.5 + ringIndex * 4.1;
     const angleOffset = ringIndex * 0.35;
     for (let localIndex = 0; localIndex < ringSize; localIndex += 1) {
-      const project = orderedProjects[offset + localIndex];
+      const project = orderedProjects[offset];
       const nodeId = worldNodeIdForProject(project.projectId);
       const angle = ((Math.PI * 2) / ringSize) * localIndex + angleOffset;
       const x = Math.cos(angle) * radius;
