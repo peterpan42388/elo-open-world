@@ -61,6 +61,8 @@ const state = {
   worldGraph: null,
   worldGraphNodeMap: new Map(),
   worldGraphEdgeMap: new Map(),
+  worldGraphAnimationFrame: 0,
+  worldGraphCameraCleanup: null,
   selectedWorldNodeId: "",
   hoveredWorldNodeId: "",
   worldDrawerOpen: false,
@@ -272,6 +274,33 @@ function worldVisualPick(pool, index) {
   return pool[((index % pool.length) + pool.length) % pool.length];
 }
 
+function worldStringHash(value) {
+  const text = String(value || "");
+  let hash = 2166136261;
+  for (let index = 0; index < text.length; index += 1) {
+    hash ^= text.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function worldHashUnit(value) {
+  return worldStringHash(value) / 4294967295;
+}
+
+function worldVisualClusterAnchor(clusterId) {
+  return {
+    foundation: { x: 0.46, y: 0.34 },
+    market: { x: 0.67, y: 0.42 },
+    social: { x: 0.34, y: 0.59 },
+    research: { x: 0.57, y: 0.64 },
+    builder: { x: 0.29, y: 0.43 },
+    federation: { x: 0.71, y: 0.29 },
+    commons: { x: 0.5, y: 0.49 },
+    operations: { x: 0.61, y: 0.55 }
+  }[clusterId] || { x: 0.5, y: 0.5 };
+}
+
 function buildWorldVisualProjects(liveProjects) {
   const owners = worldVisualPool(worldVisualBaseOwners(liveProjects), [
     "human.github.foundation",
@@ -317,10 +346,10 @@ function buildWorldVisualProjects(liveProjects) {
       agentIndexes: [0, 1, 6, 11],
       pluginIndexes: [0, 1, 3],
       projects: [
-        { slug: "onboarding-dock", title: "Onboarding Dock", kind: "service", stage: "operating", state: "operating", tags: ["foundation", "onboarding", "entry"], rating: 4.9, heat: 940, agentSlots: [0, 1], pluginSlots: [0, 1], role: "anchor" },
+        { slug: "onboarding-dock", title: "Onboarding Dock", kind: "service", stage: "operating", state: "operating", tags: ["foundation", "onboarding", "entry"], rating: 4.9, heat: 940, agentSlots: [0, 1], pluginSlots: [0], role: "anchor" },
         { slug: "browser-bridge-hub", title: "Browser Bridge Hub", kind: "service", stage: "operating", state: "operating", tags: ["foundation", "browser", "bridge"], rating: 4.8, heat: 860, agentSlots: [1, 2], pluginSlots: [0], role: "core" },
         { slug: "governance-substrate", title: "Governance Substrate", kind: "protocol", stage: "source", state: "developing", tags: ["foundation", "governance", "rules"], rating: 4.4, heat: 520, agentSlots: [0, 3], pluginSlots: [2], role: "support" },
-        { slug: "runtime-harbor", title: "Runtime Harbor", kind: "platform", stage: "source", state: "developing", tags: ["foundation", "runtime", "operator"], rating: 4.5, heat: 610, agentSlots: [2, 3], pluginSlots: [1, 2], role: "support" }
+        { slug: "runtime-harbor", title: "Runtime Harbor", kind: "platform", stage: "source", state: "developing", tags: ["foundation", "runtime", "operator"], rating: 4.5, heat: 610, agentSlots: [2, 3], pluginSlots: [1], role: "support" }
       ]
     },
     {
@@ -330,9 +359,9 @@ function buildWorldVisualProjects(liveProjects) {
       agentIndexes: [2, 3, 7, 8],
       pluginIndexes: [2, 4, 9],
       projects: [
-        { slug: "service-exchange", title: "Service Exchange", kind: "service", stage: "operating", state: "operating", tags: ["market", "exchange", "settlement"], rating: 4.7, heat: 820, agentSlots: [0, 1], pluginSlots: [0, 1], role: "anchor" },
+        { slug: "service-exchange", title: "Service Exchange", kind: "service", stage: "operating", state: "operating", tags: ["market", "exchange", "settlement"], rating: 4.7, heat: 820, agentSlots: [0, 1], pluginSlots: [0], role: "anchor" },
         { slug: "pricing-ledger", title: "Pricing Ledger", kind: "service", stage: "source", state: "developing", tags: ["market", "pricing", "ledger"], rating: 4.2, heat: 460, agentSlots: [1, 2], pluginSlots: [1], role: "core" },
-        { slug: "agent-bazaar", title: "Agent Bazaar", kind: "service", stage: "operating", state: "operating", tags: ["market", "agent", "bazaar"], rating: 4.6, heat: 760, agentSlots: [0, 2, 3], pluginSlots: [0, 2], role: "anchor" },
+        { slug: "agent-bazaar", title: "Agent Bazaar", kind: "service", stage: "operating", state: "operating", tags: ["market", "agent", "bazaar"], rating: 4.6, heat: 760, agentSlots: [0, 2], pluginSlots: [0, 2], role: "anchor" },
         { slug: "access-clearing", title: "Access Clearing", kind: "protocol", stage: "source", state: "developing", tags: ["market", "access", "gating"], rating: 4.1, heat: 390, agentSlots: [1, 3], pluginSlots: [2], role: "support" }
       ]
     },
@@ -345,7 +374,7 @@ function buildWorldVisualProjects(liveProjects) {
       projects: [
         { slug: "public-square", title: "Public Square", kind: "app", stage: "source", state: "developing", tags: ["social", "public", "community"], rating: 4.3, heat: 520, agentSlots: [0, 1], pluginSlots: [0], role: "anchor" },
         { slug: "signal-current", title: "Signal Current", kind: "service", stage: "operating", state: "operating", tags: ["social", "signal", "community"], rating: 4.5, heat: 640, agentSlots: [1, 2], pluginSlots: [0, 1], role: "core" },
-        { slug: "coordination-mesh", title: "Coordination Mesh", kind: "app", stage: "source", state: "developing", tags: ["social", "coordination", "workspace"], rating: 4.1, heat: 410, agentSlots: [0, 2, 3], pluginSlots: [1], role: "bridge" },
+        { slug: "coordination-mesh", title: "Coordination Mesh", kind: "app", stage: "source", state: "developing", tags: ["social", "coordination", "workspace"], rating: 4.1, heat: 410, agentSlots: [0, 2], pluginSlots: [1], role: "bridge" },
         { slug: "presence-stream", title: "Presence Stream", kind: "service", stage: "source", state: "paused", tags: ["social", "presence", "signal"], rating: 3.8, heat: 260, agentSlots: [2, 3], pluginSlots: [0], role: "support" }
       ]
     },
@@ -359,7 +388,7 @@ function buildWorldVisualProjects(liveProjects) {
         { slug: "research-spine", title: "Research Spine", kind: "service", stage: "source", state: "developing", tags: ["research", "evaluation", "knowledge"], rating: 4.4, heat: 540, agentSlots: [0, 1], pluginSlots: [0], role: "anchor" },
         { slug: "eval-atelier", title: "Eval Atelier", kind: "service", stage: "operating", state: "operating", tags: ["research", "evaluation", "metrics"], rating: 4.6, heat: 690, agentSlots: [1, 2], pluginSlots: [0, 1], role: "core" },
         { slug: "memory-harbor", title: "Memory Harbor", kind: "service", stage: "source", state: "developing", tags: ["research", "memory", "archive"], rating: 4.0, heat: 350, agentSlots: [0, 2], pluginSlots: [1], role: "support" },
-        { slug: "knowledge-loom", title: "Knowledge Loom", kind: "platform", stage: "source", state: "developing", tags: ["research", "knowledge", "loom"], rating: 4.2, heat: 430, agentSlots: [2, 3], pluginSlots: [0, 1], role: "bridge" }
+        { slug: "knowledge-loom", title: "Knowledge Loom", kind: "platform", stage: "source", state: "developing", tags: ["research", "knowledge", "loom"], rating: 4.2, heat: 430, agentSlots: [2, 3], pluginSlots: [1], role: "bridge" }
       ]
     },
     {
@@ -371,7 +400,7 @@ function buildWorldVisualProjects(liveProjects) {
       projects: [
         { slug: "forge-canvas", title: "Forge Canvas", kind: "app", stage: "source", state: "developing", tags: ["builder", "forge", "workspace"], rating: 4.5, heat: 630, agentSlots: [0, 1], pluginSlots: [0, 2], role: "anchor" },
         { slug: "builder-yard", title: "Builder Yard", kind: "app", stage: "source", state: "developing", tags: ["builder", "yard", "delivery"], rating: 4.2, heat: 470, agentSlots: [1, 2], pluginSlots: [0], role: "core" },
-        { slug: "delivery-halo", title: "Delivery Halo", kind: "service", stage: "operating", state: "operating", tags: ["builder", "delivery", "runtime"], rating: 4.7, heat: 810, agentSlots: [0, 2, 3], pluginSlots: [1, 2], role: "bridge" },
+        { slug: "delivery-halo", title: "Delivery Halo", kind: "service", stage: "operating", state: "operating", tags: ["builder", "delivery", "runtime"], rating: 4.7, heat: 810, agentSlots: [0, 2], pluginSlots: [1, 2], role: "bridge" },
         { slug: "studio-lattice", title: "Studio Lattice", kind: "app", stage: "source", state: "developing", tags: ["builder", "studio", "creative"], rating: 4.1, heat: 390, agentSlots: [2, 3], pluginSlots: [0], role: "support" }
       ]
     },
@@ -384,7 +413,7 @@ function buildWorldVisualProjects(liveProjects) {
       projects: [
         { slug: "world-fabric", title: "World Fabric", kind: "platform", stage: "source", state: "developing", tags: ["federation", "world", "fabric"], rating: 4.6, heat: 720, agentSlots: [0, 1], pluginSlots: [0], role: "anchor" },
         { slug: "parallel-nest", title: "Parallel Nest", kind: "platform", stage: "source", state: "developing", tags: ["federation", "parallel", "universe"], rating: 4.4, heat: 560, agentSlots: [1, 2], pluginSlots: [0, 1], role: "core" },
-        { slug: "gateway-relay", title: "Gateway Relay", kind: "service", stage: "operating", state: "operating", tags: ["federation", "gateway", "routing"], rating: 4.5, heat: 650, agentSlots: [0, 2, 3], pluginSlots: [1, 2], role: "bridge" },
+        { slug: "gateway-relay", title: "Gateway Relay", kind: "service", stage: "operating", state: "operating", tags: ["federation", "gateway", "routing"], rating: 4.5, heat: 650, agentSlots: [0, 2], pluginSlots: [1, 2], role: "bridge" },
         { slug: "interlink-atlas", title: "Interlink Atlas", kind: "service", stage: "source", state: "developing", tags: ["federation", "atlas", "interlink"], rating: 4.0, heat: 340, agentSlots: [2, 3], pluginSlots: [0], role: "support" }
       ]
     }
@@ -2137,6 +2166,19 @@ function clampWorldCoordinate(value) {
   return Math.max(0.07, Math.min(0.93, value));
 }
 
+function worldMotionSpec(nodeId, depthLayer, clusterRole) {
+  const hash = worldStringHash(`${nodeId}:${depthLayer}:${clusterRole}`);
+  const unit = hash / 4294967295;
+  const phase = unit * Math.PI * 2;
+  const ampBase = depthLayer === "foreground" ? 0.014 : depthLayer === "background" ? 0.008 : 0.011;
+  const roleBoost = clusterRole === "anchor" ? 0.002 : clusterRole === "bridge" ? 0.0015 : 0;
+  return {
+    floatPhase: phase,
+    floatAmplitudeX: ampBase + roleBoost,
+    floatAmplitudeY: ampBase * 0.72 + roleBoost * 0.6
+  };
+}
+
 function buildWorldProjectLayout(orderedProjects) {
   const layout = new Map();
   const clusters = new Map();
@@ -2168,13 +2210,8 @@ function buildWorldProjectLayout(orderedProjects) {
     return right.anchorScore - left.anchorScore;
   });
 
-  orderedClusters.forEach((clusterEntry, clusterIndex) => {
-    const clusterCount = orderedClusters.length;
-    const angle = (-Math.PI / 2) + ((Math.PI * 2) / Math.max(clusterCount, 1)) * clusterIndex + (clusterIndex % 2 ? 0.16 : -0.08);
-    const dominantDepth = clusterEntry.dominantDepth;
-    const anchorRadius = dominantDepth === "foreground" ? 0.22 : dominantDepth === "midfield" ? 0.31 : 0.4;
-    const clusterX = 0.5 + Math.cos(angle) * anchorRadius * 1.08;
-    const clusterY = 0.5 + Math.sin(angle) * anchorRadius * 0.78;
+  orderedClusters.forEach((clusterEntry) => {
+    const anchor = worldVisualClusterAnchor(clusterEntry.clusterId);
     const members = [...clusterEntry.projects].sort((left, right) => {
       const roleWeight = { anchor: 3, bridge: 2, core: 1, support: 0 };
       const roleDelta = (roleWeight[right.cluster.clusterRole] || 0) - (roleWeight[left.cluster.clusterRole] || 0);
@@ -2183,16 +2220,28 @@ function buildWorldProjectLayout(orderedProjects) {
     });
     members.forEach((entry, memberIndex) => {
       const memberCount = members.length;
-      const localAngle = angle + Math.PI / 6 + ((Math.PI * 2) / Math.max(memberCount, 1)) * memberIndex + (clusterIndex % 2 ? 0.12 : -0.14);
-      const localRadius = (memberCount === 1 ? 0 : 0.055 + Math.min(0.06, memberCount * 0.006))
-        + (entry.depth.depthLayer === "background" ? 0.02 : entry.depth.depthLayer === "foreground" ? -0.01 : 0)
-        + (entry.cluster.clusterRole === "anchor" ? 0 : (memberIndex % 2) * 0.01);
+      const hashSeed = `${entry.project.projectId}:${memberIndex}`;
+      const angle = worldHashUnit(`${hashSeed}:angle`) * Math.PI * 2;
+      const secondaryAngle = worldHashUnit(`${hashSeed}:secondary`) * Math.PI * 2;
+      const radiusBase = memberCount === 1 ? 0.018 : 0.05 + Math.min(0.055, memberCount * 0.004);
+      const radiusOffset = (worldHashUnit(`${hashSeed}:radius`) - 0.5) * 0.028;
+      const depthOffset = entry.depth.depthLayer === "foreground" ? -0.012 : entry.depth.depthLayer === "background" ? 0.022 : 0;
+      const roleOffset = entry.cluster.clusterRole === "anchor" ? -0.012 : entry.cluster.clusterRole === "bridge" ? -0.004 : 0;
+      const localRadius = Math.max(0.015, radiusBase + radiusOffset + depthOffset + roleOffset);
+      const jitterX = Math.cos(secondaryAngle) * 0.012;
+      const jitterY = Math.sin(secondaryAngle) * 0.01;
+      const baseX = clampWorldCoordinate(anchor.x + Math.cos(angle) * localRadius + jitterX);
+      const baseY = clampWorldCoordinate(anchor.y + Math.sin(angle) * localRadius * 0.84 + jitterY);
+      const motion = worldMotionSpec(entry.project.projectId, entry.depth.depthLayer, entry.cluster.clusterRole);
       layout.set(entry.project.projectId, {
-        x: clampWorldCoordinate(clusterX + Math.cos(localAngle) * localRadius),
-        y: clampWorldCoordinate(clusterY + Math.sin(localAngle) * localRadius * 0.86),
+        x: baseX,
+        y: baseY,
+        baseX,
+        baseY,
         clusterId: entry.cluster.clusterId,
         clusterLabel: entry.cluster.clusterLabel,
         clusterRole: entry.cluster.clusterRole,
+        ...motion,
         ...entry.depth
       });
     });
@@ -2276,6 +2325,11 @@ function buildWorldGraphData(projects) {
       glowStrength: layout.glowStrength,
       x: layout.x,
       y: layout.y,
+      baseX: layout.baseX,
+      baseY: layout.baseY,
+      floatPhase: layout.floatPhase,
+      floatAmplitudeX: layout.floatAmplitudeX,
+      floatAmplitudeY: layout.floatAmplitudeY,
       size: worldProjectNodeSize(project, layout.depthScale, layout.clusterRole),
       color: worldColorWithAlpha(baseColor, layout.depthAlpha),
       baseColor,
@@ -2338,13 +2392,18 @@ function buildWorldGraphData(projects) {
       const right = orderedProjects[compare];
       const leftId = worldNodeIdForProject(left.projectId);
       const rightId = worldNodeIdForProject(right.projectId);
+      const bothVisual = Boolean(left.visualMock && right.visualMock);
+      const sameVisualCluster = bothVisual && left.visualCluster && left.visualCluster === right.visualCluster;
+      const visualBridge = bothVisual && (left.visualClusterRole === "bridge" || right.visualClusterRole === "bridge" || left.visualAnchor || right.visualAnchor);
       if (left.ownerHumanId && left.ownerHumanId === right.ownerHumanId) {
         addEdge(leftId, rightId, "owner-link");
       }
-      if ((left.memberAgentIds || []).some((agentId) => (right.memberAgentIds || []).includes(agentId))) {
+      if ((left.memberAgentIds || []).some((agentId) => (right.memberAgentIds || []).includes(agentId))
+        && (!bothVisual || sameVisualCluster || visualBridge)) {
         addEdge(leftId, rightId, "agent-link");
       }
-      if ((left.pluginIds || []).some((pluginId) => (right.pluginIds || []).includes(pluginId))) {
+      if ((left.pluginIds || []).some((pluginId) => (right.pluginIds || []).includes(pluginId))
+        && (!bothVisual || (sameVisualCluster && (left.visualClusterRole !== "support" || right.visualClusterRole !== "support")) || visualBridge)) {
         addEdge(leftId, rightId, "plugin-link");
       }
     }
@@ -2592,6 +2651,95 @@ function fitWorldGraph(nodeId = "") {
   renderer.refresh?.();
 }
 
+function worldCameraBoundsForRatio(ratio) {
+  const boundedRatio = Math.max(0.42, Math.min(1.18, ratio));
+  const panRange = Math.max(0.12, Math.min(0.26, 0.12 + (boundedRatio - 0.42) * 0.18));
+  return {
+    ratio: boundedRatio,
+    minX: 0.5 - panRange,
+    maxX: 0.5 + panRange,
+    minY: 0.5 - panRange * 0.9,
+    maxY: 0.5 + panRange * 0.9
+  };
+}
+
+function clampWorldCameraState(cameraState) {
+  const bounds = worldCameraBoundsForRatio(Number(cameraState?.ratio || 1));
+  return {
+    ...cameraState,
+    ratio: bounds.ratio,
+    x: Math.max(bounds.minX, Math.min(bounds.maxX, Number(cameraState?.x ?? 0.5))),
+    y: Math.max(bounds.minY, Math.min(bounds.maxY, Number(cameraState?.y ?? 0.5)))
+  };
+}
+
+function bindWorldCameraBounds(renderer) {
+  const camera = renderer?.getCamera?.();
+  if (!camera?.on || !camera?.off || !camera?.getState || !camera?.setState) return;
+  let applying = false;
+  const handler = () => {
+    if (applying) return;
+    const current = camera.getState();
+    const clamped = clampWorldCameraState(current);
+    if (
+      Math.abs(clamped.x - current.x) > 0.0001
+      || Math.abs(clamped.y - current.y) > 0.0001
+      || Math.abs(clamped.ratio - current.ratio) > 0.0001
+    ) {
+      applying = true;
+      camera.setState(clamped);
+      renderer.refresh?.();
+      applying = false;
+    }
+  };
+  camera.on("updated", handler);
+  handler();
+  state.worldGraphCameraCleanup = () => {
+    camera.off("updated", handler);
+  };
+}
+
+function stopWorldGraphMotion() {
+  if (state.worldGraphAnimationFrame) {
+    cancelAnimationFrame(state.worldGraphAnimationFrame);
+    state.worldGraphAnimationFrame = 0;
+  }
+}
+
+function startWorldGraphMotion(renderer, graph) {
+  stopWorldGraphMotion();
+  if (!renderer || !graph) return;
+  const tick = (timestamp) => {
+    if (currentRoute() !== "world" || state.worldGraph !== graph || state.worldGraphRenderer !== renderer) {
+      stopWorldGraphMotion();
+      return;
+    }
+    graph.forEachNode((nodeId, attrs) => {
+      if (attrs.kind !== "project") return;
+      const baseX = Number(attrs.baseX ?? attrs.x ?? 0.5);
+      const baseY = Number(attrs.baseY ?? attrs.y ?? 0.5);
+      const phase = Number(attrs.floatPhase || 0);
+      const amplitudeX = Number(attrs.floatAmplitudeX || 0);
+      const amplitudeY = Number(attrs.floatAmplitudeY || 0);
+      if (!amplitudeX && !amplitudeY) return;
+      const x = clampWorldCoordinate(
+        baseX
+          + Math.cos(timestamp * 0.00022 + phase) * amplitudeX
+          + Math.sin(timestamp * 0.00011 + phase * 0.7) * amplitudeX * 0.35
+      );
+      const y = clampWorldCoordinate(
+        baseY
+          + Math.sin(timestamp * 0.0002 + phase) * amplitudeY
+          + Math.cos(timestamp * 0.00009 + phase * 0.6) * amplitudeY * 0.26
+      );
+      graph.mergeNodeAttributes(nodeId, { x, y });
+    });
+    renderer.refresh?.();
+    state.worldGraphAnimationFrame = requestAnimationFrame(tick);
+  };
+  state.worldGraphAnimationFrame = requestAnimationFrame(tick);
+}
+
 function openWorldDrawer(nodeId) {
   state.selectedWorldNodeId = nodeId || "";
   state.worldDrawerOpen = Boolean(nodeId);
@@ -2798,6 +2946,11 @@ function worldNodeConnectedToSelection(graph, nodeId) {
 }
 
 function destroyWorldGraphRenderer() {
+  stopWorldGraphMotion();
+  if (state.worldGraphCameraCleanup) {
+    state.worldGraphCameraCleanup();
+    state.worldGraphCameraCleanup = null;
+  }
   if (state.worldGraphRenderer?.kill) state.worldGraphRenderer.kill();
   state.worldGraphRenderer = null;
   state.worldGraph = null;
@@ -2912,6 +3065,7 @@ async function renderProjectGraph(projects) {
     }
   });
   state.worldGraphRenderer = renderer;
+  bindWorldCameraBounds(renderer);
   renderer.on("clickNode", ({ node }) => {
     openWorldDrawer(node);
     renderWorldSelectionDrawer(node, projects);
@@ -2932,6 +3086,7 @@ async function renderProjectGraph(projects) {
     closeWorldDrawer();
   });
   fitWorldGraph();
+  startWorldGraphMotion(renderer, graph);
   if (state.worldDrawerOpen && state.selectedWorldNodeId) {
     renderWorldSelectionDrawer(state.selectedWorldNodeId, projects);
   }

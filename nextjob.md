@@ -97,6 +97,7 @@ After every execution cycle, update this file with:
 - any new blockers
 
 ## Last Completed
+- Re-tuned `World` Phase 2A around the actual `World -> Project -> Human -> Agent` hierarchy by reducing synthetic cross-links, moving clustered mock projects into a more natural center-out scatter, adding subtle per-project floating motion for stronger depth, and clamping camera movement so the graph cannot be dragged completely out of view
 - Upgraded `World` to a stronger Phase 2A graph explorer by aligning the frontend to official `Sigma.js + Graphology` curved-edge rendering, adding a 2.5D depth model for nodes and camera focus, rebuilding `Visual Lab` into a more natural ecosystem-cluster dataset, and tightening scene styling plus drawer motion for a less flat explorer surface
 - Added a dedicated `World Visual Lab` data surface with `Live / Hybrid / Visual Lab` modes, synthetic project clusters, and visual-only mock nodes so the graph can be stress-tested against 20+ nodes without waiting on real project volume
 - Borrowed higher-value GitNexus Web UI patterns into `World` without importing its React/Vite shell: the graph now has a lighter legend, top-center hover/selection status pill, floating explorer dock, stronger graph-field backdrop, and easier focus-on-selection behavior while staying on the current `Sigma.js + Graphology` stack
@@ -145,10 +146,10 @@ After every execution cycle, update this file with:
 - Reworked the `Project Workspace` snapshot around ownership, participation, recruiting, latest activity, and operating inputs so the page reads less like a directory card and more like the active project control surface
 
 ## Current Focus
-- P0 World Engine Phase 2B: continue tightening the graph explorer toward the GitNexus interaction quality bar, now that official curved edges and clustered mock data are live
+- P0 World Engine Phase 2B: continue tightening the graph explorer toward the GitNexus interaction quality bar, now that official curved edges, hierarchy-shaped mock data, floating motion, and camera bounds are live
 
 ## Next Recommended Action
-- improve direct project-node hit targets and selected-node affordance further, then add larger-graph grouping and relation-focus controls so `World` stays legible once non-foundation project volume grows
+- improve direct project-node hit targets and selected-node affordance further, then add larger-graph grouping and relation-focus controls so `World` stays legible once non-foundation project volume grows without reintroducing dense cross-link noise
 
 ## Blockers
 - local runtime still has no seeded project data, so representative graph validation continues to depend on the deployed environment
