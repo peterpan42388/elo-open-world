@@ -63,8 +63,15 @@ const state = {
   worldGraphEdgeMap: new Map(),
   worldGraphAnimationFrame: 0,
   worldGraphCameraCleanup: null,
+  worldSceneMotionFrame: 0,
+  worldSceneMotionEnabled: true,
+  worldSceneMotionPauseUntil: 0,
+  worldSceneMotionAnchor: null,
+  worldSceneMotionCleanup: null,
+  worldFocusMode: "default",
   worldGraphOverlayCanvas: null,
   worldGraphOverlayContext: null,
+  worldGraphOverlayVisible: false,
   selectedWorldNodeId: "",
   hoveredWorldNodeId: "",
   worldDrawerOpen: false,
@@ -2084,22 +2091,6 @@ function worldNodeTypeColor(kind, baseColor = "") {
   return baseColor || "#7aa2ff";
 }
 
-function worldNodeShapeSpec(kind) {
-  if (kind === "universe") return { sides: 0, rotation: 0, label: "Universe Root" };
-  if (kind === "project") return { sides: 5, rotation: -Math.PI / 2, label: "Source Project" };
-  if (kind === "human") return { sides: 4, rotation: Math.PI / 4, label: "Human" };
-  if (kind === "agent") return { sides: 3, rotation: -Math.PI / 2, label: "Agent" };
-  return { sides: 0, rotation: 0, label: "Node" };
-}
-
-function worldNodeShapeVisuals(kind) {
-  if (kind === "universe") return { radiusMultiplier: 1.28, coreMultiplier: 0.7, outlineWidth: 2.8, glowMultiplier: 2.9 };
-  if (kind === "project") return { radiusMultiplier: 1.22, coreMultiplier: 0.76, outlineWidth: 2.4, glowMultiplier: 2.4 };
-  if (kind === "human") return { radiusMultiplier: 1.12, coreMultiplier: 0.78, outlineWidth: 2.1, glowMultiplier: 2.15 };
-  if (kind === "agent") return { radiusMultiplier: 1.1, coreMultiplier: 0.74, outlineWidth: 2, glowMultiplier: 2 };
-  return { radiusMultiplier: 1, coreMultiplier: 0.76, outlineWidth: 2, glowMultiplier: 2 };
-}
-
 function worldEdgeSemantics(edgeType) {
   return {
     "universe-link": { baseColor: worldEdgeColor(edgeType), size: 1.1, zIndex: 1, opacity: 0.18, curveStrength: 0.11 },
@@ -2685,6 +2676,10 @@ function worldSelectedNodeMeta() {
   return state.worldGraphNodeMap.get(state.selectedWorldNodeId) || null;
 }
 
+function currentWorldActiveNodeId() {
+  return state.selectedWorldNodeId || state.hoveredWorldNodeId || "";
+}
+
 function worldHoveredNodeMeta() {
   if (!state.hoveredWorldNodeId) return null;
   return state.worldGraphNodeMap.get(state.hoveredWorldNodeId) || null;
@@ -2800,66 +2795,33 @@ function worldViewportPoint(renderer, attrs) {
   return { x: 0, y: 0 };
 }
 
-function drawWorldRoundedPolygon(context, x, y, radius, sides, rotation) {
-  context.beginPath();
-  for (let index = 0; index < sides; index += 1) {
-    const angle = rotation + ((Math.PI * 2) / sides) * index;
-    const pointX = x + Math.cos(angle) * radius;
-    const pointY = y + Math.sin(angle) * radius;
-    if (index === 0) context.moveTo(pointX, pointY);
-    else context.lineTo(pointX, pointY);
-  }
-  context.closePath();
-}
-
 function drawWorldNodeShape(context, attrs, selected, hovered) {
-  const { sides, rotation } = worldNodeShapeSpec(attrs.kind);
-  const visuals = worldNodeShapeVisuals(attrs.kind);
-  const alpha = selected ? 1 : hovered ? 0.92 : Math.max(0.38, Number(attrs.depthAlpha || 0.76));
+  const alpha = selected ? 1 : hovered ? 0.88 : Math.max(0.4, Number(attrs.depthAlpha || 0.76));
   const fillColor = worldColorWithAlpha(worldNodeTypeColor(attrs.kind, attrs.baseColor), alpha);
-  const strokeColor = worldColorWithAlpha("#ffffff", selected ? 0.34 : hovered ? 0.22 : 0.12);
-  const glowColor = worldColorWithAlpha(worldNodeTypeColor(attrs.kind, attrs.baseColor), selected ? 0.78 : hovered ? 0.54 : 0.28);
+  const strokeColor = worldColorWithAlpha("#ffffff", selected ? 0.28 : hovered ? 0.16 : 0.08);
+  const glowColor = worldColorWithAlpha(worldNodeTypeColor(attrs.kind, attrs.baseColor), selected ? 0.72 : hovered ? 0.42 : 0.18);
   const viewport = worldViewportPoint(state.worldGraphRenderer, attrs);
-  const radius = (Number(attrs.size || 8) + (selected ? 4 : hovered ? 2.4 : 0)) * visuals.radiusMultiplier;
-  const coreRadius = radius * visuals.coreMultiplier;
+  const radius = Number(attrs.size || 8) + (selected ? 5 : hovered ? 2.8 : 0.8);
   context.save();
   context.translate(viewport.x, viewport.y);
-  context.shadowBlur = radius * (selected ? visuals.glowMultiplier + 0.4 : hovered ? visuals.glowMultiplier : visuals.glowMultiplier * 0.72);
+  context.shadowBlur = radius * (selected ? 2.2 : hovered ? 1.5 : 1);
   context.shadowColor = glowColor;
   context.fillStyle = fillColor;
   context.strokeStyle = strokeColor;
-  context.lineWidth = selected ? visuals.outlineWidth + 0.6 : visuals.outlineWidth;
-  if (sides <= 0) {
-    const gradient = context.createRadialGradient(0, 0, radius * 0.15, 0, 0, radius);
-    gradient.addColorStop(0, worldColorWithAlpha(worldNodeTypeColor(attrs.kind, attrs.baseColor), selected ? 0.95 : 0.82));
-    gradient.addColorStop(0.62, worldColorWithAlpha(worldNodeTypeColor(attrs.kind, attrs.baseColor), selected ? 0.78 : 0.48));
-    gradient.addColorStop(1, worldColorWithAlpha(worldNodeTypeColor(attrs.kind, attrs.baseColor), 0));
-    context.beginPath();
-    context.arc(0, 0, radius, 0, Math.PI * 2);
-    context.fillStyle = gradient;
-    context.fill();
-    context.beginPath();
-    context.arc(0, 0, coreRadius, 0, Math.PI * 2);
-    context.fillStyle = fillColor;
-    context.fill();
-    context.stroke();
-  } else {
-    drawWorldRoundedPolygon(context, 0, 0, radius, sides, rotation);
-    const gradient = context.createRadialGradient(0, 0, radius * 0.12, 0, 0, radius);
-    gradient.addColorStop(0, worldColorWithAlpha(worldNodeTypeColor(attrs.kind, attrs.baseColor), selected ? 0.96 : 0.82));
-    gradient.addColorStop(0.66, worldColorWithAlpha(worldNodeTypeColor(attrs.kind, attrs.baseColor), selected ? 0.76 : 0.42));
-    gradient.addColorStop(1, worldColorWithAlpha(worldNodeTypeColor(attrs.kind, attrs.baseColor), 0.04));
-    context.fillStyle = gradient;
-    context.lineJoin = "round";
-    context.fill();
-    context.stroke();
-    drawWorldRoundedPolygon(context, 0, 0, coreRadius, sides, rotation);
-    context.fillStyle = worldColorWithAlpha(worldNodeTypeColor(attrs.kind, attrs.baseColor), selected ? 0.92 : hovered ? 0.78 : 0.64);
-    context.strokeStyle = worldColorWithAlpha("#ffffff", selected ? 0.26 : 0.14);
-    context.lineWidth = selected ? 1.8 : 1.2;
-    context.fill();
-    context.stroke();
-  }
+  context.lineWidth = selected ? 2.2 : 1.4;
+  const gradient = context.createRadialGradient(0, 0, radius * 0.14, 0, 0, radius);
+  gradient.addColorStop(0, worldColorWithAlpha(worldNodeTypeColor(attrs.kind, attrs.baseColor), selected ? 0.96 : 0.8));
+  gradient.addColorStop(0.68, worldColorWithAlpha(worldNodeTypeColor(attrs.kind, attrs.baseColor), selected ? 0.7 : 0.3));
+  gradient.addColorStop(1, worldColorWithAlpha(worldNodeTypeColor(attrs.kind, attrs.baseColor), 0));
+  context.beginPath();
+  context.arc(0, 0, radius, 0, Math.PI * 2);
+  context.fillStyle = gradient;
+  context.fill();
+  context.beginPath();
+  context.arc(0, 0, radius * 0.72, 0, Math.PI * 2);
+  context.fillStyle = fillColor;
+  context.fill();
+  context.stroke();
   context.restore();
 }
 
@@ -2944,28 +2906,28 @@ function renderWorldGraphOverlay() {
   const renderer = state.worldGraphRenderer;
   const graph = state.worldGraph;
   if (!canvas || !context || !renderer || !graph) return;
-  const activeNodeId = state.selectedWorldNodeId || state.hoveredWorldNodeId;
+  const activeNodeId = currentWorldActiveNodeId();
   const width = canvas.width / (window.devicePixelRatio || 1);
   const height = canvas.height / (window.devicePixelRatio || 1);
+  if (!activeNodeId) {
+    if (state.worldGraphOverlayVisible) {
+      context.clearRect(0, 0, width, height);
+      state.worldGraphOverlayVisible = false;
+    }
+    return;
+  }
   context.clearRect(0, 0, width, height);
+  state.worldGraphOverlayVisible = true;
 
   const visibleNodeIds = new Set();
-  if (activeNodeId) {
-    visibleNodeIds.add(activeNodeId);
-    graph.forEachNeighbor(activeNodeId, (neighborId) => {
-      visibleNodeIds.add(neighborId);
-    });
-    graph.forEachEdge(activeNodeId, (edgeId) => {
-      const edgeMeta = state.worldGraphEdgeMap.get(edgeId);
-      if (edgeMeta) drawWorldEdgeOverlay(context, graph, edgeId, edgeMeta);
-    });
-  } else {
-    graph.forEachNode((nodeId, attrs) => {
-      if (attrs.kind === "universe" || attrs.forceLabel || isOperatingFoundationProject(attrs.project)) {
-        visibleNodeIds.add(nodeId);
-      }
-    });
-  }
+  visibleNodeIds.add(activeNodeId);
+  graph.forEachNeighbor(activeNodeId, (neighborId) => {
+    visibleNodeIds.add(neighborId);
+  });
+  graph.forEachEdge(activeNodeId, (edgeId) => {
+    const edgeMeta = state.worldGraphEdgeMap.get(edgeId);
+    if (edgeMeta) drawWorldEdgeOverlay(context, graph, edgeId, edgeMeta);
+  });
 
   const nodes = [...state.worldGraphNodeMap.values()]
     .filter((meta) => visibleNodeIds.has(meta.nodeId))
@@ -3065,51 +3027,102 @@ function bindWorldCameraBounds(renderer) {
   };
 }
 
-function stopWorldGraphMotion() {
-  if (state.worldGraphAnimationFrame) {
-    cancelAnimationFrame(state.worldGraphAnimationFrame);
-    state.worldGraphAnimationFrame = 0;
+function stopWorldSceneMotion() {
+  if (state.worldSceneMotionFrame) {
+    cancelAnimationFrame(state.worldSceneMotionFrame);
+    state.worldSceneMotionFrame = 0;
+  }
+  if (state.worldSceneMotionCleanup) {
+    state.worldSceneMotionCleanup();
+    state.worldSceneMotionCleanup = null;
+  }
+  state.worldSceneMotionAnchor = null;
+}
+
+function pauseWorldSceneMotion(duration = 1200) {
+  state.worldSceneMotionPauseUntil = Date.now() + duration;
+  const camera = state.worldGraphRenderer?.getCamera?.();
+  if (camera?.getState) {
+    state.worldSceneMotionAnchor = clampWorldCameraState(camera.getState());
   }
 }
 
-function startWorldGraphMotion(renderer, graph) {
-  stopWorldGraphMotion();
-  if (!renderer || !graph) return;
+function bindWorldSceneMotionSignals(mount) {
+  if (!mount) return;
+  const pauseShort = () => pauseWorldSceneMotion(900);
+  const pauseLong = () => pauseWorldSceneMotion(1400);
+  const pointerMove = (event) => {
+    if (event.buttons) pauseLong();
+  };
+  const onVisibility = () => {
+    if (document.hidden) pauseWorldSceneMotion(1600);
+  };
+  mount.addEventListener("pointerdown", pauseLong);
+  mount.addEventListener("pointermove", pointerMove);
+  mount.addEventListener("wheel", pauseLong, { passive: true });
+  mount.addEventListener("touchstart", pauseLong, { passive: true });
+  mount.addEventListener("touchmove", pauseLong, { passive: true });
+  document.addEventListener("pointerup", pauseShort, true);
+  document.addEventListener("visibilitychange", onVisibility);
+  state.worldSceneMotionCleanup = () => {
+    mount.removeEventListener("pointerdown", pauseLong);
+    mount.removeEventListener("pointermove", pointerMove);
+    mount.removeEventListener("wheel", pauseLong);
+    mount.removeEventListener("touchstart", pauseLong);
+    mount.removeEventListener("touchmove", pauseLong);
+    document.removeEventListener("pointerup", pauseShort, true);
+    document.removeEventListener("visibilitychange", onVisibility);
+  };
+}
+
+function startWorldSceneMotion(renderer, mount) {
+  stopWorldSceneMotion();
+  if (!renderer || !state.worldSceneMotionEnabled) return;
+  const camera = renderer.getCamera?.();
+  if (!camera?.getState || !camera?.setState) return;
+  bindWorldSceneMotionSignals(mount);
+  state.worldSceneMotionAnchor = clampWorldCameraState(camera.getState());
   const tick = (timestamp) => {
-    if (currentRoute() !== "world" || state.worldGraph !== graph || state.worldGraphRenderer !== renderer) {
-      stopWorldGraphMotion();
+    if (currentRoute() !== "world" || state.worldGraphRenderer !== renderer) {
+      stopWorldSceneMotion();
       return;
     }
-    graph.forEachNode((nodeId, attrs) => {
-      if (attrs.kind === "universe") return;
-      const baseX = Number(attrs.baseX ?? attrs.x ?? 0.5);
-      const baseY = Number(attrs.baseY ?? attrs.y ?? 0.5);
-      const phase = Number(attrs.floatPhase || 0);
-      const amplitudeX = Number(attrs.floatAmplitudeX || 0);
-      const amplitudeY = Number(attrs.floatAmplitudeY || 0);
-      if (!amplitudeX && !amplitudeY) return;
-      const x = clampWorldCoordinate(
-        baseX
-          + Math.cos(timestamp * 0.00022 + phase) * amplitudeX
-          + Math.sin(timestamp * 0.00011 + phase * 0.7) * amplitudeX * 0.35
-      );
-      const y = clampWorldCoordinate(
-        baseY
-          + Math.sin(timestamp * 0.0002 + phase) * amplitudeY
-          + Math.cos(timestamp * 0.00009 + phase * 0.6) * amplitudeY * 0.26
-      );
-      graph.mergeNodeAttributes(nodeId, { x, y });
+    if (document.hidden) {
+      state.worldSceneMotionFrame = requestAnimationFrame(tick);
+      return;
+    }
+    const current = clampWorldCameraState(camera.getState());
+    if (Date.now() < state.worldSceneMotionPauseUntil) {
+      state.worldSceneMotionAnchor = current;
+      state.worldSceneMotionFrame = requestAnimationFrame(tick);
+      return;
+    }
+    const anchor = state.worldSceneMotionAnchor || current;
+    const intensity = state.worldDrawerOpen ? 0.4 : 1;
+    const next = clampWorldCameraState({
+      ...current,
+      x: anchor.x + Math.sin(timestamp * 0.00015) * 0.011 * intensity + Math.cos(timestamp * 0.00006) * 0.003 * intensity,
+      y: anchor.y + Math.cos(timestamp * 0.00013) * 0.009 * intensity + Math.sin(timestamp * 0.00005) * 0.002 * intensity,
+      ratio: anchor.ratio + Math.sin(timestamp * 0.00008) * 0.012 * intensity,
+      angle: 0
     });
-    renderer.refresh?.();
-    renderWorldGraphOverlay();
-    state.worldGraphAnimationFrame = requestAnimationFrame(tick);
+    if (
+      Math.abs(next.x - current.x) > 0.00008
+      || Math.abs(next.y - current.y) > 0.00008
+      || Math.abs(next.ratio - current.ratio) > 0.00008
+    ) {
+      camera.setState(next);
+    }
+    state.worldSceneMotionFrame = requestAnimationFrame(tick);
   };
-  state.worldGraphAnimationFrame = requestAnimationFrame(tick);
+  state.worldSceneMotionFrame = requestAnimationFrame(tick);
 }
 
 function openWorldDrawer(nodeId) {
   state.selectedWorldNodeId = nodeId || "";
   state.worldDrawerOpen = Boolean(nodeId);
+  state.worldFocusMode = nodeId ? "selection" : "default";
+  pauseWorldSceneMotion(900);
   renderWorldGraphChrome(currentWorldProjects());
   if (state.worldGraphRenderer) state.worldGraphRenderer.refresh?.();
 }
@@ -3118,6 +3131,8 @@ function closeWorldDrawer() {
   state.selectedWorldNodeId = "";
   state.hoveredWorldNodeId = "";
   state.worldDrawerOpen = false;
+  state.worldFocusMode = "default";
+  pauseWorldSceneMotion(420);
   const drawer = $("world-selection-drawer");
   const backdrop = $("world-drawer-backdrop");
   if (drawer) {
@@ -3373,7 +3388,7 @@ function worldNodeConnectedToSelection(graph, nodeId) {
 }
 
 function destroyWorldGraphRenderer() {
-  stopWorldGraphMotion();
+  stopWorldSceneMotion();
   if (state.worldGraphCameraCleanup) {
     state.worldGraphCameraCleanup();
     state.worldGraphCameraCleanup = null;
@@ -3385,6 +3400,8 @@ function destroyWorldGraphRenderer() {
   state.worldGraphEdgeMap = new Map();
   state.worldGraphOverlayCanvas = null;
   state.worldGraphOverlayContext = null;
+  state.worldGraphOverlayVisible = false;
+  state.worldFocusMode = "default";
 }
 
 async function renderProjectGraph(projects) {
@@ -3443,18 +3460,25 @@ async function renderProjectGraph(projects) {
     nodeReducer: (node, data) => {
       const selected = state.worldDrawerOpen && state.selectedWorldNodeId === node;
       const hovered = state.hoveredWorldNodeId === node;
-      const activeNodeId = state.selectedWorldNodeId || state.hoveredWorldNodeId;
+      const activeNodeId = currentWorldActiveNodeId();
       const connected = activeNodeId
         ? worldNodeConnectedToSelection(graph, node)
         : true;
       const dimmed = activeNodeId && !connected;
+      const typeWeight = data.kind === "project"
+        ? 1
+        : data.kind === "universe"
+          ? 0.92
+          : data.kind === "human"
+            ? 0.46
+            : 0.34;
       const nodeAlpha = selected
         ? 1
         : hovered
           ? Math.min(1, (data.depthAlpha || 0.9) + 0.18)
           : dimmed
             ? Math.max(0.1, (data.depthAlpha || 0.7) * 0.2)
-            : Math.max(0.24, (data.depthAlpha || 1) * 0.58);
+            : Math.max(0.18, (data.depthAlpha || 1) * 0.58 * typeWeight);
       return {
         ...data,
         color: worldColorWithAlpha(data.baseColor || data.color, nodeAlpha),
@@ -3462,9 +3486,13 @@ async function renderProjectGraph(projects) {
           ? data.size + (data.depthLayer === "foreground" ? 9 : 7)
           : hovered
             ? data.size + (data.depthLayer === "foreground" ? 5.5 : 4.4)
-            : data.size,
-        label: hovered || selected || data.forceLabel ? data.fullLabel || data.label : data.label,
-        forceLabel: hovered || selected || data.forceLabel,
+            : data.kind === "project"
+              ? data.size
+              : data.size * (data.kind === "human" ? 0.76 : data.kind === "agent" ? 0.64 : 0.92),
+        label: hovered || selected || (data.kind === "project" && data.forceLabel) || (data.kind === "universe" && data.forceLabel)
+          ? data.fullLabel || data.label
+          : data.label,
+        forceLabel: hovered || selected || (data.kind === "project" && data.forceLabel) || (data.kind === "universe" && data.forceLabel),
         zIndex: selected ? 30 : hovered ? 18 : data.zIndex
       };
     },
@@ -3522,12 +3550,14 @@ async function renderProjectGraph(projects) {
   });
   renderer.on("enterNode", ({ node }) => {
     state.hoveredWorldNodeId = node;
+    state.worldFocusMode = state.selectedWorldNodeId ? "selection" : "relation";
     renderWorldGraphChrome(projects);
     renderer.refresh?.();
     renderWorldGraphOverlay();
   });
   renderer.on("leaveNode", () => {
     state.hoveredWorldNodeId = "";
+    state.worldFocusMode = state.selectedWorldNodeId ? "selection" : "default";
     renderWorldGraphChrome(projects);
     renderer.refresh?.();
     renderWorldGraphOverlay();
@@ -3537,7 +3567,7 @@ async function renderProjectGraph(projects) {
     renderWorldGraphOverlay();
   });
   fitWorldGraph();
-  stopWorldGraphMotion();
+  startWorldSceneMotion(renderer, mount);
   renderWorldGraphOverlay();
   if (state.worldDrawerOpen && state.selectedWorldNodeId) {
     renderWorldSelectionDrawer(state.selectedWorldNodeId, projects);
