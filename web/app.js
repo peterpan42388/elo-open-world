@@ -2685,6 +2685,52 @@ function worldHoveredNodeMeta() {
   return state.worldGraphNodeMap.get(state.hoveredWorldNodeId) || null;
 }
 
+function currentWorldFocusTargetId() {
+  return state.selectedWorldNodeId || state.hoveredWorldNodeId || "";
+}
+
+function buildWorldFocusContext(graph) {
+  const targetNodeId = currentWorldFocusTargetId();
+  if (!graph || !targetNodeId || !graph.hasNode?.(targetNodeId)) {
+    return {
+      mode: "default",
+      targetNodeId: "",
+      primaryNodes: new Set(),
+      secondaryNodes: new Set(),
+      highlightedEdges: new Set()
+    };
+  }
+  const mode = state.worldFocusMode || "selection";
+  const primaryNodes = new Set([targetNodeId]);
+  const secondaryNodes = new Set();
+  const highlightedEdges = new Set();
+  const targetAttrs = graph.getNodeAttributes(targetNodeId) || {};
+  const addNeighbors = (nodeId, bucket = secondaryNodes) => {
+    graph.forEachNeighbor(nodeId, (neighborId) => {
+      if (!primaryNodes.has(neighborId)) bucket.add(neighborId);
+    });
+  };
+  if (mode === "cluster" && targetAttrs.kind === "project" && targetAttrs.clusterId) {
+    graph.forEachNode((nodeId, attrs) => {
+      if (attrs.kind === "project" && attrs.clusterId === targetAttrs.clusterId) primaryNodes.add(nodeId);
+      else if (attrs.kind === "universe") secondaryNodes.add(nodeId);
+    });
+    [...primaryNodes].forEach((nodeId) => addNeighbors(nodeId, secondaryNodes));
+  } else {
+    addNeighbors(targetNodeId, secondaryNodes);
+  }
+  primaryNodes.forEach((nodeId) => {
+    graph.forEachEdge(nodeId, (edgeId, attrs, source, target) => {
+      const otherId = source === nodeId ? target : source;
+      if (primaryNodes.has(otherId) || secondaryNodes.has(otherId)) highlightedEdges.add(edgeId);
+    });
+  });
+  if (mode === "selection") {
+    return { mode, targetNodeId, primaryNodes, secondaryNodes, highlightedEdges };
+  }
+  return { mode, targetNodeId, primaryNodes, secondaryNodes, highlightedEdges };
+}
+
 function worldActiveFilterCount() {
   return Object.values(state.worldGraphFilters).filter(Boolean).length;
 }
@@ -2704,6 +2750,13 @@ function renderWorldGraphChrome(projects) {
     hybrid: "Hybrid visual lab",
     mock: "Visual lab only"
   }[state.worldVisualMode] || "Hybrid visual lab";
+  const focusModeLabel = {
+    default: "Open",
+    selection: "Selection",
+    relation: "Relation",
+    cluster: "Cluster"
+  }[state.worldFocusMode] || "Open";
+  const clusterCapable = selectedMeta?.kind === "project";
 
   if (!projects.length) {
     info.innerHTML = "";
@@ -2749,7 +2802,7 @@ function renderWorldGraphChrome(projects) {
       <div class="world-info-pill world-info-pill-active">
         <span class="eyebrow">${activeLabel}</span>
         <strong>${escapeHtml(project.title)}</strong>
-        <span>${escapeHtml(project.repoFullName || project.repoName)} · ${escapeHtml(project.stage || "source")} · ${escapeHtml(projectStateLabel(project.state))}${isWorldVisualMockProject(project) ? " · visual lab node" : ""}</span>
+        <span>${escapeHtml(project.repoFullName || project.repoName)} · ${escapeHtml(project.stage || "source")} · ${escapeHtml(projectStateLabel(project.state))} · ${escapeHtml(focusModeLabel)} focus${isWorldVisualMockProject(project) ? " · visual lab node" : ""}</span>
       </div>
     `;
   }
@@ -2766,11 +2819,19 @@ function renderWorldGraphChrome(projects) {
         <button type="button" class="world-dock-button world-dock-button-active" id="world-focus-selection" title="Focus selection">
           <span aria-hidden="true">◎</span>
         </button>
+        <button type="button" class="world-dock-button ${state.worldFocusMode === "relation" ? "world-dock-button-active" : ""}" id="world-focus-relation" title="Relation focus">
+          <span aria-hidden="true">≈</span>
+        </button>
+        ${clusterCapable ? `
+          <button type="button" class="world-dock-button ${state.worldFocusMode === "cluster" ? "world-dock-button-active" : ""}" id="world-focus-cluster" title="Cluster focus">
+            <span aria-hidden="true">◌</span>
+          </button>
+        ` : ""}
       ` : ""}
     </div>
     <div class="world-dock-caption">
       <strong>Explorer Dock</strong>
-      <span>${escapeHtml(visualModeLabel)} · ${escapeHtml(relationModes)}</span>
+      <span>${escapeHtml(visualModeLabel)} · ${escapeHtml(relationModes)} · ${escapeHtml(focusModeLabel)} focus</span>
     </div>
   `;
 
@@ -2783,8 +2844,28 @@ function renderWorldGraphChrome(projects) {
     fitWorldGraph();
   });
   $("world-focus-selection")?.addEventListener("click", () => {
+    state.worldFocusMode = "selection";
     fitWorldGraph(state.selectedWorldNodeId);
+    state.worldGraphRenderer?.refresh?.();
+    renderWorldGraphOverlay();
+    renderWorldGraphChrome(projects);
     setStatus("World graph focused on the selected project.", "ok");
+  });
+  $("world-focus-relation")?.addEventListener("click", () => {
+    state.worldFocusMode = "relation";
+    pauseWorldSceneMotion(620);
+    state.worldGraphRenderer?.refresh?.();
+    renderWorldGraphOverlay();
+    renderWorldGraphChrome(projects);
+    setStatus("World graph relation focus enabled.", "ok");
+  });
+  $("world-focus-cluster")?.addEventListener("click", () => {
+    state.worldFocusMode = "cluster";
+    fitWorldCluster(state.selectedWorldNodeId);
+    state.worldGraphRenderer?.refresh?.();
+    renderWorldGraphOverlay();
+    renderWorldGraphChrome(projects);
+    setStatus("World graph cluster focus enabled.", "ok");
   });
 }
 
@@ -2802,6 +2883,7 @@ function drawWorldNodeShape(context, attrs, selected, hovered) {
   const glowColor = worldColorWithAlpha(worldNodeTypeColor(attrs.kind, attrs.baseColor), selected ? 0.72 : hovered ? 0.42 : 0.18);
   const viewport = worldViewportPoint(state.worldGraphRenderer, attrs);
   const radius = Number(attrs.size || 8) + (selected ? 5 : hovered ? 2.8 : 0.8);
+  const pulse = selected ? 1 + Math.sin(performance.now() * 0.006) * 0.09 : 1;
   context.save();
   context.translate(viewport.x, viewport.y);
   context.shadowBlur = radius * (selected ? 2.2 : hovered ? 1.5 : 1);
@@ -2809,6 +2891,13 @@ function drawWorldNodeShape(context, attrs, selected, hovered) {
   context.fillStyle = fillColor;
   context.strokeStyle = strokeColor;
   context.lineWidth = selected ? 2.2 : 1.4;
+  if (selected) {
+    context.beginPath();
+    context.arc(0, 0, radius * 1.85 * pulse, 0, Math.PI * 2);
+    context.strokeStyle = worldColorWithAlpha(worldNodeTypeColor(attrs.kind, attrs.baseColor), 0.22);
+    context.lineWidth = 1.6;
+    context.stroke();
+  }
   const gradient = context.createRadialGradient(0, 0, radius * 0.14, 0, 0, radius);
   gradient.addColorStop(0, worldColorWithAlpha(worldNodeTypeColor(attrs.kind, attrs.baseColor), selected ? 0.96 : 0.8));
   gradient.addColorStop(0.68, worldColorWithAlpha(worldNodeTypeColor(attrs.kind, attrs.baseColor), selected ? 0.7 : 0.3));
@@ -2918,13 +3007,9 @@ function renderWorldGraphOverlay() {
   }
   context.clearRect(0, 0, width, height);
   state.worldGraphOverlayVisible = true;
-
-  const visibleNodeIds = new Set();
-  visibleNodeIds.add(activeNodeId);
-  graph.forEachNeighbor(activeNodeId, (neighborId) => {
-    visibleNodeIds.add(neighborId);
-  });
-  graph.forEachEdge(activeNodeId, (edgeId) => {
+  const focus = buildWorldFocusContext(graph);
+  const visibleNodeIds = new Set([...focus.primaryNodes, ...focus.secondaryNodes]);
+  focus.highlightedEdges.forEach((edgeId) => {
     const edgeMeta = state.worldGraphEdgeMap.get(edgeId);
     if (edgeMeta) drawWorldEdgeOverlay(context, graph, edgeId, edgeMeta);
   });
@@ -2975,6 +3060,49 @@ function fitWorldGraph(nodeId = "") {
   } else if (camera?.setState) {
     camera.setState({ x: 0.5, y: 0.5, ratio: 0.82, angle: 0 });
   }
+  renderer.refresh?.();
+}
+
+function fitWorldCluster(nodeId = "") {
+  const renderer = state.worldGraphRenderer;
+  const graph = state.worldGraph;
+  if (!renderer || !graph || !nodeId || !graph.hasNode?.(nodeId)) {
+    fitWorldGraph(nodeId);
+    return;
+  }
+  const attrs = graph.getNodeAttributes(nodeId);
+  if (!attrs?.clusterId) {
+    fitWorldGraph(nodeId);
+    return;
+  }
+  const clusterNodes = [];
+  graph.forEachNode((candidateId, candidateAttrs) => {
+    if (candidateAttrs.clusterId === attrs.clusterId && candidateAttrs.kind === "project") clusterNodes.push(candidateAttrs);
+  });
+  if (!clusterNodes.length) {
+    fitWorldGraph(nodeId);
+    return;
+  }
+  const minX = Math.min(...clusterNodes.map((item) => Number(item.x || 0.5)));
+  const maxX = Math.max(...clusterNodes.map((item) => Number(item.x || 0.5)));
+  const minY = Math.min(...clusterNodes.map((item) => Number(item.y || 0.5)));
+  const maxY = Math.max(...clusterNodes.map((item) => Number(item.y || 0.5)));
+  const centerX = (minX + maxX) / 2;
+  const centerY = (minY + maxY) / 2;
+  const span = Math.max(maxX - minX, maxY - minY);
+  const ratio = Math.max(0.42, Math.min(0.96, 0.36 + span * 2.9));
+  const camera = renderer.getCamera?.();
+  if (camera?.animate) {
+    camera.animate({
+      x: centerX,
+      y: centerY,
+      ratio,
+      angle: 0
+    }, { duration: 540 });
+  } else if (camera?.setState) {
+    camera.setState({ x: centerX, y: centerY, ratio, angle: 0 });
+  }
+  pauseWorldSceneMotion(920);
   renderer.refresh?.();
 }
 
@@ -3098,12 +3226,12 @@ function startWorldSceneMotion(renderer, mount) {
       return;
     }
     const anchor = state.worldSceneMotionAnchor || current;
-    const intensity = state.worldDrawerOpen ? 0.4 : 1;
+    const intensity = state.worldDrawerOpen ? 0.58 : state.selectedWorldNodeId ? 0.92 : 1.18;
     const next = clampWorldCameraState({
       ...current,
-      x: anchor.x + Math.sin(timestamp * 0.00015) * 0.011 * intensity + Math.cos(timestamp * 0.00006) * 0.003 * intensity,
-      y: anchor.y + Math.cos(timestamp * 0.00013) * 0.009 * intensity + Math.sin(timestamp * 0.00005) * 0.002 * intensity,
-      ratio: anchor.ratio + Math.sin(timestamp * 0.00008) * 0.012 * intensity,
+      x: anchor.x + Math.sin(timestamp * 0.00016) * 0.014 * intensity + Math.cos(timestamp * 0.00007) * 0.0044 * intensity,
+      y: anchor.y + Math.cos(timestamp * 0.00014) * 0.0115 * intensity + Math.sin(timestamp * 0.000055) * 0.003 * intensity,
+      ratio: anchor.ratio + Math.sin(timestamp * 0.00009) * 0.016 * intensity,
       angle: 0
     });
     if (
@@ -3443,6 +3571,16 @@ async function renderProjectGraph(projects) {
     state.selectedWorldNodeId = "";
     state.worldDrawerOpen = false;
   }
+  let focusCacheKey = "";
+  let focusCacheValue = null;
+  const getFocusContext = () => {
+    const key = `${state.worldFocusMode}|${state.selectedWorldNodeId}|${state.hoveredWorldNodeId}`;
+    if (focusCacheKey !== key) {
+      focusCacheKey = key;
+      focusCacheValue = buildWorldFocusContext(graph);
+    }
+    return focusCacheValue;
+  };
 
   const renderer = new Sigma(graph, mount, {
     renderLabels: true,
@@ -3458,13 +3596,13 @@ async function renderProjectGraph(projects) {
     minCameraRatio: 0.15,
     maxCameraRatio: 4,
     nodeReducer: (node, data) => {
+      const focus = getFocusContext();
       const selected = state.worldDrawerOpen && state.selectedWorldNodeId === node;
       const hovered = state.hoveredWorldNodeId === node;
       const activeNodeId = currentWorldActiveNodeId();
-      const connected = activeNodeId
-        ? worldNodeConnectedToSelection(graph, node)
-        : true;
-      const dimmed = activeNodeId && !connected;
+      const isPrimary = focus.primaryNodes.has(node);
+      const isSecondary = focus.secondaryNodes.has(node);
+      const dimmed = activeNodeId && !isPrimary && !isSecondary;
       const typeWeight = data.kind === "project"
         ? 1
         : data.kind === "universe"
@@ -3472,41 +3610,47 @@ async function renderProjectGraph(projects) {
           : data.kind === "human"
             ? 0.46
             : 0.34;
+      const baseAlpha = Math.max(0.18, (data.depthAlpha || 1) * 0.58 * typeWeight);
       const nodeAlpha = selected
         ? 1
         : hovered
           ? Math.min(1, (data.depthAlpha || 0.9) + 0.18)
           : dimmed
-            ? Math.max(0.1, (data.depthAlpha || 0.7) * 0.2)
-            : Math.max(0.18, (data.depthAlpha || 1) * 0.58 * typeWeight);
+            ? Math.max(0.08, baseAlpha * (focus.mode === "cluster" ? 0.1 : 0.16))
+            : isPrimary
+              ? Math.min(1, baseAlpha + 0.28)
+              : isSecondary
+                ? Math.min(1, baseAlpha + 0.12)
+                : baseAlpha;
       return {
         ...data,
         color: worldColorWithAlpha(data.baseColor || data.color, nodeAlpha),
         size: selected
-          ? data.size + (data.depthLayer === "foreground" ? 9 : 7)
+          ? data.size + (data.depthLayer === "foreground" ? 10.5 : 8.5)
           : hovered
-            ? data.size + (data.depthLayer === "foreground" ? 5.5 : 4.4)
-            : data.kind === "project"
-              ? data.size
-              : data.size * (data.kind === "human" ? 0.76 : data.kind === "agent" ? 0.64 : 0.92),
-        label: hovered || selected || (data.kind === "project" && data.forceLabel) || (data.kind === "universe" && data.forceLabel)
+            ? data.size + (data.depthLayer === "foreground" ? 6.4 : 5.2)
+            : isPrimary
+              ? data.size + 2.1
+              : data.kind === "project"
+                ? data.size
+                : data.size * (data.kind === "human" ? 0.76 : data.kind === "agent" ? 0.64 : 0.92),
+        label: hovered || selected || isPrimary || (data.kind === "project" && data.forceLabel) || (data.kind === "universe" && data.forceLabel)
           ? data.fullLabel || data.label
           : data.label,
-        forceLabel: hovered || selected || (data.kind === "project" && data.forceLabel) || (data.kind === "universe" && data.forceLabel),
-        zIndex: selected ? 30 : hovered ? 18 : data.zIndex
+        forceLabel: hovered || selected || isPrimary || (data.kind === "project" && data.forceLabel) || (data.kind === "universe" && data.forceLabel),
+        zIndex: selected ? 34 : hovered ? 22 : isPrimary ? 16 : data.zIndex
       };
     },
     edgeReducer: (edge, data) => {
+      const focus = getFocusContext();
       if (!worldEdgeTypeVisible(data.edgeType)) {
         return {
           ...data,
           hidden: true
         };
       }
-      const source = graph.source(edge);
-      const target = graph.target(edge);
-      const activeNodeId = state.selectedWorldNodeId || state.hoveredWorldNodeId;
-      const related = activeNodeId && (source === activeNodeId || target === activeNodeId);
+      const activeNodeId = currentWorldActiveNodeId();
+      const related = focus.highlightedEdges.has(edge);
       if (!activeNodeId) {
         return {
           ...data,
@@ -3526,8 +3670,19 @@ async function renderProjectGraph(projects) {
       return {
         ...data,
         hidden: false,
-        color: worldColorWithAlpha(data.baseColor || data.color, related ? 0.22 : 0.015),
-        size: related ? Math.max(0.45, data.size * 0.72) : Math.max(0.2, data.size * 0.18)
+        color: worldColorWithAlpha(
+          data.baseColor || data.color,
+          related
+            ? data.edgeType === "foundation-link"
+              ? 0.34
+              : 0.26
+            : focus.mode === "cluster"
+              ? 0.012
+              : 0.02
+        ),
+        size: related
+          ? Math.max(0.6, data.size * (focus.mode === "cluster" ? 0.86 : 0.76))
+          : Math.max(0.16, data.size * (focus.mode === "cluster" ? 0.14 : 0.2))
       };
     }
   });
@@ -3550,14 +3705,14 @@ async function renderProjectGraph(projects) {
   });
   renderer.on("enterNode", ({ node }) => {
     state.hoveredWorldNodeId = node;
-    state.worldFocusMode = state.selectedWorldNodeId ? "selection" : "relation";
+    if (!state.selectedWorldNodeId) state.worldFocusMode = "relation";
     renderWorldGraphChrome(projects);
     renderer.refresh?.();
     renderWorldGraphOverlay();
   });
   renderer.on("leaveNode", () => {
     state.hoveredWorldNodeId = "";
-    state.worldFocusMode = state.selectedWorldNodeId ? "selection" : "default";
+    if (!state.selectedWorldNodeId) state.worldFocusMode = "default";
     renderWorldGraphChrome(projects);
     renderer.refresh?.();
     renderWorldGraphOverlay();

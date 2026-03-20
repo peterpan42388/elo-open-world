@@ -97,6 +97,7 @@ After every execution cycle, update this file with:
 - any new blockers
 
 ## Last Completed
+- Strengthened `World` selection readability on top of the camera-drift baseline by adding explicit `Selection / Relation / Cluster` focus modes, a tighter selected-node halo pulse, cluster-fit camera behavior, and slightly stronger scene drift so the graph feels more alive without going back to per-node animation
 - Reworked `World` around a performance-first rendering model by removing full-scene custom node and edge overlay from the idle path, replacing per-node floating motion with bounded camera drift, restoring Sigma as the default node and curved-edge renderer, and demoting `Human / Agent` to interaction-time hierarchy so the graph keeps a continuous spatial feel without dragging frame rate down
 - Rebalanced `World` toward a higher-performance rendering path by disabling the continuous floating motion loop, returning baseline node and edge visibility to Sigma, and reducing the custom overlay to interaction-focused hierarchy highlights instead of redrawing every node and edge every frame
 - Reworked `World` node and edge rendering around the actual `World -> Project -> Human -> Agent` hierarchy by introducing explicit human/agent nodes, overlay-rendered typed shapes, much lighter default edge visibility, stronger endpoint-weighted tapered curves, tighter synthetic membership/plugin density, and a closer default camera so `Visual Lab` reads more like an ecosystem map than a code-call graph
@@ -149,10 +150,10 @@ After every execution cycle, update this file with:
 - Reworked the `Project Workspace` snapshot around ownership, participation, recruiting, latest activity, and operating inputs so the page reads less like a directory card and more like the active project control surface
 
 ## Current Focus
-- P0 World Engine Performance Hardening: keep `World` alive and spatial while staying inside a strict rendering budget
+- P0 World Engine Performance Hardening: keep `World` alive, spatial, and easier to read while staying inside a strict rendering budget
 
 ## Next Recommended Action
-- strengthen selected-node affordance and relation-focus controls on top of the new camera-drift baseline, then add cluster and grouping focus so larger graphs stay legible without making `Human` and `Agent` dominate the default view
+- add larger-graph grouping and cluster-aware declutter controls on top of the new focus modes, then continue tuning default `Project` dominance so `Human` and `Agent` only surface when the user explicitly drills in
 
 ## Blockers
 - local runtime still has no seeded project data, so representative graph validation continues to depend on the deployed environment
