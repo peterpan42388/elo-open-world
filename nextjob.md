@@ -97,6 +97,7 @@ After every execution cycle, update this file with:
 - any new blockers
 
 ## Last Completed
+- Upgraded `World` to a stronger Phase 2A graph explorer by aligning the frontend to official `Sigma.js + Graphology` curved-edge rendering, adding a 2.5D depth model for nodes and camera focus, rebuilding `Visual Lab` into a more natural ecosystem-cluster dataset, and tightening scene styling plus drawer motion for a less flat explorer surface
 - Added a dedicated `World Visual Lab` data surface with `Live / Hybrid / Visual Lab` modes, synthetic project clusters, and visual-only mock nodes so the graph can be stress-tested against 20+ nodes without waiting on real project volume
 - Borrowed higher-value GitNexus Web UI patterns into `World` without importing its React/Vite shell: the graph now has a lighter legend, top-center hover/selection status pill, floating explorer dock, stronger graph-field backdrop, and easier focus-on-selection behavior while staying on the current `Sigma.js + Graphology` stack
 - Added `World Phase 2` controls with relation-filter pills, quick project selection chips, and stronger always-on labeling for high-signal or foundation projects so the graph stays legible without relying entirely on small-node clicks
@@ -144,10 +145,10 @@ After every execution cycle, update this file with:
 - Reworked the `Project Workspace` snapshot around ownership, participation, recruiting, latest activity, and operating inputs so the page reads less like a directory card and more like the active project control surface
 
 ## Current Focus
-- P0 World Engine Phase 2: continue tightening the graph explorer toward the GitNexus interaction quality bar, now using the new visual-lab dataset to tune project-node hit targets, drawer motion, and larger-graph readability
+- P0 World Engine Phase 2B: continue tightening the graph explorer toward the GitNexus interaction quality bar, now that official curved edges and clustered mock data are live
 
 ## Next Recommended Action
-- improve direct project-node hit targets and hover affordances against the hybrid/mock dataset, then add larger-graph grouping so `World` stays legible once non-foundation project volume grows
+- improve direct project-node hit targets and selected-node affordance further, then add larger-graph grouping and relation-focus controls so `World` stays legible once non-foundation project volume grows
 
 ## Blockers
 - local runtime still has no seeded project data, so representative graph validation continues to depend on the deployed environment

@@ -263,79 +263,272 @@ function worldVisualBasePlugins(liveProjects) {
       ];
 }
 
+function worldVisualPool(baseItems, fallbackItems, minimum = fallbackItems.length) {
+  const merged = [...new Set([...(baseItems || []), ...fallbackItems])];
+  return merged.slice(0, Math.max(minimum, merged.length));
+}
+
+function worldVisualPick(pool, index) {
+  return pool[((index % pool.length) + pool.length) % pool.length];
+}
+
 function buildWorldVisualProjects(liveProjects) {
-  const owners = worldVisualBaseOwners(liveProjects);
-  const agents = worldVisualBaseAgents(liveProjects);
-  const plugins = worldVisualBasePlugins(liveProjects);
-  const blueprints = [
-    ["identity-atlas", "Identity Atlas", "map", "operating", "operating", ["identity", "graph", "protocol"], 4.9, 920, [0,1], [0,3]],
-    ["commons-signal", "Commons Signal", "service", "operating", "developing", ["signal", "community", "analytics"], 4.4, 610, [1,2], [4]],
-    ["world-fabric", "World Fabric", "platform", "source", "developing", ["world", "fabric", "infrastructure"], 4.7, 880, [0,3], [1,3]],
-    ["market-orbit", "Market Orbit", "service", "operating", "operating", ["market", "exchange", "pricing"], 4.6, 760, [2,3], [2,4]],
-    ["social-field", "Social Field", "app", "source", "developing", ["social", "coordination", "network"], 4.1, 450, [3,4], [4]],
-    ["memory-harbor", "Memory Harbor", "service", "source", "paused", ["memory", "archive", "knowledge"], 3.7, 280, [4], [3]],
-    ["builder-yard", "Builder Yard", "app", "source", "developing", ["builder", "workspace", "delivery"], 4.3, 520, [1,5], [0,1]],
-    ["parallel-nest", "Parallel Nest", "platform", "source", "developing", ["parallel", "universe", "federation"], 4.5, 700, [0,5], [1,2]],
-    ["research-spine", "Research Spine", "service", "source", "operating", ["research", "evaluation", "agent"], 4.2, 410, [2,4], [0,4]],
-    ["governance-lantern", "Governance Lantern", "service", "source", "developing", ["governance", "review", "rules"], 4.0, 360, [3], [3,4]],
-    ["studio-ember", "Studio Ember", "app", "source", "developing", ["design", "studio", "creative"], 3.9, 300, [5], [4]],
-    ["operator-grid", "Operator Grid", "platform", "operating", "operating", ["ops", "runbook", "operator"], 4.8, 840, [0,2,5], [1,4]],
-    ["bridge-lab", "Bridge Lab", "service", "source", "developing", ["bridge", "browser", "plugin"], 4.4, 560, [0,1,5], [0]],
-    ["quest-terminal", "Quest Terminal", "app", "source", "paused", ["quest", "terminal", "interaction"], 3.8, 210, [1,4], [0,2]],
-    ["agent-bazaar", "Agent Bazaar", "service", "operating", "operating", ["agent", "bazaar", "service"], 4.6, 790, [2,3,4], [2,4]],
-    ["public-square", "Public Square", "app", "source", "developing", ["public", "square", "community"], 4.1, 430, [3,5], [4]],
-    ["forge-canvas", "Forge Canvas", "app", "source", "developing", ["forge", "canvas", "workspace"], 4.3, 540, [0,5], [0,1]],
-    ["delivery-halo", "Delivery Halo", "service", "operating", "operating", ["delivery", "halo", "runtime"], 4.7, 860, [1,2,4], [1,2]]
+  const owners = worldVisualPool(worldVisualBaseOwners(liveProjects), [
+    "human.github.foundation",
+    "human.github.marketmaker",
+    "human.github.socialweaver",
+    "human.github.researchdock",
+    "human.github.builderforge",
+    "human.github.federationkeeper",
+    "human.github.commonsbridge",
+    "human.github.runtimepilot"
+  ], 8);
+  const agents = worldVisualPool(worldVisualBaseAgents(liveProjects), [
+    "agent.grace.openclaw",
+    "agent.atlas.openclaw",
+    "agent.cinder.openclaw",
+    "agent.orbit.openclaw",
+    "agent.sage.openclaw",
+    "agent.river.openclaw",
+    "agent.lattice.openclaw",
+    "agent.pulse.openclaw",
+    "agent.delta.openclaw",
+    "agent.ember.openclaw",
+    "agent.lumen.openclaw",
+    "agent.tangent.openclaw"
+  ], 12);
+  const plugins = worldVisualPool(worldVisualBasePlugins(liveProjects), [
+    "plugin.elo-agent-web-plugin",
+    "plugin.elo-agent-onboarder",
+    "plugin.elo-market",
+    "plugin.elo-governance",
+    "plugin.elo-signal",
+    "plugin.elo-knowledge",
+    "plugin.elo-builder",
+    "plugin.elo-federation",
+    "plugin.elo-presence",
+    "plugin.elo-delivery"
+  ], 10);
+  const clusters = [
+    {
+      id: "foundation",
+      label: "Foundation",
+      ownerIndexes: [0, 7],
+      agentIndexes: [0, 1, 6, 11],
+      pluginIndexes: [0, 1, 3],
+      projects: [
+        { slug: "onboarding-dock", title: "Onboarding Dock", kind: "service", stage: "operating", state: "operating", tags: ["foundation", "onboarding", "entry"], rating: 4.9, heat: 940, agentSlots: [0, 1], pluginSlots: [0, 1], role: "anchor" },
+        { slug: "browser-bridge-hub", title: "Browser Bridge Hub", kind: "service", stage: "operating", state: "operating", tags: ["foundation", "browser", "bridge"], rating: 4.8, heat: 860, agentSlots: [1, 2], pluginSlots: [0], role: "core" },
+        { slug: "governance-substrate", title: "Governance Substrate", kind: "protocol", stage: "source", state: "developing", tags: ["foundation", "governance", "rules"], rating: 4.4, heat: 520, agentSlots: [0, 3], pluginSlots: [2], role: "support" },
+        { slug: "runtime-harbor", title: "Runtime Harbor", kind: "platform", stage: "source", state: "developing", tags: ["foundation", "runtime", "operator"], rating: 4.5, heat: 610, agentSlots: [2, 3], pluginSlots: [1, 2], role: "support" }
+      ]
+    },
+    {
+      id: "market",
+      label: "Market",
+      ownerIndexes: [1, 6],
+      agentIndexes: [2, 3, 7, 8],
+      pluginIndexes: [2, 4, 9],
+      projects: [
+        { slug: "service-exchange", title: "Service Exchange", kind: "service", stage: "operating", state: "operating", tags: ["market", "exchange", "settlement"], rating: 4.7, heat: 820, agentSlots: [0, 1], pluginSlots: [0, 1], role: "anchor" },
+        { slug: "pricing-ledger", title: "Pricing Ledger", kind: "service", stage: "source", state: "developing", tags: ["market", "pricing", "ledger"], rating: 4.2, heat: 460, agentSlots: [1, 2], pluginSlots: [1], role: "core" },
+        { slug: "agent-bazaar", title: "Agent Bazaar", kind: "service", stage: "operating", state: "operating", tags: ["market", "agent", "bazaar"], rating: 4.6, heat: 760, agentSlots: [0, 2, 3], pluginSlots: [0, 2], role: "anchor" },
+        { slug: "access-clearing", title: "Access Clearing", kind: "protocol", stage: "source", state: "developing", tags: ["market", "access", "gating"], rating: 4.1, heat: 390, agentSlots: [1, 3], pluginSlots: [2], role: "support" }
+      ]
+    },
+    {
+      id: "social",
+      label: "Social",
+      ownerIndexes: [2, 6],
+      agentIndexes: [3, 4, 8, 9],
+      pluginIndexes: [4, 8],
+      projects: [
+        { slug: "public-square", title: "Public Square", kind: "app", stage: "source", state: "developing", tags: ["social", "public", "community"], rating: 4.3, heat: 520, agentSlots: [0, 1], pluginSlots: [0], role: "anchor" },
+        { slug: "signal-current", title: "Signal Current", kind: "service", stage: "operating", state: "operating", tags: ["social", "signal", "community"], rating: 4.5, heat: 640, agentSlots: [1, 2], pluginSlots: [0, 1], role: "core" },
+        { slug: "coordination-mesh", title: "Coordination Mesh", kind: "app", stage: "source", state: "developing", tags: ["social", "coordination", "workspace"], rating: 4.1, heat: 410, agentSlots: [0, 2, 3], pluginSlots: [1], role: "bridge" },
+        { slug: "presence-stream", title: "Presence Stream", kind: "service", stage: "source", state: "paused", tags: ["social", "presence", "signal"], rating: 3.8, heat: 260, agentSlots: [2, 3], pluginSlots: [0], role: "support" }
+      ]
+    },
+    {
+      id: "research",
+      label: "Research",
+      ownerIndexes: [3, 7],
+      agentIndexes: [4, 5, 9, 10],
+      pluginIndexes: [5, 3],
+      projects: [
+        { slug: "research-spine", title: "Research Spine", kind: "service", stage: "source", state: "developing", tags: ["research", "evaluation", "knowledge"], rating: 4.4, heat: 540, agentSlots: [0, 1], pluginSlots: [0], role: "anchor" },
+        { slug: "eval-atelier", title: "Eval Atelier", kind: "service", stage: "operating", state: "operating", tags: ["research", "evaluation", "metrics"], rating: 4.6, heat: 690, agentSlots: [1, 2], pluginSlots: [0, 1], role: "core" },
+        { slug: "memory-harbor", title: "Memory Harbor", kind: "service", stage: "source", state: "developing", tags: ["research", "memory", "archive"], rating: 4.0, heat: 350, agentSlots: [0, 2], pluginSlots: [1], role: "support" },
+        { slug: "knowledge-loom", title: "Knowledge Loom", kind: "platform", stage: "source", state: "developing", tags: ["research", "knowledge", "loom"], rating: 4.2, heat: 430, agentSlots: [2, 3], pluginSlots: [0, 1], role: "bridge" }
+      ]
+    },
+    {
+      id: "builder",
+      label: "Builder",
+      ownerIndexes: [4, 6],
+      agentIndexes: [1, 6, 7, 10],
+      pluginIndexes: [6, 9, 0],
+      projects: [
+        { slug: "forge-canvas", title: "Forge Canvas", kind: "app", stage: "source", state: "developing", tags: ["builder", "forge", "workspace"], rating: 4.5, heat: 630, agentSlots: [0, 1], pluginSlots: [0, 2], role: "anchor" },
+        { slug: "builder-yard", title: "Builder Yard", kind: "app", stage: "source", state: "developing", tags: ["builder", "yard", "delivery"], rating: 4.2, heat: 470, agentSlots: [1, 2], pluginSlots: [0], role: "core" },
+        { slug: "delivery-halo", title: "Delivery Halo", kind: "service", stage: "operating", state: "operating", tags: ["builder", "delivery", "runtime"], rating: 4.7, heat: 810, agentSlots: [0, 2, 3], pluginSlots: [1, 2], role: "bridge" },
+        { slug: "studio-lattice", title: "Studio Lattice", kind: "app", stage: "source", state: "developing", tags: ["builder", "studio", "creative"], rating: 4.1, heat: 390, agentSlots: [2, 3], pluginSlots: [0], role: "support" }
+      ]
+    },
+    {
+      id: "federation",
+      label: "Federation",
+      ownerIndexes: [5, 7],
+      agentIndexes: [0, 5, 10, 11],
+      pluginIndexes: [7, 3, 8],
+      projects: [
+        { slug: "world-fabric", title: "World Fabric", kind: "platform", stage: "source", state: "developing", tags: ["federation", "world", "fabric"], rating: 4.6, heat: 720, agentSlots: [0, 1], pluginSlots: [0], role: "anchor" },
+        { slug: "parallel-nest", title: "Parallel Nest", kind: "platform", stage: "source", state: "developing", tags: ["federation", "parallel", "universe"], rating: 4.4, heat: 560, agentSlots: [1, 2], pluginSlots: [0, 1], role: "core" },
+        { slug: "gateway-relay", title: "Gateway Relay", kind: "service", stage: "operating", state: "operating", tags: ["federation", "gateway", "routing"], rating: 4.5, heat: 650, agentSlots: [0, 2, 3], pluginSlots: [1, 2], role: "bridge" },
+        { slug: "interlink-atlas", title: "Interlink Atlas", kind: "service", stage: "source", state: "developing", tags: ["federation", "atlas", "interlink"], rating: 4.0, heat: 340, agentSlots: [2, 3], pluginSlots: [0], role: "support" }
+      ]
+    }
+  ];
+  const bridgeProjects = [
+    {
+      clusterId: "commons",
+      clusterRole: "bridge",
+      ownerHumanId: worldVisualPick(owners, 6),
+      agentIndexes: [1, 3, 5, 7],
+      pluginIndexes: [0, 2, 4, 7],
+      slug: "commons-bridge",
+      title: "Commons Bridge",
+      kind: "service",
+      stage: "operating",
+      state: "operating",
+      tags: ["commons", "bridge", "coordination"],
+      rating: 4.6,
+      heat: 730
+    },
+    {
+      clusterId: "operations",
+      clusterRole: "bridge",
+      ownerHumanId: worldVisualPick(owners, 7),
+      agentIndexes: [0, 6, 9, 11],
+      pluginIndexes: [1, 3, 6, 9],
+      slug: "operator-relay",
+      title: "Operator Relay",
+      kind: "platform",
+      stage: "operating",
+      state: "operating",
+      tags: ["operations", "relay", "runtime"],
+      rating: 4.7,
+      heat: 780
+    }
   ];
 
-  return blueprints.map((entry, index) => {
-    const [slug, title, kind, stage, stateValue, tags, rating, heat, agentIndexes, pluginIndexes] = entry;
-    const ownerHumanId = owners[index % owners.length];
-    const memberAgentIds = agentIndexes.map((agentIndex) => agents[agentIndex % agents.length]);
-    const pluginIds = pluginIndexes.map((pluginIndex) => plugins[pluginIndex % plugins.length]);
-    const repoName = `visual-${slug}`;
-    const repoFullName = `${(ownerHumanId || "human.visual").replace("human.github.", "")}/${repoName}`;
-    return {
-      projectId: `visual.project.${slug}`,
-      title,
+  const projects = [];
+  let visualIndex = 0;
+  clusters.forEach((cluster, clusterIndex) => {
+    cluster.projects.forEach((entry, projectIndex) => {
+      const ownerHumanId = worldVisualPick(owners, cluster.ownerIndexes[projectIndex % cluster.ownerIndexes.length]);
+      const memberAgentIds = entry.agentSlots.map((slot) => worldVisualPick(agents, cluster.agentIndexes[slot % cluster.agentIndexes.length]));
+      const pluginIds = entry.pluginSlots.map((slot) => worldVisualPick(plugins, cluster.pluginIndexes[slot % cluster.pluginIndexes.length]));
+      const repoName = `visual-${entry.slug}`;
+      const ownerLogin = (ownerHumanId || "human.visual").replace("human.github.", "");
+      const repoFullName = `${ownerLogin}/${repoName}`;
+      projects.push({
+        projectId: `visual.project.${entry.slug}`,
+        title: entry.title,
+        repoName,
+        repoFullName,
+        repoUrl: `https://github.com/${repoFullName}`,
+        ownerHumanId,
+        kind: entry.kind,
+        summary: `${entry.title} is synthetic ecosystem data for tuning the World explorer against clustered project relationships.`,
+        tags: entry.tags,
+        rating: entry.rating,
+        heat: entry.heat,
+        stage: entry.stage,
+        state: entry.state,
+        serviceEndpoint: entry.stage === "operating" ? `https://world.metavie.co/mock-services/${repoName}` : "",
+        pricingNote: entry.stage === "operating" ? "Visual lab operating surface" : "",
+        usageNote: "Synthetic project used for World explorer tuning.",
+        memberAgentIds,
+        memberRoles: Object.fromEntries(memberAgentIds.map((agentId, memberIndex) => [agentId, memberIndex === 0 ? "builder" : memberIndex === 1 ? "operator" : "support"])),
+        pluginIds,
+        foundationRuns: entry.stage === "operating"
+          ? [{
+              runId: `visual-run-${entry.slug}`,
+              action: "visual-benchmark",
+              agentId: memberAgentIds[0] || "-",
+              profile: "graph-visual-lab",
+              contract: "elo.world.visual-lab.v2",
+              templateCount: 5,
+              artifactFileCount: 6,
+              target: "world",
+              runtimeMode: "mock",
+              generatedAt: `2026-03-${String(11 + (visualIndex % 9)).padStart(2, "0")}T10:${String(12 + visualIndex).padStart(2, "0")}:00.000Z`
+            }]
+          : [],
+        participationRequests: visualIndex % 6 === 0
+          ? [{ humanId: "human.github.visitor", status: "pending", requestedAt: "2026-03-18T10:00:00.000Z" }]
+          : [],
+        operatingFoundation: false,
+        visualMock: true,
+        visualCluster: cluster.id,
+        visualClusterLabel: cluster.label,
+        visualClusterRole: entry.role,
+        visualAnchor: entry.role === "anchor"
+      });
+      visualIndex += 1;
+    });
+  });
+
+  bridgeProjects.forEach((entry, bridgeIndex) => {
+    const memberAgentIds = entry.agentIndexes.map((slot) => worldVisualPick(agents, slot));
+    const pluginIds = entry.pluginIndexes.map((slot) => worldVisualPick(plugins, slot));
+    const repoName = `visual-${entry.slug}`;
+    const ownerLogin = entry.ownerHumanId.replace("human.github.", "");
+    const repoFullName = `${ownerLogin}/${repoName}`;
+    projects.push({
+      projectId: `visual.project.${entry.slug}`,
+      title: entry.title,
       repoName,
       repoFullName,
       repoUrl: `https://github.com/${repoFullName}`,
-      ownerHumanId,
-      kind,
-      summary: `${title} is a visual-lab project used to stress the World graph with richer owner, plugin, and agent relationships.`,
-      tags,
-      rating,
-      heat,
-      stage,
-      state: stateValue,
-      serviceEndpoint: stage === "operating" ? `https://world.metavie.co/mock-services/${repoName}` : "",
-      pricingNote: stage === "operating" ? "Visual lab operating surface" : "",
-      usageNote: "Synthetic project used for World explorer tuning.",
+      ownerHumanId: entry.ownerHumanId,
+      kind: entry.kind,
+      summary: `${entry.title} is a synthetic bridge project that ties multiple ecosystem clusters together for graph readability testing.`,
+      tags: entry.tags,
+      rating: entry.rating,
+      heat: entry.heat,
+      stage: entry.stage,
+      state: entry.state,
+      serviceEndpoint: `https://world.metavie.co/mock-services/${repoName}`,
+      pricingNote: "Visual lab operating surface",
+      usageNote: "Synthetic bridge project used for World explorer tuning.",
       memberAgentIds,
-      memberRoles: Object.fromEntries(memberAgentIds.map((agentId, memberIndex) => [agentId, memberIndex === 0 ? "builder" : "operator"])),
+      memberRoles: Object.fromEntries(memberAgentIds.map((agentId, memberIndex) => [agentId, memberIndex === 0 ? "operator" : "bridge"])),
       pluginIds,
-      foundationRuns: stage === "operating"
-        ? [{
-            runId: `visual-run-${slug}`,
-            action: "visual-benchmark",
-            agentId: memberAgentIds[0] || "-",
-            profile: stage === "operating" ? "graph-visual-lab" : "prototype",
-            contract: "elo.world.visual-lab.v1",
-            templateCount: 4,
-            artifactFileCount: 5,
-            target: "world",
-            runtimeMode: "mock",
-            generatedAt: `2026-03-${String(10 + (index % 9)).padStart(2, "0")}T10:${String(10 + index).padStart(2, "0")}:00.000Z`
-          }]
-        : [],
-      participationRequests: index % 5 === 0
-        ? [{ humanId: "human.github.visitor", status: "pending", requestedAt: "2026-03-18T10:00:00.000Z" }]
-        : [],
+      foundationRuns: [{
+        runId: `visual-run-${entry.slug}`,
+        action: "visual-benchmark",
+        agentId: memberAgentIds[0] || "-",
+        profile: "graph-visual-lab",
+        contract: "elo.world.visual-lab.v2",
+        templateCount: 6,
+        artifactFileCount: 7,
+        target: "world",
+        runtimeMode: "mock",
+        generatedAt: `2026-03-${String(20 + bridgeIndex).padStart(2, "0")}T12:${String(bridgeIndex * 7).padStart(2, "0")}:00.000Z`
+      }],
+      participationRequests: [],
       operatingFoundation: false,
-      visualMock: true
-    };
+      visualMock: true,
+      visualCluster: entry.clusterId,
+      visualClusterLabel: entry.clusterId === "commons" ? "Commons Bridge" : "Operations Relay",
+      visualClusterRole: entry.clusterRole,
+      visualAnchor: true
+    });
   });
+
+  return projects;
 }
 
 function mergeWorldProjects(liveProjects, visualProjects) {
@@ -1761,15 +1954,37 @@ function relatedProjectsForSelection(projects, selectedProject) {
 async function ensureWorldGraphEngine() {
   if (state.worldGraphEngine) return state.worldGraphEngine;
   if (!state.worldGraphEnginePromise) {
-    state.worldGraphEnginePromise = Promise.all([
-      import("https://cdn.jsdelivr.net/npm/graphology@0.26.0/+esm"),
-      import("https://cdn.jsdelivr.net/npm/sigma@3.0.2/+esm")
-    ]).then(([graphologyModule, sigmaModule]) => {
+    state.worldGraphEnginePromise = (async () => {
+      const [graphologyModule, sigmaModule] = await Promise.all([
+        import("https://cdn.jsdelivr.net/npm/graphology@0.26.0/+esm"),
+        import("https://cdn.jsdelivr.net/npm/sigma@3.0.0/+esm")
+      ]);
       const Graph = graphologyModule.default || graphologyModule.Graph || graphologyModule;
       const Sigma = sigmaModule.default || sigmaModule.Sigma || sigmaModule;
-      state.worldGraphEngine = { Graph, Sigma };
+      let curveModule;
+      let lastError;
+      for (const url of [
+        "https://cdn.jsdelivr.net/npm/@sigma/edge-curve@3.1.0/+esm",
+        "https://cdn.jsdelivr.net/npm/@sigma/edge-curve@3.0.0/+esm"
+      ]) {
+        try {
+          curveModule = await import(url);
+          break;
+        } catch (error) {
+          lastError = error;
+        }
+      }
+      if (!curveModule) throw lastError || new Error("failed to load @sigma/edge-curve");
+      const EdgeCurveProgram = curveModule.default
+        || curveModule.EdgeCurvedLineProgram
+        || curveModule.EdgeCurveProgram
+        || (typeof curveModule.createEdgeCurveProgram === "function" ? curveModule.createEdgeCurveProgram() : null);
+      if (!Graph || !Sigma || !EdgeCurveProgram) {
+        throw new Error("world graph engine did not resolve Graph, Sigma, and EdgeCurveProgram");
+      }
+      state.worldGraphEngine = { Graph, Sigma, EdgeCurveProgram };
       return state.worldGraphEngine;
-    });
+    })();
   }
   return state.worldGraphEnginePromise;
 }
@@ -1790,12 +2005,12 @@ function worldNodeBaseColor(project) {
 
 function worldEdgeColor(edgeType) {
   return {
-    "universe-link": "rgba(111, 132, 161, 0.38)",
-    "owner-link": "rgba(245, 175, 70, 0.7)",
-    "agent-link": "rgba(90, 214, 255, 0.7)",
-    "plugin-link": "rgba(163, 112, 255, 0.7)",
-    "foundation-link": "rgba(246, 201, 109, 0.95)"
-  }[edgeType] || "rgba(111, 132, 161, 0.45)";
+    "universe-link": "#7b90a8",
+    "owner-link": "#f5af46",
+    "agent-link": "#5ad6ff",
+    "plugin-link": "#a370ff",
+    "foundation-link": "#f6c96d"
+  }[edgeType] || "#7b90a8";
 }
 
 function worldGraphPairKey(prefix, source, target) {
@@ -1803,32 +2018,187 @@ function worldGraphPairKey(prefix, source, target) {
   return `${prefix}:${left}:${right}`;
 }
 
-function worldProjectNodeSize(project) {
+function worldHexToRgb(color) {
+  const normalized = String(color || "").trim().replace("#", "");
+  if (normalized.length !== 6) return { r: 122, g: 162, b: 255 };
+  return {
+    r: parseInt(normalized.slice(0, 2), 16),
+    g: parseInt(normalized.slice(2, 4), 16),
+    b: parseInt(normalized.slice(4, 6), 16)
+  };
+}
+
+function worldColorWithAlpha(color, alpha = 1) {
+  if (String(color || "").startsWith("rgba(")) return color;
+  const { r, g, b } = worldHexToRgb(color);
+  return `rgba(${r}, ${g}, ${b}, ${Math.max(0, Math.min(1, alpha))})`;
+}
+
+function worldEdgeSemantics(edgeType) {
+  return {
+    "universe-link": { baseColor: worldEdgeColor(edgeType), size: 1.1, zIndex: 1, opacity: 0.18, curveStrength: 0.11 },
+    "owner-link": { baseColor: worldEdgeColor(edgeType), size: 1.8, zIndex: 2, opacity: 0.52, curveStrength: -0.18 },
+    "agent-link": { baseColor: worldEdgeColor(edgeType), size: 1.9, zIndex: 3, opacity: 0.58, curveStrength: 0.24 },
+    "plugin-link": { baseColor: worldEdgeColor(edgeType), size: 1.85, zIndex: 3, opacity: 0.54, curveStrength: -0.28 },
+    "foundation-link": { baseColor: worldEdgeColor(edgeType), size: 2.9, zIndex: 5, opacity: 0.9, curveStrength: 0.34 }
+  }[edgeType] || { baseColor: worldEdgeColor(edgeType), size: 1.5, zIndex: 2, opacity: 0.4, curveStrength: 0.16 };
+}
+
+function worldClusterKeywords() {
+  return {
+    foundation: ["foundation", "onboarding", "browser", "bridge", "runtime", "governance", "entry"],
+    market: ["market", "exchange", "pricing", "bazaar", "settlement", "access"],
+    social: ["social", "community", "public", "presence", "coordination", "signal"],
+    research: ["research", "evaluation", "memory", "knowledge", "archive", "metrics"],
+    builder: ["builder", "workspace", "delivery", "forge", "studio", "creative", "yard"],
+    federation: ["federation", "world", "fabric", "parallel", "gateway", "interlink", "universe"]
+  };
+}
+
+function worldProjectClusterDescriptor(project) {
+  if (project?.visualCluster) {
+    return {
+      clusterId: project.visualCluster,
+      clusterLabel: project.visualClusterLabel || project.visualCluster,
+      clusterRole: project.visualClusterRole || (project.visualAnchor ? "anchor" : "support")
+    };
+  }
+  if (isOperatingFoundationProject(project)) {
+    return { clusterId: "foundation", clusterLabel: "Foundation", clusterRole: "anchor" };
+  }
+  const repoText = `${project?.repoName || ""} ${project?.title || ""}`.toLowerCase();
+  const tags = Array.isArray(project?.tags)
+    ? project.tags.map((tag) => String(tag).toLowerCase())
+    : String(project?.tags || "").split(",").map((tag) => tag.trim().toLowerCase()).filter(Boolean);
+  const keywords = worldClusterKeywords();
+  for (const [clusterId, phrases] of Object.entries(keywords)) {
+    if (phrases.some((phrase) => repoText.includes(phrase) || tags.includes(phrase))) {
+      return {
+        clusterId,
+        clusterLabel: clusterId.charAt(0).toUpperCase() + clusterId.slice(1),
+        clusterRole: Number(project?.heat || 0) > 700 ? "anchor" : String(project?.stage || "").toLowerCase() === "operating" ? "core" : "support"
+      };
+    }
+  }
+  return {
+    clusterId: `owner:${project?.ownerHumanId || "unknown"}`,
+    clusterLabel: "Owner Cluster",
+    clusterRole: Number(project?.heat || 0) > 650 ? "core" : "support"
+  };
+}
+
+function worldProjectDepthModel(project, clusterRole = "support") {
+  const stage = String(project?.stage || "").toLowerCase();
+  const stateValue = String(project?.state || "").toLowerCase();
+  const heat = Number(project?.heat || 0);
+  let depthLayer = "midfield";
+  if (isOperatingFoundationProject(project) || clusterRole === "anchor") depthLayer = "foreground";
+  else if (stage === "operating" || stateValue === "operating" || heat >= 700 || clusterRole === "bridge") depthLayer = "foreground";
+  else if (stateValue === "paused" || heat < 320) depthLayer = "background";
+  else if (clusterRole === "support" && heat < 420) depthLayer = "background";
+  const depthMap = {
+    foreground: { depthScale: 1.16, depthAlpha: 1, shadowStrength: 0.82, glowStrength: 0.5, zBoost: 4 },
+    midfield: { depthScale: 1, depthAlpha: 0.82, shadowStrength: 0.46, glowStrength: 0.24, zBoost: 2 },
+    background: { depthScale: 0.88, depthAlpha: 0.52, shadowStrength: 0.18, glowStrength: 0.08, zBoost: 1 }
+  };
+  return {
+    depthLayer,
+    ...depthMap[depthLayer]
+  };
+}
+
+function worldProjectNodeSize(project, depthScale = 1, clusterRole = "support") {
   const rating = Number(project?.rating || 0);
   const heat = Number(project?.heat || 0);
   const heatBoost = Math.min(4, heat / 250);
   const ratingBoost = Math.min(3.5, rating * 0.6);
   const foundationBoost = isOperatingFoundationProject(project) ? 3 : 0;
-  return 7 + heatBoost + ratingBoost + foundationBoost;
+  const roleBoost = clusterRole === "anchor" ? 1.8 : clusterRole === "bridge" ? 1.1 : clusterRole === "core" ? 0.8 : 0;
+  return (7 + heatBoost + ratingBoost + foundationBoost + roleBoost) * depthScale;
 }
 
-function worldProjectShouldForceLabel(project, orderedProjects, index) {
+function worldProjectShouldForceLabel(project, orderedProjects, index, clusterRole = "support", depthLayer = "midfield") {
   if (isOperatingFoundationProject(project)) return true;
-  if (orderedProjects.length <= 6) return true;
+  if (orderedProjects.length <= 8) return true;
+  if (clusterRole === "anchor" || clusterRole === "bridge") return true;
+  if (depthLayer === "foreground" && index < Math.min(8, orderedProjects.length)) return true;
   return index < 3;
 }
 
-function worldGraphRingPlan(count) {
-  const rings = [];
-  let remaining = count;
-  let capacity = 8;
-  while (remaining > 0) {
-    const take = Math.min(capacity, remaining);
-    rings.push(take);
-    remaining -= take;
-    capacity += 6;
-  }
-  return rings;
+function worldDepthRank(depthLayer) {
+  return {
+    foreground: 3,
+    midfield: 2,
+    background: 1
+  }[depthLayer] || 2;
+}
+
+function clampWorldCoordinate(value) {
+  return Math.max(0.07, Math.min(0.93, value));
+}
+
+function buildWorldProjectLayout(orderedProjects) {
+  const layout = new Map();
+  const clusters = new Map();
+  orderedProjects.forEach((project, projectIndex) => {
+    const cluster = worldProjectClusterDescriptor(project);
+    const depth = worldProjectDepthModel(project, cluster.clusterRole);
+    const existing = clusters.get(cluster.clusterId) || {
+      clusterId: cluster.clusterId,
+      clusterLabel: cluster.clusterLabel,
+      clusterRole: cluster.clusterRole,
+      dominantDepth: depth.depthLayer,
+      projects: [],
+      anchorScore: 0,
+      operatingCount: 0
+    };
+    existing.projects.push({ project, projectIndex, cluster, depth });
+    existing.anchorScore += Number(isOperatingFoundationProject(project)) * 4
+      + Number(cluster.clusterRole === "anchor") * 2
+      + Number(cluster.clusterRole === "bridge")
+      + Number(project.heat || 0) / 1000;
+    existing.operatingCount += Number(String(project.stage || "").toLowerCase() === "operating" || String(project.state || "").toLowerCase() === "operating");
+    if (worldDepthRank(depth.depthLayer) > worldDepthRank(existing.dominantDepth)) existing.dominantDepth = depth.depthLayer;
+    clusters.set(cluster.clusterId, existing);
+  });
+
+  const orderedClusters = [...clusters.values()].sort((left, right) => {
+    const foundationDelta = Number(left.clusterId === "foundation") - Number(right.clusterId === "foundation");
+    if (foundationDelta) return -foundationDelta;
+    return right.anchorScore - left.anchorScore;
+  });
+
+  orderedClusters.forEach((clusterEntry, clusterIndex) => {
+    const clusterCount = orderedClusters.length;
+    const angle = (-Math.PI / 2) + ((Math.PI * 2) / Math.max(clusterCount, 1)) * clusterIndex + (clusterIndex % 2 ? 0.16 : -0.08);
+    const dominantDepth = clusterEntry.dominantDepth;
+    const anchorRadius = dominantDepth === "foreground" ? 0.22 : dominantDepth === "midfield" ? 0.31 : 0.4;
+    const clusterX = 0.5 + Math.cos(angle) * anchorRadius * 1.08;
+    const clusterY = 0.5 + Math.sin(angle) * anchorRadius * 0.78;
+    const members = [...clusterEntry.projects].sort((left, right) => {
+      const roleWeight = { anchor: 3, bridge: 2, core: 1, support: 0 };
+      const roleDelta = (roleWeight[right.cluster.clusterRole] || 0) - (roleWeight[left.cluster.clusterRole] || 0);
+      if (roleDelta) return roleDelta;
+      return Number(right.project.heat || 0) - Number(left.project.heat || 0);
+    });
+    members.forEach((entry, memberIndex) => {
+      const memberCount = members.length;
+      const localAngle = angle + Math.PI / 6 + ((Math.PI * 2) / Math.max(memberCount, 1)) * memberIndex + (clusterIndex % 2 ? 0.12 : -0.14);
+      const localRadius = (memberCount === 1 ? 0 : 0.055 + Math.min(0.06, memberCount * 0.006))
+        + (entry.depth.depthLayer === "background" ? 0.02 : entry.depth.depthLayer === "foreground" ? -0.01 : 0)
+        + (entry.cluster.clusterRole === "anchor" ? 0 : (memberIndex % 2) * 0.01);
+      layout.set(entry.project.projectId, {
+        x: clampWorldCoordinate(clusterX + Math.cos(localAngle) * localRadius),
+        y: clampWorldCoordinate(clusterY + Math.sin(localAngle) * localRadius * 0.86),
+        clusterId: entry.cluster.clusterId,
+        clusterLabel: entry.cluster.clusterLabel,
+        clusterRole: entry.cluster.clusterRole,
+        ...entry.depth
+      });
+    });
+  });
+
+  return layout;
 }
 
 function buildWorldGraphData(projects) {
@@ -1844,10 +2214,16 @@ function buildWorldGraphData(projects) {
     kind: "universe",
     x: 0.5,
     y: 0.5,
-    size: 18,
+    size: 21,
     color: "#57d7c1",
+    baseColor: "#57d7c1",
     forceLabel: true,
-    zIndex: 10
+    zIndex: 12,
+    depthLayer: "midfield",
+    depthScale: 1.08,
+    depthAlpha: 1,
+    shadowStrength: 0.9,
+    glowStrength: 0.7
   });
   nodeMap.set(universeId, {
     nodeId: universeId,
@@ -1859,62 +2235,75 @@ function buildWorldGraphData(projects) {
     if (foundationDelta) return foundationDelta;
     return Number(right.heat || 0) - Number(left.heat || 0);
   });
-  const ringPlan = worldGraphRingPlan(orderedProjects.length);
-  let offset = 0;
-  ringPlan.forEach((ringSize, ringIndex) => {
-    const radius = 0.22 + ringIndex * 0.14;
-    const angleOffset = ringIndex * 0.35;
-    for (let localIndex = 0; localIndex < ringSize; localIndex += 1) {
-      const project = orderedProjects[offset];
-      const nodeId = worldNodeIdForProject(project.projectId);
-      const angle = ((Math.PI * 2) / ringSize) * localIndex + angleOffset;
-      const x = 0.5 + (Math.cos(angle) * radius);
-      const y = 0.5 + (Math.sin(angle) * radius);
-      const operatingFoundation = isOperatingFoundationProject(project);
-      const nodeAttributes = {
-        id: nodeId,
-        label: clampInlineLabel(project.title, 20),
-        fullLabel: project.title,
-        kind: "project",
-        projectId: project.projectId,
-        repoName: project.repoName,
-        repoFullName: project.repoFullName,
-        ownerHumanId: project.ownerHumanId,
-        projectKind: project.kind,
-        stage: project.stage,
-        state: project.state,
-        tags: project.tags || [],
-        rating: Number(project.rating || 0),
-        heat: Number(project.heat || 0),
-        memberCount: (project.memberAgentIds || []).length,
-        pluginCount: (project.pluginIds || []).length,
-        operatingFoundation,
-        x,
-        y,
-        size: worldProjectNodeSize(project),
-        color: worldNodeBaseColor(project),
-        zIndex: operatingFoundation ? 6 : 4,
-        forceLabel: worldProjectShouldForceLabel(project, orderedProjects, offset)
-      };
-      graph.addNode(nodeId, nodeAttributes);
-      nodeMap.set(nodeId, {
-        nodeId,
-        kind: "project",
-        project
-      });
-      offset += 1;
-    }
+  const projectLayout = buildWorldProjectLayout(orderedProjects);
+  orderedProjects.forEach((project, index) => {
+    const nodeId = worldNodeIdForProject(project.projectId);
+    const operatingFoundation = isOperatingFoundationProject(project);
+    const layout = projectLayout.get(project.projectId) || {
+      x: 0.5,
+      y: 0.5,
+      clusterId: "default",
+      clusterLabel: "Default",
+      clusterRole: "support",
+      ...worldProjectDepthModel(project)
+    };
+    const baseColor = worldNodeBaseColor(project);
+    const nodeAttributes = {
+      id: nodeId,
+      label: clampInlineLabel(project.title, 22),
+      fullLabel: project.title,
+      kind: "project",
+      projectId: project.projectId,
+      repoName: project.repoName,
+      repoFullName: project.repoFullName,
+      ownerHumanId: project.ownerHumanId,
+      projectKind: project.kind,
+      stage: project.stage,
+      state: project.state,
+      tags: project.tags || [],
+      rating: Number(project.rating || 0),
+      heat: Number(project.heat || 0),
+      memberCount: (project.memberAgentIds || []).length,
+      pluginCount: (project.pluginIds || []).length,
+      operatingFoundation,
+      clusterId: layout.clusterId,
+      clusterLabel: layout.clusterLabel,
+      clusterRole: layout.clusterRole,
+      depthLayer: layout.depthLayer,
+      depthScale: layout.depthScale,
+      depthAlpha: layout.depthAlpha,
+      shadowStrength: layout.shadowStrength,
+      glowStrength: layout.glowStrength,
+      x: layout.x,
+      y: layout.y,
+      size: worldProjectNodeSize(project, layout.depthScale, layout.clusterRole),
+      color: worldColorWithAlpha(baseColor, layout.depthAlpha),
+      baseColor,
+      zIndex: operatingFoundation ? 9 : 3 + layout.zBoost,
+      forceLabel: worldProjectShouldForceLabel(project, orderedProjects, index, layout.clusterRole, layout.depthLayer)
+    };
+    graph.addNode(nodeId, nodeAttributes);
+    nodeMap.set(nodeId, {
+      nodeId,
+      kind: "project",
+      project
+    });
   });
 
   const addEdge = (source, target, edgeType, attributes = {}) => {
     if (!source || !target || source === target) return;
     const key = worldGraphPairKey(edgeType, source, target);
     if (graph.hasEdge(key)) return;
+    const semantics = worldEdgeSemantics(edgeType);
     const edgeAttributes = {
       edgeType,
-      color: worldEdgeColor(edgeType),
-      size: edgeType === "foundation-link" ? 3.2 : edgeType === "universe-link" ? 1.4 : 2,
-      zIndex: edgeType === "foundation-link" ? 5 : 2,
+      type: "curved",
+      baseColor: semantics.baseColor,
+      color: worldColorWithAlpha(semantics.baseColor, semantics.opacity),
+      size: semantics.size,
+      zIndex: semantics.zIndex,
+      curveStrength: semantics.curveStrength,
+      curvature: semantics.curveStrength,
       ...attributes
     };
     graph.addEdgeWithKey(key, source, target, edgeAttributes);
@@ -2067,7 +2456,7 @@ function renderWorldLegend(projects) {
       const nodeId = worldNodeIdForProject(node.dataset.worldProjectShortcut);
       openWorldDrawer(nodeId);
       renderWorldSelectionDrawer(nodeId, projects);
-      fitWorldGraph();
+      fitWorldGraph(nodeId);
     });
   });
 }
@@ -2176,22 +2565,29 @@ function fitWorldGraph(nodeId = "") {
   if (nodeId && state.worldGraph?.hasNode?.(nodeId)) {
     const attrs = state.worldGraph.getNodeAttributes(nodeId);
     if (camera?.animate && attrs) {
+      const focusRatio = attrs.kind === "universe"
+        ? 1.02
+        : attrs.depthLayer === "foreground"
+          ? 0.48
+          : attrs.depthLayer === "background"
+            ? 0.74
+            : 0.6;
       camera.animate({
         x: attrs.x,
         y: attrs.y,
-        ratio: Math.max(0.45, Math.min(1.2, attrs.kind === "universe" ? 1.1 : 0.68)),
+        ratio: Math.max(0.4, Math.min(1.15, focusRatio)),
         angle: 0
-      }, { duration: 450 });
+      }, { duration: 520 });
       renderer.refresh?.();
       return;
     }
   }
   if (camera?.animate) {
-    camera.animate({ x: 0.5, y: 0.5, ratio: 1.05, angle: 0 }, { duration: 450 });
+    camera.animate({ x: 0.5, y: 0.5, ratio: 1.02, angle: 0 }, { duration: 480 });
   } else if (camera?.animatedReset) {
-    camera.animatedReset({ duration: 450 });
+    camera.animatedReset({ duration: 480 });
   } else if (camera?.setState) {
-    camera.setState({ x: 0.5, y: 0.5, ratio: 1.05, angle: 0 });
+    camera.setState({ x: 0.5, y: 0.5, ratio: 1.02, angle: 0 });
   }
   renderer.refresh?.();
 }
@@ -2262,6 +2658,7 @@ function renderWorldProjectDrawer(projects, project) {
       </section>
       <section class="world-drawer-section detail-grid compact">
         <div class="detail-item"><span>Owner</span><strong class="detail-code">${escapeHtml(project.ownerHumanId || "-")}</strong></div>
+        <div class="detail-item"><span>Cluster</span><strong>${escapeHtml(project.visualClusterLabel || worldProjectClusterDescriptor(project).clusterLabel)}</strong></div>
         <div class="detail-item"><span>Agents</span><strong>${project.memberAgentIds?.length || 0}</strong></div>
         <div class="detail-item"><span>Plugins</span><strong>${project.pluginIds?.length || 0}</strong></div>
         <div class="detail-item"><span>Recruiting</span><strong>${escapeHtml(recruitingState.label)}</strong></div>
@@ -2394,8 +2791,9 @@ function worldEdgeTypeVisible(edgeType) {
 }
 
 function worldNodeConnectedToSelection(graph, nodeId) {
-  if (!state.selectedWorldNodeId || nodeId === state.selectedWorldNodeId) return true;
-  const edges = graph.edges(state.selectedWorldNodeId, nodeId);
+  const activeNodeId = state.selectedWorldNodeId || state.hoveredWorldNodeId;
+  if (!activeNodeId || nodeId === activeNodeId) return true;
+  const edges = graph.edges(activeNodeId, nodeId);
   return edges.some((edge) => worldEdgeTypeVisible(graph.getEdgeAttribute(edge, "edgeType")));
 }
 
@@ -2426,7 +2824,7 @@ async function renderProjectGraph(projects) {
   }
 
   if (empty) empty.hidden = true;
-  const { Sigma } = await ensureWorldGraphEngine();
+  const { Sigma, EdgeCurveProgram } = await ensureWorldGraphEngine();
   if (currentRoute() !== "world") return;
 
   root.innerHTML = "";
@@ -2446,27 +2844,43 @@ async function renderProjectGraph(projects) {
 
   const renderer = new Sigma(graph, mount, {
     renderLabels: true,
-    labelDensity: 0.085,
-    labelGridCellSize: 90,
-    labelRenderedSizeThreshold: 6,
+    labelDensity: 0.11,
+    labelGridCellSize: 84,
+    labelRenderedSizeThreshold: 5,
     defaultNodeType: "circle",
-    defaultEdgeType: "line",
+    defaultEdgeType: "curved",
+    edgeProgramClasses: {
+      curved: EdgeCurveProgram
+    },
     zIndex: true,
     minCameraRatio: 0.15,
     maxCameraRatio: 4,
     nodeReducer: (node, data) => {
       const selected = state.worldDrawerOpen && state.selectedWorldNodeId === node;
       const hovered = state.hoveredWorldNodeId === node;
-      const connected = selected
+      const activeNodeId = state.selectedWorldNodeId || state.hoveredWorldNodeId;
+      const connected = activeNodeId
         ? worldNodeConnectedToSelection(graph, node)
         : true;
+      const dimmed = activeNodeId && !connected;
+      const nodeAlpha = selected
+        ? 1
+        : hovered
+          ? Math.min(1, (data.depthAlpha || 0.9) + 0.18)
+          : dimmed
+            ? Math.max(0.14, (data.depthAlpha || 0.7) * 0.18)
+            : data.depthAlpha || 1;
       return {
         ...data,
-        color: !selected && !hovered && state.selectedWorldNodeId && !connected ? "rgba(77, 92, 119, 0.45)" : data.color,
-        size: selected ? data.size + 6 : hovered ? data.size + 3.5 : data.size,
+        color: worldColorWithAlpha(data.baseColor || data.color, nodeAlpha),
+        size: selected
+          ? data.size + (data.depthLayer === "foreground" ? 9 : 7)
+          : hovered
+            ? data.size + (data.depthLayer === "foreground" ? 5.5 : 4.4)
+            : data.size,
         label: hovered || selected || data.forceLabel ? data.fullLabel || data.label : data.label,
         forceLabel: hovered || selected || data.forceLabel,
-        zIndex: selected ? 20 : hovered ? 12 : data.zIndex
+        zIndex: selected ? 30 : hovered ? 18 : data.zIndex
       };
     },
     edgeReducer: (edge, data) => {
@@ -2476,15 +2890,24 @@ async function renderProjectGraph(projects) {
           hidden: true
         };
       }
-      if (!state.worldDrawerOpen || !state.selectedWorldNodeId) return data;
       const source = graph.source(edge);
       const target = graph.target(edge);
-      const related = source === state.selectedWorldNodeId || target === state.selectedWorldNodeId;
+      const activeNodeId = state.selectedWorldNodeId || state.hoveredWorldNodeId;
+      const related = activeNodeId && (source === activeNodeId || target === activeNodeId);
+      if (!activeNodeId) {
+        return {
+          ...data,
+          color: worldColorWithAlpha(data.baseColor || data.color, data.edgeType === "universe-link" ? 0.18 : data.edgeType === "foundation-link" ? 0.88 : 0.52),
+          size: data.size
+        };
+      }
       return {
         ...data,
-        hidden: !related && data.edgeType !== "foundation-link" && data.edgeType !== "universe-link",
-        color: related ? data.color : "rgba(77, 92, 119, 0.12)",
-        size: related ? data.size + 0.4 : Math.max(0.4, data.size * 0.45)
+        hidden: false,
+        color: related
+          ? worldColorWithAlpha(data.baseColor || data.color, data.edgeType === "foundation-link" ? 0.98 : 0.88)
+          : worldColorWithAlpha(data.baseColor || data.color, data.edgeType === "foundation-link" ? 0.34 : data.edgeType === "universe-link" ? 0.08 : 0.12),
+        size: related ? data.size + 0.6 : Math.max(0.45, data.size * (data.edgeType === "foundation-link" ? 0.74 : 0.55))
       };
     }
   });
