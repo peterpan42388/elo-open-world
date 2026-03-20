@@ -63,6 +63,8 @@ const state = {
   worldGraphEdgeMap: new Map(),
   worldGraphAnimationFrame: 0,
   worldGraphCameraCleanup: null,
+  worldGraphOverlayCanvas: null,
+  worldGraphOverlayContext: null,
   selectedWorldNodeId: "",
   hoveredWorldNodeId: "",
   worldDrawerOpen: false,
@@ -456,8 +458,12 @@ function buildWorldVisualProjects(liveProjects) {
   clusters.forEach((cluster, clusterIndex) => {
     cluster.projects.forEach((entry, projectIndex) => {
       const ownerHumanId = worldVisualPick(owners, cluster.ownerIndexes[projectIndex % cluster.ownerIndexes.length]);
-      const memberAgentIds = entry.agentSlots.map((slot) => worldVisualPick(agents, cluster.agentIndexes[slot % cluster.agentIndexes.length]));
-      const pluginIds = entry.pluginSlots.map((slot) => worldVisualPick(plugins, cluster.pluginIndexes[slot % cluster.pluginIndexes.length]));
+      const memberAgentIds = [...new Set(
+        entry.agentSlots.map((slot) => worldVisualPick(agents, cluster.agentIndexes[slot % cluster.agentIndexes.length]))
+      )].slice(0, entry.role === "anchor" || entry.role === "bridge" ? 2 : 1);
+      const pluginIds = [...new Set(
+        entry.pluginSlots.map((slot) => worldVisualPick(plugins, cluster.pluginIndexes[slot % cluster.pluginIndexes.length]))
+      )].slice(0, entry.role === "bridge" ? 2 : 1);
       const repoName = `visual-${entry.slug}`;
       const ownerLogin = (ownerHumanId || "human.visual").replace("human.github.", "");
       const repoFullName = `${ownerLogin}/${repoName}`;
@@ -510,8 +516,8 @@ function buildWorldVisualProjects(liveProjects) {
   });
 
   bridgeProjects.forEach((entry, bridgeIndex) => {
-    const memberAgentIds = entry.agentIndexes.map((slot) => worldVisualPick(agents, slot));
-    const pluginIds = entry.pluginIndexes.map((slot) => worldVisualPick(plugins, slot));
+    const memberAgentIds = [...new Set(entry.agentIndexes.map((slot) => worldVisualPick(agents, slot)))].slice(0, 2);
+    const pluginIds = [...new Set(entry.pluginIndexes.map((slot) => worldVisualPick(plugins, slot)))].slice(0, 2);
     const repoName = `visual-${entry.slug}`;
     const ownerLogin = entry.ownerHumanId.replace("human.github.", "");
     const repoFullName = `${ownerLogin}/${repoName}`;
@@ -2022,6 +2028,14 @@ function worldNodeIdForProject(projectId) {
   return `project:${projectId}`;
 }
 
+function worldNodeIdForHuman(humanId) {
+  return `human:${humanId}`;
+}
+
+function worldNodeIdForAgent(agentId) {
+  return `agent:${agentId}`;
+}
+
 function worldNodeBaseColor(project) {
   if (isOperatingFoundationProject(project)) return "#f6c96d";
   const stage = String(project?.stage || "").toLowerCase();
@@ -2061,6 +2075,29 @@ function worldColorWithAlpha(color, alpha = 1) {
   if (String(color || "").startsWith("rgba(")) return color;
   const { r, g, b } = worldHexToRgb(color);
   return `rgba(${r}, ${g}, ${b}, ${Math.max(0, Math.min(1, alpha))})`;
+}
+
+function worldNodeTypeColor(kind, baseColor = "") {
+  if (kind === "universe") return "#57d7c1";
+  if (kind === "human") return "#f5af46";
+  if (kind === "agent") return "#5ad6ff";
+  return baseColor || "#7aa2ff";
+}
+
+function worldNodeShapeSpec(kind) {
+  if (kind === "universe") return { sides: 0, rotation: 0, label: "Universe Root" };
+  if (kind === "project") return { sides: 5, rotation: -Math.PI / 2, label: "Source Project" };
+  if (kind === "human") return { sides: 4, rotation: Math.PI / 4, label: "Human" };
+  if (kind === "agent") return { sides: 3, rotation: -Math.PI / 2, label: "Agent" };
+  return { sides: 0, rotation: 0, label: "Node" };
+}
+
+function worldNodeShapeVisuals(kind) {
+  if (kind === "universe") return { radiusMultiplier: 1.28, coreMultiplier: 0.7, outlineWidth: 2.8, glowMultiplier: 2.9 };
+  if (kind === "project") return { radiusMultiplier: 1.22, coreMultiplier: 0.76, outlineWidth: 2.4, glowMultiplier: 2.4 };
+  if (kind === "human") return { radiusMultiplier: 1.12, coreMultiplier: 0.78, outlineWidth: 2.1, glowMultiplier: 2.15 };
+  if (kind === "agent") return { radiusMultiplier: 1.1, coreMultiplier: 0.74, outlineWidth: 2, glowMultiplier: 2 };
+  return { radiusMultiplier: 1, coreMultiplier: 0.76, outlineWidth: 2, glowMultiplier: 2 };
 }
 
 function worldEdgeSemantics(edgeType) {
@@ -2256,6 +2293,10 @@ function buildWorldGraphData(projects) {
   const nodeMap = new Map();
   const edgeMap = new Map();
   const universeId = "universe:elo-universe-0";
+  const summaryAgents = state.summary?.identity?.agents || [];
+  const agentIdentityMap = new Map(summaryAgents.map((agent) => [agent.agentId, agent]));
+  const humanProjectMap = new Map();
+  const humanAgentMap = new Map();
 
   graph.addNode(universeId, {
     id: universeId,
@@ -2342,6 +2383,120 @@ function buildWorldGraphData(projects) {
       kind: "project",
       project
     });
+    if (project.ownerHumanId) {
+      const existingProjects = humanProjectMap.get(project.ownerHumanId) || [];
+      existingProjects.push(project.projectId);
+      humanProjectMap.set(project.ownerHumanId, existingProjects);
+    }
+    (project.memberAgentIds || []).forEach((agentId) => {
+      const identity = agentIdentityMap.get(agentId);
+      const humanId = identity?.humanId || project.ownerHumanId || "";
+      if (!humanId) return;
+      const existingAgents = humanAgentMap.get(humanId) || [];
+      if (!existingAgents.includes(agentId)) existingAgents.push(agentId);
+      humanAgentMap.set(humanId, existingAgents);
+      if (!agentIdentityMap.has(agentId)) {
+        agentIdentityMap.set(agentId, {
+          agentId,
+          humanId,
+          label: agentId
+        });
+      }
+    });
+  });
+
+  humanProjectMap.forEach((projectIds, humanId) => {
+    const humanNodeId = worldNodeIdForHuman(humanId);
+    const projectNodes = projectIds
+      .map((projectId) => graph.getNodeAttributes(worldNodeIdForProject(projectId)))
+      .filter(Boolean);
+    const averageX = projectNodes.length ? projectNodes.reduce((sum, item) => sum + Number(item.baseX ?? item.x ?? 0.5), 0) / projectNodes.length : 0.5;
+    const averageY = projectNodes.length ? projectNodes.reduce((sum, item) => sum + Number(item.baseY ?? item.y ?? 0.5), 0) / projectNodes.length : 0.5;
+    const phase = worldHashUnit(`${humanId}:human-angle`) * Math.PI * 2;
+    const baseX = clampWorldCoordinate(averageX + Math.cos(phase) * 0.055);
+    const baseY = clampWorldCoordinate(averageY + Math.sin(phase) * 0.046);
+    const connectedProjects = projectNodes.length;
+    const nodeAttributes = {
+      id: humanNodeId,
+      label: clampInlineLabel(humanId.replace(/^human\.github\./, ""), 18),
+      fullLabel: humanId,
+      kind: "human",
+      humanId,
+      x: baseX,
+      y: baseY,
+      baseX,
+      baseY,
+      size: 8.5 + Math.min(4, connectedProjects * 0.9),
+      color: worldColorWithAlpha(worldNodeTypeColor("human"), 0.76),
+      baseColor: worldNodeTypeColor("human"),
+      zIndex: 8,
+      forceLabel: connectedProjects <= 2,
+      depthLayer: connectedProjects > 1 ? "foreground" : "midfield",
+      depthScale: connectedProjects > 1 ? 1.04 : 0.98,
+      depthAlpha: connectedProjects > 1 ? 0.9 : 0.76,
+      shadowStrength: 0.4,
+      glowStrength: 0.28,
+      clusterId: `human:${humanId}`,
+      clusterLabel: "Human",
+      clusterRole: "support",
+      ...worldMotionSpec(humanNodeId, connectedProjects > 1 ? "foreground" : "midfield", "support")
+    };
+    graph.addNode(humanNodeId, nodeAttributes);
+    nodeMap.set(humanNodeId, {
+      nodeId: humanNodeId,
+      kind: "human",
+      humanId,
+      projectIds,
+      agentIds: humanAgentMap.get(humanId) || []
+    });
+  });
+
+  humanAgentMap.forEach((agentIds, humanId) => {
+    const humanAttrs = graph.getNodeAttributes(worldNodeIdForHuman(humanId));
+    if (!humanAttrs) return;
+    agentIds.forEach((agentId, index) => {
+      const agentNodeId = worldNodeIdForAgent(agentId);
+      if (graph.hasNode(agentNodeId)) return;
+      const identity = agentIdentityMap.get(agentId) || { agentId, humanId };
+      const angle = worldHashUnit(`${agentId}:agent-angle`) * Math.PI * 2;
+      const radius = 0.045 + (index % 3) * 0.012;
+      const baseX = clampWorldCoordinate(Number(humanAttrs.baseX ?? humanAttrs.x ?? 0.5) + Math.cos(angle) * radius);
+      const baseY = clampWorldCoordinate(Number(humanAttrs.baseY ?? humanAttrs.y ?? 0.5) + Math.sin(angle) * radius * 0.8);
+      const nodeAttributes = {
+        id: agentNodeId,
+        label: clampInlineLabel(agentId.replace(/^agent\./, ""), 18),
+        fullLabel: agentId,
+        kind: "agent",
+        agentId,
+        humanId,
+        x: baseX,
+        y: baseY,
+        baseX,
+        baseY,
+        size: 6.6 + Math.min(2.4, (identity?.label ? 1 : 0) + index * 0.12),
+        color: worldColorWithAlpha(worldNodeTypeColor("agent"), 0.8),
+        baseColor: worldNodeTypeColor("agent"),
+        zIndex: 7,
+        forceLabel: index === 0,
+        depthLayer: "foreground",
+        depthScale: 0.94,
+        depthAlpha: 0.82,
+        shadowStrength: 0.26,
+        glowStrength: 0.2,
+        clusterId: `agent:${humanId}`,
+        clusterLabel: "Agent",
+        clusterRole: "support",
+        ...worldMotionSpec(agentNodeId, "foreground", "support")
+      };
+      graph.addNode(agentNodeId, nodeAttributes);
+      nodeMap.set(agentNodeId, {
+        nodeId: agentNodeId,
+        kind: "agent",
+        agentId,
+        humanId,
+        projectIds: orderedProjects.filter((project) => (project.memberAgentIds || []).includes(agentId)).map((project) => project.projectId)
+      });
+    });
   });
 
   const addEdge = (source, target, edgeType, attributes = {}) => {
@@ -2373,6 +2528,9 @@ function buildWorldGraphData(projects) {
   orderedProjects.forEach((project) => {
     const projectNodeId = worldNodeIdForProject(project.projectId);
     addEdge(universeId, projectNodeId, "universe-link");
+    if (project.ownerHumanId && graph.hasNode(worldNodeIdForHuman(project.ownerHumanId))) {
+      addEdge(projectNodeId, worldNodeIdForHuman(project.ownerHumanId), "owner-link");
+    }
   });
 
   const foundationProjects = orderedProjects.filter((project) => isOperatingFoundationProject(project));
@@ -2395,19 +2553,21 @@ function buildWorldGraphData(projects) {
       const bothVisual = Boolean(left.visualMock && right.visualMock);
       const sameVisualCluster = bothVisual && left.visualCluster && left.visualCluster === right.visualCluster;
       const visualBridge = bothVisual && (left.visualClusterRole === "bridge" || right.visualClusterRole === "bridge" || left.visualAnchor || right.visualAnchor);
-      if (left.ownerHumanId && left.ownerHumanId === right.ownerHumanId) {
-        addEdge(leftId, rightId, "owner-link");
-      }
-      if ((left.memberAgentIds || []).some((agentId) => (right.memberAgentIds || []).includes(agentId))
-        && (!bothVisual || sameVisualCluster || visualBridge)) {
-        addEdge(leftId, rightId, "agent-link");
-      }
       if ((left.pluginIds || []).some((pluginId) => (right.pluginIds || []).includes(pluginId))
         && (!bothVisual || (sameVisualCluster && (left.visualClusterRole !== "support" || right.visualClusterRole !== "support")) || visualBridge)) {
         addEdge(leftId, rightId, "plugin-link");
       }
     }
   }
+
+  humanAgentMap.forEach((agentIds, humanId) => {
+    const humanNodeId = worldNodeIdForHuman(humanId);
+    if (!graph.hasNode(humanNodeId)) return;
+    agentIds.forEach((agentId) => {
+      const agentNodeId = worldNodeIdForAgent(agentId);
+      if (graph.hasNode(agentNodeId)) addEdge(humanNodeId, agentNodeId, "agent-link");
+    });
+  });
 
   return { graph, nodeMap, edgeMap };
 }
@@ -2572,6 +2732,22 @@ function renderWorldGraphChrome(projects) {
         <span>${projects.length} projects linked into the current universe surface. ${escapeHtml(visualModeLabel)}.</span>
       </div>
     `;
+  } else if (activeMeta.kind === "human") {
+    info.innerHTML = `
+      <div class="world-info-pill world-info-pill-active">
+        <span class="eyebrow">${activeLabel}</span>
+        <strong>${escapeHtml(activeMeta.humanId)}</strong>
+        <span>${(activeMeta.projectIds || []).length} project link${(activeMeta.projectIds || []).length === 1 ? "" : "s"} · ${(activeMeta.agentIds || []).length} agent link${(activeMeta.agentIds || []).length === 1 ? "" : "s"} · ${escapeHtml(visualModeLabel)}</span>
+      </div>
+    `;
+  } else if (activeMeta.kind === "agent") {
+    info.innerHTML = `
+      <div class="world-info-pill world-info-pill-active">
+        <span class="eyebrow">${activeLabel}</span>
+        <strong>${escapeHtml(activeMeta.agentId)}</strong>
+        <span>${escapeHtml(activeMeta.humanId || "-")} · ${(activeMeta.projectIds || []).length} project link${(activeMeta.projectIds || []).length === 1 ? "" : "s"} · ${escapeHtml(visualModeLabel)}</span>
+      </div>
+    `;
   } else {
     const project = activeMeta.project;
     info.innerHTML = `
@@ -2617,6 +2793,176 @@ function renderWorldGraphChrome(projects) {
   });
 }
 
+function worldViewportPoint(renderer, attrs) {
+  const point = { x: Number(attrs.x ?? 0.5), y: Number(attrs.y ?? 0.5) };
+  if (typeof renderer?.framedGraphToViewport === "function") return renderer.framedGraphToViewport(point);
+  if (typeof renderer?.graphToViewport === "function") return renderer.graphToViewport(point);
+  return { x: 0, y: 0 };
+}
+
+function drawWorldRoundedPolygon(context, x, y, radius, sides, rotation) {
+  context.beginPath();
+  for (let index = 0; index < sides; index += 1) {
+    const angle = rotation + ((Math.PI * 2) / sides) * index;
+    const pointX = x + Math.cos(angle) * radius;
+    const pointY = y + Math.sin(angle) * radius;
+    if (index === 0) context.moveTo(pointX, pointY);
+    else context.lineTo(pointX, pointY);
+  }
+  context.closePath();
+}
+
+function drawWorldNodeShape(context, attrs, selected, hovered) {
+  const { sides, rotation } = worldNodeShapeSpec(attrs.kind);
+  const visuals = worldNodeShapeVisuals(attrs.kind);
+  const alpha = selected ? 1 : hovered ? 0.92 : Math.max(0.38, Number(attrs.depthAlpha || 0.76));
+  const fillColor = worldColorWithAlpha(worldNodeTypeColor(attrs.kind, attrs.baseColor), alpha);
+  const strokeColor = worldColorWithAlpha("#ffffff", selected ? 0.34 : hovered ? 0.22 : 0.12);
+  const glowColor = worldColorWithAlpha(worldNodeTypeColor(attrs.kind, attrs.baseColor), selected ? 0.78 : hovered ? 0.54 : 0.28);
+  const viewport = worldViewportPoint(state.worldGraphRenderer, attrs);
+  const radius = (Number(attrs.size || 8) + (selected ? 4 : hovered ? 2.4 : 0)) * visuals.radiusMultiplier;
+  const coreRadius = radius * visuals.coreMultiplier;
+  context.save();
+  context.translate(viewport.x, viewport.y);
+  context.shadowBlur = radius * (selected ? visuals.glowMultiplier + 0.4 : hovered ? visuals.glowMultiplier : visuals.glowMultiplier * 0.72);
+  context.shadowColor = glowColor;
+  context.fillStyle = fillColor;
+  context.strokeStyle = strokeColor;
+  context.lineWidth = selected ? visuals.outlineWidth + 0.6 : visuals.outlineWidth;
+  if (sides <= 0) {
+    const gradient = context.createRadialGradient(0, 0, radius * 0.15, 0, 0, radius);
+    gradient.addColorStop(0, worldColorWithAlpha(worldNodeTypeColor(attrs.kind, attrs.baseColor), selected ? 0.95 : 0.82));
+    gradient.addColorStop(0.62, worldColorWithAlpha(worldNodeTypeColor(attrs.kind, attrs.baseColor), selected ? 0.78 : 0.48));
+    gradient.addColorStop(1, worldColorWithAlpha(worldNodeTypeColor(attrs.kind, attrs.baseColor), 0));
+    context.beginPath();
+    context.arc(0, 0, radius, 0, Math.PI * 2);
+    context.fillStyle = gradient;
+    context.fill();
+    context.beginPath();
+    context.arc(0, 0, coreRadius, 0, Math.PI * 2);
+    context.fillStyle = fillColor;
+    context.fill();
+    context.stroke();
+  } else {
+    drawWorldRoundedPolygon(context, 0, 0, radius, sides, rotation);
+    const gradient = context.createRadialGradient(0, 0, radius * 0.12, 0, 0, radius);
+    gradient.addColorStop(0, worldColorWithAlpha(worldNodeTypeColor(attrs.kind, attrs.baseColor), selected ? 0.96 : 0.82));
+    gradient.addColorStop(0.66, worldColorWithAlpha(worldNodeTypeColor(attrs.kind, attrs.baseColor), selected ? 0.76 : 0.42));
+    gradient.addColorStop(1, worldColorWithAlpha(worldNodeTypeColor(attrs.kind, attrs.baseColor), 0.04));
+    context.fillStyle = gradient;
+    context.lineJoin = "round";
+    context.fill();
+    context.stroke();
+    drawWorldRoundedPolygon(context, 0, 0, coreRadius, sides, rotation);
+    context.fillStyle = worldColorWithAlpha(worldNodeTypeColor(attrs.kind, attrs.baseColor), selected ? 0.92 : hovered ? 0.78 : 0.64);
+    context.strokeStyle = worldColorWithAlpha("#ffffff", selected ? 0.26 : 0.14);
+    context.lineWidth = selected ? 1.8 : 1.2;
+    context.fill();
+    context.stroke();
+  }
+  context.restore();
+}
+
+function drawWorldEdgeOverlay(context, graph, edgeId, attrs) {
+  const sourceAttrs = graph.getNodeAttributes(graph.source(edgeId));
+  const targetAttrs = graph.getNodeAttributes(graph.target(edgeId));
+  if (!sourceAttrs || !targetAttrs) return;
+  if (!worldEdgeTypeVisible(attrs.edgeType)) return;
+  const activeNodeId = state.selectedWorldNodeId || state.hoveredWorldNodeId;
+  const sourceId = graph.source(edgeId);
+  const targetId = graph.target(edgeId);
+  const related = activeNodeId && (sourceId === activeNodeId || targetId === activeNodeId);
+  const baseOpacity = activeNodeId
+    ? related
+      ? (attrs.edgeType === "foundation-link" ? 0.96 : 0.84)
+      : 0.018
+    : attrs.edgeType === "foundation-link"
+      ? 0.16
+      : attrs.edgeType === "plugin-link"
+        ? 0.042
+        : attrs.edgeType === "universe-link"
+          ? 0.028
+          : 0.062;
+  const sourcePoint = worldViewportPoint(state.worldGraphRenderer, sourceAttrs);
+  const targetPoint = worldViewportPoint(state.worldGraphRenderer, targetAttrs);
+  const midX = (sourcePoint.x + targetPoint.x) / 2;
+  const midY = (sourcePoint.y + targetPoint.y) / 2;
+  const deltaX = targetPoint.x - sourcePoint.x;
+  const deltaY = targetPoint.y - sourcePoint.y;
+  const length = Math.hypot(deltaX, deltaY) || 1;
+  const normalX = -deltaY / length;
+  const normalY = deltaX / length;
+  const controlX = midX + normalX * length * Number(attrs.curveStrength || 0.16);
+  const controlY = midY + normalY * length * Number(attrs.curveStrength || 0.16);
+  const segments = 26;
+  context.save();
+  context.shadowColor = worldColorWithAlpha(attrs.baseColor || attrs.color, related ? 0.42 : 0.06);
+  context.shadowBlur = related ? 10 : 2;
+  for (let index = 0; index < segments; index += 1) {
+    const t0 = index / segments;
+    const t1 = (index + 1) / segments;
+    const tm = (t0 + t1) / 2;
+    const edgeFactor = Math.abs(tm - 0.5) * 2;
+    const width = Number(attrs.size || 1.6) * (0.18 + edgeFactor * 1.12);
+    const alpha = baseOpacity * (0.04 + edgeFactor * 0.96);
+    const x0 = quadraticBezierPoint(sourcePoint.x, controlX, targetPoint.x, t0);
+    const y0 = quadraticBezierPoint(sourcePoint.y, controlY, targetPoint.y, t0);
+    const x1 = quadraticBezierPoint(sourcePoint.x, controlX, targetPoint.x, t1);
+    const y1 = quadraticBezierPoint(sourcePoint.y, controlY, targetPoint.y, t1);
+    context.beginPath();
+    context.moveTo(x0, y0);
+    context.lineTo(x1, y1);
+    context.strokeStyle = worldColorWithAlpha(attrs.baseColor || attrs.color, alpha);
+    context.lineWidth = width;
+    context.lineCap = "round";
+    context.stroke();
+  }
+  if (baseOpacity > 0.03) {
+    const endpointRadius = Math.max(1.8, Number(attrs.size || 1.6) * (related ? 1.8 : 1.2));
+    [sourcePoint, targetPoint].forEach((point) => {
+      const glow = context.createRadialGradient(point.x, point.y, 0, point.x, point.y, endpointRadius * 3.2);
+      glow.addColorStop(0, worldColorWithAlpha(attrs.baseColor || attrs.color, baseOpacity * 0.72));
+      glow.addColorStop(0.42, worldColorWithAlpha(attrs.baseColor || attrs.color, baseOpacity * 0.22));
+      glow.addColorStop(1, worldColorWithAlpha(attrs.baseColor || attrs.color, 0));
+      context.beginPath();
+      context.fillStyle = glow;
+      context.arc(point.x, point.y, endpointRadius * 3.2, 0, Math.PI * 2);
+      context.fill();
+    });
+  }
+  context.restore();
+}
+
+function quadraticBezierPoint(start, control, end, t) {
+  const nt = 1 - t;
+  return (nt * nt * start) + (2 * nt * t * control) + (t * t * end);
+}
+
+function renderWorldGraphOverlay() {
+  const canvas = state.worldGraphOverlayCanvas;
+  const context = state.worldGraphOverlayContext;
+  const renderer = state.worldGraphRenderer;
+  const graph = state.worldGraph;
+  if (!canvas || !context || !renderer || !graph) return;
+  const width = canvas.width / (window.devicePixelRatio || 1);
+  const height = canvas.height / (window.devicePixelRatio || 1);
+  context.clearRect(0, 0, width, height);
+  const edges = [...state.worldGraphEdgeMap.values()].sort((left, right) => Number(left.zIndex || 0) - Number(right.zIndex || 0));
+  edges.forEach((edge) => drawWorldEdgeOverlay(context, graph, edge.edgeId, edge));
+  const nodes = [...state.worldGraphNodeMap.values()]
+    .map((meta) => ({ meta, attrs: graph.getNodeAttributes(meta.nodeId) }))
+    .filter(({ attrs }) => Boolean(attrs))
+    .sort((left, right) => Number(left.attrs.zIndex || 0) - Number(right.attrs.zIndex || 0));
+  nodes.forEach(({ meta, attrs }) => {
+    drawWorldNodeShape(
+      context,
+      attrs,
+      state.selectedWorldNodeId === meta.nodeId,
+      state.hoveredWorldNodeId === meta.nodeId
+    );
+  });
+}
+
 function fitWorldGraph(nodeId = "") {
   const renderer = state.worldGraphRenderer;
   if (!renderer) return;
@@ -2642,11 +2988,11 @@ function fitWorldGraph(nodeId = "") {
     }
   }
   if (camera?.animate) {
-    camera.animate({ x: 0.5, y: 0.5, ratio: 1.02, angle: 0 }, { duration: 480 });
+    camera.animate({ x: 0.5, y: 0.5, ratio: 0.82, angle: 0 }, { duration: 480 });
   } else if (camera?.animatedReset) {
     camera.animatedReset({ duration: 480 });
   } else if (camera?.setState) {
-    camera.setState({ x: 0.5, y: 0.5, ratio: 1.02, angle: 0 });
+    camera.setState({ x: 0.5, y: 0.5, ratio: 0.82, angle: 0 });
   }
   renderer.refresh?.();
 }
@@ -2691,6 +3037,7 @@ function bindWorldCameraBounds(renderer) {
       renderer.refresh?.();
       applying = false;
     }
+    renderWorldGraphOverlay();
   };
   camera.on("updated", handler);
   handler();
@@ -2715,7 +3062,7 @@ function startWorldGraphMotion(renderer, graph) {
       return;
     }
     graph.forEachNode((nodeId, attrs) => {
-      if (attrs.kind !== "project") return;
+      if (attrs.kind === "universe") return;
       const baseX = Number(attrs.baseX ?? attrs.x ?? 0.5);
       const baseY = Number(attrs.baseY ?? attrs.y ?? 0.5);
       const phase = Number(attrs.floatPhase || 0);
@@ -2735,6 +3082,7 @@ function startWorldGraphMotion(renderer, graph) {
       graph.mergeNodeAttributes(nodeId, { x, y });
     });
     renderer.refresh?.();
+    renderWorldGraphOverlay();
     state.worldGraphAnimationFrame = requestAnimationFrame(tick);
   };
   state.worldGraphAnimationFrame = requestAnimationFrame(tick);
@@ -2890,6 +3238,62 @@ function renderWorldUniverseDrawer(projects) {
   `;
 }
 
+function renderWorldHumanDrawer(projects, humanMeta) {
+  const linkedProjects = projects.filter((project) => (humanMeta.projectIds || []).includes(project.projectId));
+  return `
+    <div class="world-drawer-header">
+      <div>
+        <span class="eyebrow">Human Node</span>
+        <h3>${escapeHtml(humanMeta.humanId)}</h3>
+      </div>
+      <button type="button" class="world-drawer-close" id="world-drawer-close" aria-label="Close human details">×</button>
+    </div>
+    <div class="world-drawer-body">
+      <section class="world-drawer-section detail-grid compact">
+        <div class="detail-item"><span>Projects</span><strong>${linkedProjects.length}</strong></div>
+        <div class="detail-item"><span>Agents</span><strong>${(humanMeta.agentIds || []).length}</strong></div>
+      </section>
+      <section class="world-drawer-section">
+        <h4>Linked Projects</h4>
+        ${linkedProjects.length
+          ? `<div class="nested-list">${linkedProjects.map((project) => `<div class="nested-item"><strong>${escapeHtml(project.title)}</strong><span>${escapeHtml(project.repoFullName || project.repoName)}</span></div>`).join("")}</div>`
+          : '<div class="empty compact">No linked projects.</div>'}
+      </section>
+      <section class="world-drawer-section">
+        <h4>Linked Agents</h4>
+        ${(humanMeta.agentIds || []).length
+          ? `<div class="nested-list">${humanMeta.agentIds.map((agentId) => `<div class="nested-item"><strong>${escapeHtml(agentId)}</strong><span>Agent node linked through this human.</span></div>`).join("")}</div>`
+          : '<div class="empty compact">No linked agents.</div>'}
+      </section>
+    </div>
+  `;
+}
+
+function renderWorldAgentDrawer(projects, agentMeta) {
+  const linkedProjects = projects.filter((project) => (agentMeta.projectIds || []).includes(project.projectId));
+  return `
+    <div class="world-drawer-header">
+      <div>
+        <span class="eyebrow">Agent Node</span>
+        <h3>${escapeHtml(agentMeta.agentId)}</h3>
+      </div>
+      <button type="button" class="world-drawer-close" id="world-drawer-close" aria-label="Close agent details">×</button>
+    </div>
+    <div class="world-drawer-body">
+      <section class="world-drawer-section detail-grid compact">
+        <div class="detail-item"><span>Human</span><strong class="detail-code">${escapeHtml(agentMeta.humanId || "-")}</strong></div>
+        <div class="detail-item"><span>Projects</span><strong>${linkedProjects.length}</strong></div>
+      </section>
+      <section class="world-drawer-section">
+        <h4>Project Participation</h4>
+        ${linkedProjects.length
+          ? `<div class="nested-list">${linkedProjects.map((project) => `<div class="nested-item"><strong>${escapeHtml(project.title)}</strong><span>${escapeHtml(project.stage || "source")} · ${escapeHtml(projectStateLabel(project.state))}</span></div>`).join("")}</div>`
+          : '<div class="empty compact">No linked projects.</div>'}
+      </section>
+    </div>
+  `;
+}
+
 function renderWorldSelectionDrawer(nodeId, projects) {
   const drawer = $("world-selection-drawer");
   const backdrop = $("world-drawer-backdrop");
@@ -2905,7 +3309,11 @@ function renderWorldSelectionDrawer(nodeId, projects) {
   }
   drawer.innerHTML = nodeMeta.kind === "universe"
     ? renderWorldUniverseDrawer(projects)
-    : renderWorldProjectDrawer(projects, nodeMeta.project);
+    : nodeMeta.kind === "human"
+      ? renderWorldHumanDrawer(projects, nodeMeta)
+      : nodeMeta.kind === "agent"
+        ? renderWorldAgentDrawer(projects, nodeMeta)
+        : renderWorldProjectDrawer(projects, nodeMeta.project);
   drawer.hidden = false;
   backdrop.hidden = false;
   requestAnimationFrame(() => {
@@ -2956,6 +3364,8 @@ function destroyWorldGraphRenderer() {
   state.worldGraph = null;
   state.worldGraphNodeMap = new Map();
   state.worldGraphEdgeMap = new Map();
+  state.worldGraphOverlayCanvas = null;
+  state.worldGraphOverlayContext = null;
 }
 
 async function renderProjectGraph(projects) {
@@ -2983,7 +3393,10 @@ async function renderProjectGraph(projects) {
   root.innerHTML = "";
   const mount = document.createElement("div");
   mount.className = "world-graph-canvas";
+  const overlay = document.createElement("canvas");
+  overlay.className = "world-graph-overlay";
   root.appendChild(mount);
+  root.appendChild(overlay);
 
   destroyWorldGraphRenderer();
   const { graph, nodeMap, edgeMap } = buildWorldGraphData(projects);
@@ -3022,10 +3435,10 @@ async function renderProjectGraph(projects) {
           ? Math.min(1, (data.depthAlpha || 0.9) + 0.18)
           : dimmed
             ? Math.max(0.14, (data.depthAlpha || 0.7) * 0.18)
-            : data.depthAlpha || 1;
+            : Math.max(0.02, (data.depthAlpha || 1) * 0.08);
       return {
         ...data,
-        color: worldColorWithAlpha(data.baseColor || data.color, nodeAlpha),
+        color: worldColorWithAlpha(data.baseColor || data.color, Math.min(0.012, nodeAlpha * 0.02)),
         size: selected
           ? data.size + (data.depthLayer === "foreground" ? 9 : 7)
           : hovered
@@ -3050,43 +3463,54 @@ async function renderProjectGraph(projects) {
       if (!activeNodeId) {
         return {
           ...data,
-          color: worldColorWithAlpha(data.baseColor || data.color, data.edgeType === "universe-link" ? 0.18 : data.edgeType === "foundation-link" ? 0.88 : 0.52),
-          size: data.size
+          color: worldColorWithAlpha(data.baseColor || data.color, 0.01),
+          size: Math.max(0.15, data.size * 0.12)
         };
       }
       return {
         ...data,
         hidden: false,
-        color: related
-          ? worldColorWithAlpha(data.baseColor || data.color, data.edgeType === "foundation-link" ? 0.98 : 0.88)
-          : worldColorWithAlpha(data.baseColor || data.color, data.edgeType === "foundation-link" ? 0.34 : data.edgeType === "universe-link" ? 0.08 : 0.12),
-        size: related ? data.size + 0.6 : Math.max(0.45, data.size * (data.edgeType === "foundation-link" ? 0.74 : 0.55))
+        color: worldColorWithAlpha(data.baseColor || data.color, related ? 0.01 : 0.005),
+        size: related ? Math.max(0.2, data.size * 0.18) : Math.max(0.15, data.size * 0.08)
       };
     }
   });
   state.worldGraphRenderer = renderer;
+  state.worldGraphOverlayCanvas = overlay;
+  state.worldGraphOverlayContext = overlay.getContext("2d");
+  const pixelRatio = window.devicePixelRatio || 1;
+  overlay.width = mount.clientWidth * pixelRatio;
+  overlay.height = mount.clientHeight * pixelRatio;
+  overlay.style.width = `${mount.clientWidth}px`;
+  overlay.style.height = `${mount.clientHeight}px`;
+  state.worldGraphOverlayContext.scale(pixelRatio, pixelRatio);
   bindWorldCameraBounds(renderer);
   renderer.on("clickNode", ({ node }) => {
     openWorldDrawer(node);
     renderWorldSelectionDrawer(node, projects);
     renderWorldGraphChrome(projects);
     fitWorldGraph(node);
+    renderWorldGraphOverlay();
   });
   renderer.on("enterNode", ({ node }) => {
     state.hoveredWorldNodeId = node;
     renderWorldGraphChrome(projects);
     renderer.refresh?.();
+    renderWorldGraphOverlay();
   });
   renderer.on("leaveNode", () => {
     state.hoveredWorldNodeId = "";
     renderWorldGraphChrome(projects);
     renderer.refresh?.();
+    renderWorldGraphOverlay();
   });
   renderer.on("clickStage", () => {
     closeWorldDrawer();
+    renderWorldGraphOverlay();
   });
   fitWorldGraph();
   startWorldGraphMotion(renderer, graph);
+  renderWorldGraphOverlay();
   if (state.worldDrawerOpen && state.selectedWorldNodeId) {
     renderWorldSelectionDrawer(state.selectedWorldNodeId, projects);
   }
