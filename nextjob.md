@@ -97,6 +97,7 @@ After every execution cycle, update this file with:
 - any new blockers
 
 ## Last Completed
+- Rebalanced `World` toward a higher-performance rendering path by disabling the continuous floating motion loop, returning baseline node and edge visibility to Sigma, and reducing the custom overlay to interaction-focused hierarchy highlights instead of redrawing every node and edge every frame
 - Reworked `World` node and edge rendering around the actual `World -> Project -> Human -> Agent` hierarchy by introducing explicit human/agent nodes, overlay-rendered typed shapes, much lighter default edge visibility, stronger endpoint-weighted tapered curves, tighter synthetic membership/plugin density, and a closer default camera so `Visual Lab` reads more like an ecosystem map than a code-call graph
 - Re-tuned `World` Phase 2A around the actual `World -> Project -> Human -> Agent` hierarchy by reducing synthetic cross-links, moving clustered mock projects into a more natural center-out scatter, adding subtle per-project floating motion for stronger depth, and clamping camera movement so the graph cannot be dragged completely out of view
 - Upgraded `World` to a stronger Phase 2A graph explorer by aligning the frontend to official `Sigma.js + Graphology` curved-edge rendering, adding a 2.5D depth model for nodes and camera focus, rebuilding `Visual Lab` into a more natural ecosystem-cluster dataset, and tightening scene styling plus drawer motion for a less flat explorer surface
@@ -147,10 +148,10 @@ After every execution cycle, update this file with:
 - Reworked the `Project Workspace` snapshot around ownership, participation, recruiting, latest activity, and operating inputs so the page reads less like a directory card and more like the active project control surface
 
 ## Current Focus
-- P0 World Engine Phase 2B: continue tightening the graph explorer toward the GitNexus interaction quality bar, now that typed hierarchy nodes, lighter tapered edges, floating motion, and camera bounds are live
+- P0 World Engine Phase 2B: continue tightening the graph explorer toward the GitNexus interaction quality bar while keeping `World` on a high-performance rendering budget
 
 ## Next Recommended Action
-- strengthen selected-node affordance and relation-focus controls, then add larger-graph grouping so `World` stays legible once project count grows without reintroducing dense cross-link noise
+- strengthen selected-node affordance and relation-focus controls without reintroducing heavy per-frame overlay work, then add larger-graph grouping so `World` stays legible once project count grows
 
 ## Blockers
 - local runtime still has no seeded project data, so representative graph validation continues to depend on the deployed environment

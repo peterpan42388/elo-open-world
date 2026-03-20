@@ -2944,12 +2944,31 @@ function renderWorldGraphOverlay() {
   const renderer = state.worldGraphRenderer;
   const graph = state.worldGraph;
   if (!canvas || !context || !renderer || !graph) return;
+  const activeNodeId = state.selectedWorldNodeId || state.hoveredWorldNodeId;
   const width = canvas.width / (window.devicePixelRatio || 1);
   const height = canvas.height / (window.devicePixelRatio || 1);
   context.clearRect(0, 0, width, height);
-  const edges = [...state.worldGraphEdgeMap.values()].sort((left, right) => Number(left.zIndex || 0) - Number(right.zIndex || 0));
-  edges.forEach((edge) => drawWorldEdgeOverlay(context, graph, edge.edgeId, edge));
+
+  const visibleNodeIds = new Set();
+  if (activeNodeId) {
+    visibleNodeIds.add(activeNodeId);
+    graph.forEachNeighbor(activeNodeId, (neighborId) => {
+      visibleNodeIds.add(neighborId);
+    });
+    graph.forEachEdge(activeNodeId, (edgeId) => {
+      const edgeMeta = state.worldGraphEdgeMap.get(edgeId);
+      if (edgeMeta) drawWorldEdgeOverlay(context, graph, edgeId, edgeMeta);
+    });
+  } else {
+    graph.forEachNode((nodeId, attrs) => {
+      if (attrs.kind === "universe" || attrs.forceLabel || isOperatingFoundationProject(attrs.project)) {
+        visibleNodeIds.add(nodeId);
+      }
+    });
+  }
+
   const nodes = [...state.worldGraphNodeMap.values()]
+    .filter((meta) => visibleNodeIds.has(meta.nodeId))
     .map((meta) => ({ meta, attrs: graph.getNodeAttributes(meta.nodeId) }))
     .filter(({ attrs }) => Boolean(attrs))
     .sort((left, right) => Number(left.attrs.zIndex || 0) - Number(right.attrs.zIndex || 0));
@@ -3434,11 +3453,11 @@ async function renderProjectGraph(projects) {
         : hovered
           ? Math.min(1, (data.depthAlpha || 0.9) + 0.18)
           : dimmed
-            ? Math.max(0.14, (data.depthAlpha || 0.7) * 0.18)
-            : Math.max(0.02, (data.depthAlpha || 1) * 0.08);
+            ? Math.max(0.1, (data.depthAlpha || 0.7) * 0.2)
+            : Math.max(0.24, (data.depthAlpha || 1) * 0.58);
       return {
         ...data,
-        color: worldColorWithAlpha(data.baseColor || data.color, Math.min(0.012, nodeAlpha * 0.02)),
+        color: worldColorWithAlpha(data.baseColor || data.color, nodeAlpha),
         size: selected
           ? data.size + (data.depthLayer === "foreground" ? 9 : 7)
           : hovered
@@ -3463,15 +3482,24 @@ async function renderProjectGraph(projects) {
       if (!activeNodeId) {
         return {
           ...data,
-          color: worldColorWithAlpha(data.baseColor || data.color, 0.01),
-          size: Math.max(0.15, data.size * 0.12)
+          color: worldColorWithAlpha(
+            data.baseColor || data.color,
+            data.edgeType === "foundation-link"
+              ? 0.18
+              : data.edgeType === "plugin-link"
+                ? 0.06
+                : data.edgeType === "universe-link"
+                  ? 0.035
+                  : 0.085
+          ),
+          size: Math.max(0.35, data.size * 0.42)
         };
       }
       return {
         ...data,
         hidden: false,
-        color: worldColorWithAlpha(data.baseColor || data.color, related ? 0.01 : 0.005),
-        size: related ? Math.max(0.2, data.size * 0.18) : Math.max(0.15, data.size * 0.08)
+        color: worldColorWithAlpha(data.baseColor || data.color, related ? 0.22 : 0.015),
+        size: related ? Math.max(0.45, data.size * 0.72) : Math.max(0.2, data.size * 0.18)
       };
     }
   });
@@ -3509,7 +3537,7 @@ async function renderProjectGraph(projects) {
     renderWorldGraphOverlay();
   });
   fitWorldGraph();
-  startWorldGraphMotion(renderer, graph);
+  stopWorldGraphMotion();
   renderWorldGraphOverlay();
   if (state.worldDrawerOpen && state.selectedWorldNodeId) {
     renderWorldSelectionDrawer(state.selectedWorldNodeId, projects);
