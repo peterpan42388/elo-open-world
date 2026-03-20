@@ -1997,26 +1997,35 @@ async function ensureWorldGraphEngine() {
   if (state.worldGraphEngine) return state.worldGraphEngine;
   if (!state.worldGraphEnginePromise) {
     state.worldGraphEnginePromise = (async () => {
+      const loadWorldModule = async (urls, label) => {
+        let lastError;
+        for (const url of urls) {
+          try {
+            return await import(url);
+          } catch (error) {
+            lastError = error;
+          }
+        }
+        throw lastError || new Error(`failed to load ${label}`);
+      };
       const [graphologyModule, sigmaModule] = await Promise.all([
-        import("https://cdn.jsdelivr.net/npm/graphology@0.26.0/+esm"),
-        import("https://cdn.jsdelivr.net/npm/sigma@3.0.0/+esm")
+        loadWorldModule([
+          "https://cdn.jsdelivr.net/npm/graphology@0.26.0/dist/graphology.mjs",
+          "https://cdn.jsdelivr.net/npm/graphology@0.26.0/+esm",
+          "https://esm.sh/graphology@0.26.0?bundle"
+        ], "graphology"),
+        loadWorldModule([
+          "https://cdn.jsdelivr.net/npm/sigma@3.0.0/+esm",
+          "https://esm.sh/sigma@3.0.0?bundle"
+        ], "sigma")
       ]);
       const Graph = graphologyModule.default || graphologyModule.Graph || graphologyModule;
       const Sigma = sigmaModule.default || sigmaModule.Sigma || sigmaModule;
-      let curveModule;
-      let lastError;
-      for (const url of [
+      const curveModule = await loadWorldModule([
         "https://cdn.jsdelivr.net/npm/@sigma/edge-curve@3.1.0/+esm",
-        "https://cdn.jsdelivr.net/npm/@sigma/edge-curve@3.0.0/+esm"
-      ]) {
-        try {
-          curveModule = await import(url);
-          break;
-        } catch (error) {
-          lastError = error;
-        }
-      }
-      if (!curveModule) throw lastError || new Error("failed to load @sigma/edge-curve");
+        "https://cdn.jsdelivr.net/npm/@sigma/edge-curve@3.0.0/+esm",
+        "https://esm.sh/@sigma/edge-curve@3.1.0?bundle"
+      ], "@sigma/edge-curve");
       const EdgeCurveProgram = curveModule.default
         || curveModule.EdgeCurvedLineProgram
         || curveModule.EdgeCurveProgram
