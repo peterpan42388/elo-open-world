@@ -950,6 +950,7 @@ button:focus {
 }
 
 .world-filter-pill,
+.world-mode-pill,
 .world-project-chip {
   border-radius: 999px;
   border: 1px solid rgba(111, 132, 161, 0.2);
@@ -965,6 +966,24 @@ button:focus {
   color: var(--text);
   border-color: rgba(87, 215, 193, 0.45);
   box-shadow: 0 0 0 1px rgba(87, 215, 193, 0.12), 0 10px 26px rgba(87, 215, 193, 0.14);
+}
+
+.world-visual-mode-bar {
+  display: grid;
+  gap: 8px;
+}
+
+.world-visual-mode-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.world-mode-pill.active {
+  background: rgba(139, 114, 246, 0.16);
+  color: var(--text);
+  border-color: rgba(139, 114, 246, 0.42);
+  box-shadow: 0 0 0 1px rgba(139, 114, 246, 0.12), 0 10px 26px rgba(139, 114, 246, 0.16);
 }
 
 .world-project-shortcuts {

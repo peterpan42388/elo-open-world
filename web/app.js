@@ -4,6 +4,7 @@ import { getProjectRecruitingSignal } from "./lib/directorySignals.js";
 const $ = (id) => document.getElementById(id);
 const SESSION_KEY = "elo-open-world.session";
 const SETTINGS_DEFAULT_SECTION = "profile";
+const WORLD_VISUAL_MODE_KEY = "elo-open-world.world-visual-mode";
 const ROUTES = new Set(["home", "join", "settings", "new-project", "project", "world", "build", "market", "docs"]);
 const ONBOARDER_PRESET = {
   repoName: "elo-agent-onboarder",
@@ -70,6 +71,7 @@ const state = {
     plugin: true,
     foundation: true
   },
+  worldVisualMode: loadWorldVisualMode(),
   buildFilters: {
     kind: "",
     status: "",
@@ -101,6 +103,11 @@ function loadSession() {
   return localStorage.getItem(SESSION_KEY) || "";
 }
 
+function loadWorldVisualMode() {
+  const saved = localStorage.getItem(WORLD_VISUAL_MODE_KEY) || "";
+  return ["live", "hybrid", "mock"].includes(saved) ? saved : "hybrid";
+}
+
 function bootstrapSessionFromUrl() {
   const url = new URL(window.location.href);
   const humanId = (url.searchParams.get("sessionHumanId") || "").trim();
@@ -114,6 +121,12 @@ function saveSession(humanId) {
   if (humanId) localStorage.setItem(SESSION_KEY, humanId);
   else localStorage.removeItem(SESSION_KEY);
   state.sessionHumanId = humanId || "";
+}
+
+function saveWorldVisualMode(mode) {
+  const next = ["live", "hybrid", "mock"].includes(mode) ? mode : "hybrid";
+  localStorage.setItem(WORLD_VISUAL_MODE_KEY, next);
+  state.worldVisualMode = next;
 }
 
 async function request(path, method = "GET", body) {
@@ -202,7 +215,136 @@ function activeProject() {
 }
 
 function currentWorldProjects() {
-  return state.summary?.projects || [];
+  const liveProjects = state.summary?.projects || [];
+  if (state.worldVisualMode === "live") return liveProjects;
+  const visualProjects = buildWorldVisualProjects(liveProjects);
+  if (state.worldVisualMode === "mock") return visualProjects;
+  return mergeWorldProjects(liveProjects, visualProjects);
+}
+
+function worldVisualBaseOwners(liveProjects) {
+  const liveOwners = [...new Set(liveProjects.map((project) => project.ownerHumanId).filter(Boolean))];
+  return liveOwners.length
+    ? liveOwners
+    : [
+        "human.github.peterpan42388",
+        "human.github.architect",
+        "human.github.maker",
+        "human.github.researcher",
+        "human.github.operator",
+        "human.github.designer"
+      ];
+}
+
+function worldVisualBaseAgents(liveProjects) {
+  const liveAgents = [...new Set(liveProjects.flatMap((project) => project.memberAgentIds || []).filter(Boolean))];
+  return liveAgents.length
+    ? liveAgents
+    : [
+        "agent.grace.openclaw",
+        "agent.atlas.openclaw",
+        "agent.cinder.openclaw",
+        "agent.orbit.openclaw",
+        "agent.sage.openclaw",
+        "agent.river.openclaw"
+      ];
+}
+
+function worldVisualBasePlugins(liveProjects) {
+  const livePlugins = [...new Set(liveProjects.flatMap((project) => project.pluginIds || []).filter(Boolean))];
+  return livePlugins.length
+    ? livePlugins
+    : [
+        "plugin.elo-agent-web-plugin",
+        "plugin.elo-agent-onboarder",
+        "plugin.elo-market",
+        "plugin.elo-governance",
+        "plugin.elo-signal"
+      ];
+}
+
+function buildWorldVisualProjects(liveProjects) {
+  const owners = worldVisualBaseOwners(liveProjects);
+  const agents = worldVisualBaseAgents(liveProjects);
+  const plugins = worldVisualBasePlugins(liveProjects);
+  const blueprints = [
+    ["identity-atlas", "Identity Atlas", "map", "operating", "operating", ["identity", "graph", "protocol"], 4.9, 920, [0,1], [0,3]],
+    ["commons-signal", "Commons Signal", "service", "operating", "developing", ["signal", "community", "analytics"], 4.4, 610, [1,2], [4]],
+    ["world-fabric", "World Fabric", "platform", "source", "developing", ["world", "fabric", "infrastructure"], 4.7, 880, [0,3], [1,3]],
+    ["market-orbit", "Market Orbit", "service", "operating", "operating", ["market", "exchange", "pricing"], 4.6, 760, [2,3], [2,4]],
+    ["social-field", "Social Field", "app", "source", "developing", ["social", "coordination", "network"], 4.1, 450, [3,4], [4]],
+    ["memory-harbor", "Memory Harbor", "service", "source", "paused", ["memory", "archive", "knowledge"], 3.7, 280, [4], [3]],
+    ["builder-yard", "Builder Yard", "app", "source", "developing", ["builder", "workspace", "delivery"], 4.3, 520, [1,5], [0,1]],
+    ["parallel-nest", "Parallel Nest", "platform", "source", "developing", ["parallel", "universe", "federation"], 4.5, 700, [0,5], [1,2]],
+    ["research-spine", "Research Spine", "service", "source", "operating", ["research", "evaluation", "agent"], 4.2, 410, [2,4], [0,4]],
+    ["governance-lantern", "Governance Lantern", "service", "source", "developing", ["governance", "review", "rules"], 4.0, 360, [3], [3,4]],
+    ["studio-ember", "Studio Ember", "app", "source", "developing", ["design", "studio", "creative"], 3.9, 300, [5], [4]],
+    ["operator-grid", "Operator Grid", "platform", "operating", "operating", ["ops", "runbook", "operator"], 4.8, 840, [0,2,5], [1,4]],
+    ["bridge-lab", "Bridge Lab", "service", "source", "developing", ["bridge", "browser", "plugin"], 4.4, 560, [0,1,5], [0]],
+    ["quest-terminal", "Quest Terminal", "app", "source", "paused", ["quest", "terminal", "interaction"], 3.8, 210, [1,4], [0,2]],
+    ["agent-bazaar", "Agent Bazaar", "service", "operating", "operating", ["agent", "bazaar", "service"], 4.6, 790, [2,3,4], [2,4]],
+    ["public-square", "Public Square", "app", "source", "developing", ["public", "square", "community"], 4.1, 430, [3,5], [4]],
+    ["forge-canvas", "Forge Canvas", "app", "source", "developing", ["forge", "canvas", "workspace"], 4.3, 540, [0,5], [0,1]],
+    ["delivery-halo", "Delivery Halo", "service", "operating", "operating", ["delivery", "halo", "runtime"], 4.7, 860, [1,2,4], [1,2]]
+  ];
+
+  return blueprints.map((entry, index) => {
+    const [slug, title, kind, stage, stateValue, tags, rating, heat, agentIndexes, pluginIndexes] = entry;
+    const ownerHumanId = owners[index % owners.length];
+    const memberAgentIds = agentIndexes.map((agentIndex) => agents[agentIndex % agents.length]);
+    const pluginIds = pluginIndexes.map((pluginIndex) => plugins[pluginIndex % plugins.length]);
+    const repoName = `visual-${slug}`;
+    const repoFullName = `${(ownerHumanId || "human.visual").replace("human.github.", "")}/${repoName}`;
+    return {
+      projectId: `visual.project.${slug}`,
+      title,
+      repoName,
+      repoFullName,
+      repoUrl: `https://github.com/${repoFullName}`,
+      ownerHumanId,
+      kind,
+      summary: `${title} is a visual-lab project used to stress the World graph with richer owner, plugin, and agent relationships.`,
+      tags,
+      rating,
+      heat,
+      stage,
+      state: stateValue,
+      serviceEndpoint: stage === "operating" ? `https://world.metavie.co/mock-services/${repoName}` : "",
+      pricingNote: stage === "operating" ? "Visual lab operating surface" : "",
+      usageNote: "Synthetic project used for World explorer tuning.",
+      memberAgentIds,
+      memberRoles: Object.fromEntries(memberAgentIds.map((agentId, memberIndex) => [agentId, memberIndex === 0 ? "builder" : "operator"])),
+      pluginIds,
+      foundationRuns: stage === "operating"
+        ? [{
+            runId: `visual-run-${slug}`,
+            action: "visual-benchmark",
+            agentId: memberAgentIds[0] || "-",
+            profile: stage === "operating" ? "graph-visual-lab" : "prototype",
+            contract: "elo.world.visual-lab.v1",
+            templateCount: 4,
+            artifactFileCount: 5,
+            target: "world",
+            runtimeMode: "mock",
+            generatedAt: `2026-03-${String(10 + (index % 9)).padStart(2, "0")}T10:${String(10 + index).padStart(2, "0")}:00.000Z`
+          }]
+        : [],
+      participationRequests: index % 5 === 0
+        ? [{ humanId: "human.github.visitor", status: "pending", requestedAt: "2026-03-18T10:00:00.000Z" }]
+        : [],
+      operatingFoundation: false,
+      visualMock: true
+    };
+  });
+}
+
+function mergeWorldProjects(liveProjects, visualProjects) {
+  const liveIds = new Set(liveProjects.map((project) => project.projectId));
+  return [...liveProjects, ...visualProjects.filter((project) => !liveIds.has(project.projectId))];
+}
+
+function isWorldVisualMockProject(project) {
+  return Boolean(project?.visualMock);
 }
 
 function foundationProjects() {
@@ -1495,7 +1637,7 @@ function showRoute(route) {
   renderTopbarActions();
   renderSettingsShell();
   if (nextRoute === "world" && state.summary) {
-    void renderProjectGraph(state.summary.projects || []);
+    void renderProjectGraph(currentWorldProjects());
   } else {
     closeWorldDrawer();
   }
@@ -1841,6 +1983,11 @@ function renderWorldLegend(projects) {
     ["plugin", "Plugin"],
     ["foundation", "Foundation"]
   ];
+  const visualModes = [
+    ["live", "Live"],
+    ["hybrid", "Hybrid"],
+    ["mock", "Visual Lab"]
+  ];
   legend.innerHTML = `
     <div class="world-control-header">
       <div>
@@ -1870,6 +2017,16 @@ function renderWorldLegend(projects) {
         </button>
       `).join("")}
     </div>
+    <div class="world-visual-mode-bar">
+      <span class="world-shortcuts-label">Data Surface</span>
+      <div class="world-visual-mode-list">
+        ${visualModes.map(([key, label]) => `
+          <button type="button" class="world-mode-pill ${state.worldVisualMode === key ? "active" : ""}" data-world-visual-mode="${key}">
+            ${escapeHtml(label)}
+          </button>
+        `).join("")}
+      </div>
+    </div>
     <div class="world-project-shortcuts">
       <span class="world-shortcuts-label">Quick Select</span>
       <div class="world-shortcuts-list">
@@ -1894,6 +2051,15 @@ function renderWorldLegend(projects) {
       renderWorldGraphChrome(projects);
       state.worldGraphRenderer?.refresh?.();
       setStatus(`World relation filter updated: ${key} ${state.worldGraphFilters[key] ? "on" : "off"}.`, "ok");
+    });
+  });
+  legend.querySelectorAll("[data-world-visual-mode]").forEach((node) => {
+    node.addEventListener("click", () => {
+      const mode = node.dataset.worldVisualMode;
+      saveWorldVisualMode(mode);
+      closeWorldDrawer();
+      void renderProjectGraph(currentWorldProjects());
+      setStatus(`World visual mode switched to ${mode}.`, "ok");
     });
   });
   legend.querySelectorAll("[data-world-project-shortcut]").forEach((node) => {
@@ -1930,6 +2096,11 @@ function renderWorldGraphChrome(projects) {
   const activeMeta = selectedMeta || hoveredMeta;
   const activeLabel = selectedMeta ? "Selected Node" : hoveredMeta ? "Hovered Node" : "Explorer Ready";
   const relationModes = `${worldActiveFilterCount()} / ${Object.keys(state.worldGraphFilters).length} relations visible`;
+  const visualModeLabel = {
+    live: "Live data",
+    hybrid: "Hybrid visual lab",
+    mock: "Visual lab only"
+  }[state.worldVisualMode] || "Hybrid visual lab";
 
   if (!projects.length) {
     info.innerHTML = "";
@@ -1942,7 +2113,7 @@ function renderWorldGraphChrome(projects) {
       <div class="world-info-pill world-info-pill-idle">
         <span class="eyebrow">Explorer Ready</span>
         <strong>Pan, zoom, or pick a project to inspect the world graph.</strong>
-        <span>${escapeHtml(relationModes)}</span>
+        <span>${escapeHtml(visualModeLabel)} · ${escapeHtml(relationModes)}</span>
       </div>
     `;
   } else if (activeMeta.kind === "universe") {
@@ -1950,7 +2121,7 @@ function renderWorldGraphChrome(projects) {
       <div class="world-info-pill world-info-pill-active">
         <span class="eyebrow">${activeLabel}</span>
         <strong>elo-universe-0</strong>
-        <span>${projects.length} projects linked into the current universe surface.</span>
+        <span>${projects.length} projects linked into the current universe surface. ${escapeHtml(visualModeLabel)}.</span>
       </div>
     `;
   } else {
@@ -1959,7 +2130,7 @@ function renderWorldGraphChrome(projects) {
       <div class="world-info-pill world-info-pill-active">
         <span class="eyebrow">${activeLabel}</span>
         <strong>${escapeHtml(project.title)}</strong>
-        <span>${escapeHtml(project.repoFullName || project.repoName)} · ${escapeHtml(project.stage || "source")} · ${escapeHtml(projectStateLabel(project.state))}</span>
+        <span>${escapeHtml(project.repoFullName || project.repoName)} · ${escapeHtml(project.stage || "source")} · ${escapeHtml(projectStateLabel(project.state))}${isWorldVisualMockProject(project) ? " · visual lab node" : ""}</span>
       </div>
     `;
   }
@@ -1980,7 +2151,7 @@ function renderWorldGraphChrome(projects) {
     </div>
     <div class="world-dock-caption">
       <strong>Explorer Dock</strong>
-      <span>${escapeHtml(relationModes)}</span>
+      <span>${escapeHtml(visualModeLabel)} · ${escapeHtml(relationModes)}</span>
     </div>
   `;
 
@@ -2069,6 +2240,7 @@ function renderWorldProjectDrawer(projects, project) {
   const recruitingState = projectDirectoryRecruitingState(project);
   const related = relatedProjectsForSelection(projects, project);
   const serviceHref = sanitizeExternalHref(project.serviceEndpoint || "");
+  const visualMock = isWorldVisualMockProject(project);
   return `
     <div class="world-drawer-header">
       <div>
@@ -2085,6 +2257,7 @@ function renderWorldProjectDrawer(projects, project) {
           ${createBadge(project.stage || "source")}
           ${createBadge(projectStateLabel(project.state))}
           ${isOperatingFoundationProject(project) ? createBadge("Operating Foundation") : ""}
+          ${visualMock ? createBadge("Visual Lab") : ""}
         </div>
       </section>
       <section class="world-drawer-section detail-grid compact">
@@ -2112,8 +2285,16 @@ function renderWorldProjectDrawer(projects, project) {
           { label: "Shared Plugins", value: related.pluginMatches.length ? related.pluginMatches.map((item) => item.title).join(", ") : "No shared-plugin project links." }
         ])}
       </section>
+      ${visualMock ? `
+        <section class="world-drawer-section">
+          <h4>Visual Lab Note</h4>
+          <p>This is synthetic data used to stress-test the World graph. It exists for layout and interaction tuning, not for project execution.</p>
+        </section>
+      ` : ""}
       <section class="world-drawer-section world-drawer-actions">
-        <button type="button" class="topbar-button" data-open-project-id="${escapeHtml(project.projectId)}">Open Project</button>
+        ${visualMock
+          ? `<button type="button" class="topbar-button ghost" disabled>Visual Mock Node</button>`
+          : `<button type="button" class="topbar-button" data-open-project-id="${escapeHtml(project.projectId)}">Open Project</button>`}
         <a class="topbar-button ghost" href="${escapeHtml(project.repoUrl)}" target="_blank" rel="noreferrer">Open GitHub Repo</a>
         ${serviceHref ? `<a class="topbar-button ghost" href="${escapeHtml(serviceHref)}" target="_blank" rel="noreferrer">Open Service</a>` : ""}
       </section>
@@ -2123,6 +2304,11 @@ function renderWorldProjectDrawer(projects, project) {
 
 function renderWorldUniverseDrawer(projects) {
   const universe = worldUniverseSummary(projects);
+  const visualModeLabel = {
+    live: "Live data only",
+    hybrid: "Hybrid visual lab",
+    mock: "Visual lab only"
+  }[state.worldVisualMode] || "Hybrid visual lab";
   return `
     <div class="world-drawer-header">
       <div>
@@ -2134,6 +2320,9 @@ function renderWorldUniverseDrawer(projects) {
     <div class="world-drawer-body">
       <section class="world-drawer-section">
         <p>The universe node anchors all source projects and highlights the strongest owner, plugin, and foundation clusters in this deployment.</p>
+        <div class="nested-list">
+          <div class="nested-item"><strong>Data Surface</strong><span>${escapeHtml(visualModeLabel)}</span></div>
+        </div>
       </section>
       <section class="world-drawer-section detail-grid compact">
         <div class="detail-item"><span>Projects</span><strong>${universe.projectCount}</strong></div>
