@@ -201,6 +201,10 @@ function activeProject() {
   return (state.summary.projects || []).find((project) => project.projectId === state.activeProjectId) || null;
 }
 
+function currentWorldProjects() {
+  return state.summary?.projects || [];
+}
+
 function foundationProjects() {
   if (!state.summary) return [];
   const preferredRepos = new Set([
@@ -1843,10 +1847,7 @@ function renderWorldLegend(projects) {
         <span class="eyebrow">Explorer</span>
         <h3>Graph Controls</h3>
       </div>
-      <div class="world-control-actions">
-        <button type="button" class="topbar-button ghost" id="world-fit-graph">Fit Graph</button>
-        <button type="button" class="topbar-button ghost" id="world-reset-selection">Reset Selection</button>
-      </div>
+      <p class="world-control-copy">Graph engine active. Use the floating dock for camera and selection actions.</p>
     </div>
     <div class="world-legend-grid">
       <div class="legend-item"><span class="legend-dot universe"></span><span>Universe Root</span></div>
@@ -1885,19 +1886,12 @@ function renderWorldLegend(projects) {
       <span>${topPlugins.length ? topPlugins.map(([pluginId, count]) => `${pluginId} (${count})`).join(", ") : "No plugin clusters yet."}</span>
     </div>
   `;
-  $("world-fit-graph")?.addEventListener("click", () => {
-    fitWorldGraph();
-    setStatus("World graph camera reset.", "ok");
-  });
-  $("world-reset-selection")?.addEventListener("click", () => {
-    closeWorldDrawer();
-    fitWorldGraph();
-  });
   legend.querySelectorAll("[data-world-filter]").forEach((node) => {
     node.addEventListener("click", () => {
       const key = node.dataset.worldFilter;
       state.worldGraphFilters[key] = !state.worldGraphFilters[key];
       renderWorldLegend(projects);
+      renderWorldGraphChrome(projects);
       state.worldGraphRenderer?.refresh?.();
       setStatus(`World relation filter updated: ${key} ${state.worldGraphFilters[key] ? "on" : "off"}.`, "ok");
     });
@@ -1912,10 +1906,115 @@ function renderWorldLegend(projects) {
   });
 }
 
-function fitWorldGraph() {
+function worldSelectedNodeMeta() {
+  if (!state.selectedWorldNodeId) return null;
+  return state.worldGraphNodeMap.get(state.selectedWorldNodeId) || null;
+}
+
+function worldHoveredNodeMeta() {
+  if (!state.hoveredWorldNodeId) return null;
+  return state.worldGraphNodeMap.get(state.hoveredWorldNodeId) || null;
+}
+
+function worldActiveFilterCount() {
+  return Object.values(state.worldGraphFilters).filter(Boolean).length;
+}
+
+function renderWorldGraphChrome(projects) {
+  const info = $("world-graph-info");
+  const dock = $("world-graph-dock");
+  if (!info || !dock) return;
+
+  const selectedMeta = worldSelectedNodeMeta();
+  const hoveredMeta = worldHoveredNodeMeta();
+  const activeMeta = selectedMeta || hoveredMeta;
+  const activeLabel = selectedMeta ? "Selected Node" : hoveredMeta ? "Hovered Node" : "Explorer Ready";
+  const relationModes = `${worldActiveFilterCount()} / ${Object.keys(state.worldGraphFilters).length} relations visible`;
+
+  if (!projects.length) {
+    info.innerHTML = "";
+    dock.innerHTML = "";
+    return;
+  }
+
+  if (!activeMeta) {
+    info.innerHTML = `
+      <div class="world-info-pill world-info-pill-idle">
+        <span class="eyebrow">Explorer Ready</span>
+        <strong>Pan, zoom, or pick a project to inspect the world graph.</strong>
+        <span>${escapeHtml(relationModes)}</span>
+      </div>
+    `;
+  } else if (activeMeta.kind === "universe") {
+    info.innerHTML = `
+      <div class="world-info-pill world-info-pill-active">
+        <span class="eyebrow">${activeLabel}</span>
+        <strong>elo-universe-0</strong>
+        <span>${projects.length} projects linked into the current universe surface.</span>
+      </div>
+    `;
+  } else {
+    const project = activeMeta.project;
+    info.innerHTML = `
+      <div class="world-info-pill world-info-pill-active">
+        <span class="eyebrow">${activeLabel}</span>
+        <strong>${escapeHtml(project.title)}</strong>
+        <span>${escapeHtml(project.repoFullName || project.repoName)} · ${escapeHtml(project.stage || "source")} · ${escapeHtml(projectStateLabel(project.state))}</span>
+      </div>
+    `;
+  }
+
+  dock.innerHTML = `
+    <div class="world-dock-cluster">
+      <button type="button" class="world-dock-button" id="world-fit-graph" title="Fit graph">
+        <span aria-hidden="true">+</span>
+      </button>
+      <button type="button" class="world-dock-button" id="world-reset-selection" title="Reset selection">
+        <span aria-hidden="true">×</span>
+      </button>
+      ${selectedMeta ? `
+        <button type="button" class="world-dock-button world-dock-button-active" id="world-focus-selection" title="Focus selection">
+          <span aria-hidden="true">◎</span>
+        </button>
+      ` : ""}
+    </div>
+    <div class="world-dock-caption">
+      <strong>Explorer Dock</strong>
+      <span>${escapeHtml(relationModes)}</span>
+    </div>
+  `;
+
+  $("world-fit-graph")?.addEventListener("click", () => {
+    fitWorldGraph();
+    setStatus("World graph camera reset.", "ok");
+  });
+  $("world-reset-selection")?.addEventListener("click", () => {
+    closeWorldDrawer();
+    fitWorldGraph();
+  });
+  $("world-focus-selection")?.addEventListener("click", () => {
+    fitWorldGraph(state.selectedWorldNodeId);
+    setStatus("World graph focused on the selected project.", "ok");
+  });
+}
+
+function fitWorldGraph(nodeId = "") {
   const renderer = state.worldGraphRenderer;
   if (!renderer) return;
   const camera = renderer.getCamera?.();
+  if (nodeId && state.worldGraph?.hasNode?.(nodeId)) {
+    const attrs = state.worldGraph.getNodeAttributes(nodeId);
+    if (camera?.animate && attrs) {
+      camera.animate({
+        x: attrs.x,
+        y: attrs.y,
+        ratio: Math.max(0.45, Math.min(1.2, attrs.kind === "universe" ? 1.1 : 0.68)),
+        angle: 0
+      }, { duration: 450 });
+      renderer.refresh?.();
+      return;
+    }
+  }
   if (camera?.animate) {
     camera.animate({ x: 0.5, y: 0.5, ratio: 1.05, angle: 0 }, { duration: 450 });
   } else if (camera?.animatedReset) {
@@ -1929,6 +2028,7 @@ function fitWorldGraph() {
 function openWorldDrawer(nodeId) {
   state.selectedWorldNodeId = nodeId || "";
   state.worldDrawerOpen = Boolean(nodeId);
+  renderWorldGraphChrome(currentWorldProjects());
   if (state.worldGraphRenderer) state.worldGraphRenderer.refresh?.();
 }
 
@@ -1947,6 +2047,7 @@ function closeWorldDrawer() {
     backdrop.classList.remove("open");
     backdrop.setAttribute("hidden", "hidden");
   }
+  renderWorldGraphChrome(currentWorldProjects());
   if (state.worldGraphRenderer) state.worldGraphRenderer.refresh?.();
 }
 
@@ -2122,6 +2223,7 @@ async function renderProjectGraph(projects) {
   const empty = $("world-graph-empty");
   if (!root || currentRoute() !== "world") return;
   renderWorldLegend(projects);
+  renderWorldGraphChrome(projects);
   if (!projects.length) {
     destroyWorldGraphRenderer();
     state.selectedWorldNodeId = "";
@@ -2155,9 +2257,9 @@ async function renderProjectGraph(projects) {
 
   const renderer = new Sigma(graph, mount, {
     renderLabels: true,
-    labelDensity: 0.06,
+    labelDensity: 0.085,
     labelGridCellSize: 90,
-    labelRenderedSizeThreshold: 8,
+    labelRenderedSizeThreshold: 6,
     defaultNodeType: "circle",
     defaultEdgeType: "line",
     zIndex: true,
@@ -2172,7 +2274,7 @@ async function renderProjectGraph(projects) {
       return {
         ...data,
         color: !selected && !hovered && state.selectedWorldNodeId && !connected ? "rgba(77, 92, 119, 0.45)" : data.color,
-        size: selected ? data.size + 5 : hovered ? data.size + 2 : data.size,
+        size: selected ? data.size + 6 : hovered ? data.size + 3.5 : data.size,
         label: hovered || selected || data.forceLabel ? data.fullLabel || data.label : data.label,
         forceLabel: hovered || selected || data.forceLabel,
         zIndex: selected ? 20 : hovered ? 12 : data.zIndex
@@ -2201,13 +2303,17 @@ async function renderProjectGraph(projects) {
   renderer.on("clickNode", ({ node }) => {
     openWorldDrawer(node);
     renderWorldSelectionDrawer(node, projects);
+    renderWorldGraphChrome(projects);
+    fitWorldGraph(node);
   });
   renderer.on("enterNode", ({ node }) => {
     state.hoveredWorldNodeId = node;
+    renderWorldGraphChrome(projects);
     renderer.refresh?.();
   });
   renderer.on("leaveNode", () => {
     state.hoveredWorldNodeId = "";
+    renderWorldGraphChrome(projects);
     renderer.refresh?.();
   });
   renderer.on("clickStage", () => {

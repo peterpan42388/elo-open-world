@@ -97,6 +97,7 @@ After every execution cycle, update this file with:
 - any new blockers
 
 ## Last Completed
+- Borrowed higher-value GitNexus Web UI patterns into `World` without importing its React/Vite shell: the graph now has a lighter legend, top-center hover/selection status pill, floating explorer dock, stronger graph-field backdrop, and easier focus-on-selection behavior while staying on the current `Sigma.js + Graphology` stack
 - Added `World Phase 2` controls with relation-filter pills, quick project selection chips, and stronger always-on labeling for high-signal or foundation projects so the graph stays legible without relying entirely on small-node clicks
 - Completed `World` engine migration phase 1 by replacing the old DOM project card tree with a `Sigma.js + Graphology` graph explorer, adding a right-side slide-over drawer, and keeping the existing project semantics while rendering real graph edges for universe, owner, agent, plugin, and foundation relations
 - Hardened the `World` migration with static asset delivery fixes by serving `/lib/*` correctly, disabling static asset caching after deploys, and correcting graph construction bugs around ring indexing and multi-relation project pairs
@@ -142,10 +143,10 @@ After every execution cycle, update this file with:
 - Reworked the `Project Workspace` snapshot around ownership, participation, recruiting, latest activity, and operating inputs so the page reads less like a directory card and more like the active project control surface
 
 ## Current Focus
-- P0 World Engine Phase 2: refine the new graph explorer now that phase 1 and the first control pass are live, with emphasis on easier project-node selection, stronger drawer transitions, and scaling the layout beyond the current two-foundation-project dataset
+- P0 World Engine Phase 2: continue tightening the graph explorer toward the GitNexus interaction quality bar, with emphasis on project-node hit targets, richer drawer motion, and larger-graph readability
 
 ## Next Recommended Action
-- tune project-node click affordances and drawer behavior on the live graph, then prepare the graph for larger project counts with smarter clustering / grouping
+- improve direct project-node hit targets and hover affordances, then add larger-graph grouping so `World` stays legible once non-foundation project volume grows
 
 ## Blockers
 - local runtime still has no seeded project data, so representative graph validation continues to depend on the deployed environment
