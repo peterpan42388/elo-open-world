@@ -5,6 +5,7 @@ const $ = (id) => document.getElementById(id);
 const SESSION_KEY = "elo-open-world.session";
 const SETTINGS_DEFAULT_SECTION = "profile";
 const WORLD_VISUAL_MODE_KEY = "elo-open-world.world-visual-mode";
+const WORLD_HIERARCHY_PRESET_KEY = "elo-open-world.world-hierarchy-preset";
 const ROUTES = new Set(["home", "join", "settings", "new-project", "project", "world", "build", "market", "docs"]);
 const ONBOARDER_PRESET = {
   repoName: "elo-agent-onboarder",
@@ -83,6 +84,8 @@ const state = {
     foundation: true
   },
   worldVisualMode: loadWorldVisualMode(),
+  worldHierarchyPreset: loadWorldHierarchyPreset(),
+  worldGraphLoadError: "",
   buildFilters: {
     kind: "",
     status: "",
@@ -117,6 +120,17 @@ function loadSession() {
 function loadWorldVisualMode() {
   const saved = localStorage.getItem(WORLD_VISUAL_MODE_KEY) || "";
   return ["live", "hybrid", "mock"].includes(saved) ? saved : "hybrid";
+}
+
+function loadWorldHierarchyPreset() {
+  const saved = localStorage.getItem(WORLD_HIERARCHY_PRESET_KEY) || "";
+  return ["project-first", "expanded"].includes(saved) ? saved : "project-first";
+}
+
+function saveWorldHierarchyPreset(preset) {
+  const next = ["project-first", "expanded"].includes(preset) ? preset : "project-first";
+  localStorage.setItem(WORLD_HIERARCHY_PRESET_KEY, next);
+  state.worldHierarchyPreset = next;
 }
 
 function bootstrapSessionFromUrl() {
@@ -1971,7 +1985,9 @@ function buildGraphRelations(projects) {
   let linkedAgents = 0;
 
   for (const project of projects) {
-    ownerCounts.set(project.ownerHumanId, (ownerCounts.get(project.ownerHumanId) || 0) + 1);
+    if (project.ownerHumanId) {
+      ownerCounts.set(project.ownerHumanId, (ownerCounts.get(project.ownerHumanId) || 0) + 1);
+    }
     for (const pluginId of project.pluginIds || []) {
       pluginUsage.set(pluginId, (pluginUsage.get(pluginId) || 0) + 1);
     }
@@ -1981,6 +1997,172 @@ function buildGraphRelations(projects) {
   const sharedOwners = [...ownerCounts.entries()].filter(([, count]) => count > 1);
   const topPlugins = [...pluginUsage.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4);
   return { sharedOwners, topPlugins, linkedAgents };
+}
+
+function worldHierarchyPresetLabel(preset = state.worldHierarchyPreset) {
+  return preset === "expanded" ? "Expanded Hierarchy" : "Project First";
+}
+
+function worldHierarchyProfile() {
+  return state.worldHierarchyPreset === "expanded"
+    ? {
+        humanBaseAlpha: 0.34,
+        agentBaseAlpha: 0.28,
+        humanSizeScale: 0.82,
+        agentSizeScale: 0.74,
+        humanLabelBoost: true,
+        agentLabelBoost: true,
+        humanEdgeIdleAlpha: 0.05,
+        agentEdgeIdleAlpha: 0.08
+      }
+    : {
+        humanBaseAlpha: 0.12,
+        agentBaseAlpha: 0.08,
+        humanSizeScale: 0.52,
+        agentSizeScale: 0.46,
+        humanLabelBoost: false,
+        agentLabelBoost: false,
+        humanEdgeIdleAlpha: 0.02,
+        agentEdgeIdleAlpha: 0.03
+      };
+}
+
+function worldClusterLensProjects(projects) {
+  const clusters = new Map();
+  projects.forEach((project) => {
+    const descriptor = worldProjectClusterDescriptor(project);
+    const key = descriptor.clusterId;
+    const existing = clusters.get(key) || {
+      clusterId: key,
+      clusterLabel: descriptor.clusterLabel,
+      projectIds: [],
+      score: 0,
+      anchorProjectId: project.projectId
+    };
+    existing.projectIds.push(project.projectId);
+    existing.score += Number(isOperatingFoundationProject(project)) * 5 + Number(project.heat || 0) / 100;
+    if ((project.heat || 0) >= (((projects.find((candidate) => candidate.projectId === existing.anchorProjectId)?.heat) || 0))) {
+      existing.anchorProjectId = project.projectId;
+    }
+    clusters.set(key, existing);
+  });
+  return [...clusters.values()]
+    .sort((left, right) => {
+      const countDelta = right.projectIds.length - left.projectIds.length;
+      if (countDelta) return countDelta;
+      return right.score - left.score;
+    })
+    .slice(0, 5);
+}
+
+function currentWorldVisibleProjects(projects) {
+  if (state.worldHierarchyPreset === "expanded") return projects;
+  return projects.filter((project) => {
+    if (isOperatingFoundationProject(project)) return true;
+    if (state.selectedWorldNodeId === worldNodeIdForProject(project.projectId)) return true;
+    return Number(project.heat || 0) >= 300 || String(project.stage || "").toLowerCase() === "operating";
+  });
+}
+
+function worldInsightsSummary(projects) {
+  const visibleProjects = currentWorldVisibleProjects(projects);
+  const relations = buildGraphRelations(projects);
+  const visibleEdges = [...state.worldGraphEdgeMap.values()].filter((edge) => worldEdgeTypeVisible(edge.edgeType)).length;
+  const clusters = worldClusterLensProjects(projects);
+  const hottestProjects = [...visibleProjects]
+    .sort((left, right) => Number(right.heat || 0) - Number(left.heat || 0))
+    .slice(0, 3);
+  return {
+    visibleProjects: visibleProjects.length,
+    totalProjects: projects.length,
+    visibleEdges,
+    topOwners: relations.sharedOwners.slice(0, 3),
+    topPlugins: relations.topPlugins.slice(0, 3),
+    hottestProjects,
+    clusters
+  };
+}
+
+function renderWorldInsights(projects) {
+  const root = $("world-insights");
+  if (!root) return;
+  if (!projects.length) {
+    root.innerHTML = '<div class="graph-empty">World insights appear once projects exist in the graph.</div>';
+    return;
+  }
+  const summary = worldInsightsSummary(projects);
+  const focusLabel = {
+    default: "Open",
+    selection: "Selection",
+    relation: "Relation",
+    cluster: "Cluster"
+  }[state.worldFocusMode] || "Open";
+  root.innerHTML = `
+    <div class="world-insight-grid">
+      <article class="world-insight-card">
+        <span class="eyebrow">Surface</span>
+        <h3>${escapeHtml(worldHierarchyPresetLabel())}</h3>
+        <p>${escapeHtml(summary.visibleProjects.toString())} of ${escapeHtml(summary.totalProjects.toString())} projects remain visually primary in the current scene.</p>
+        <div class="world-insight-meta">
+          <span>${escapeHtml(({
+            live: "Live",
+            hybrid: "Hybrid",
+            mock: "Visual Lab"
+          }[state.worldVisualMode] || "Hybrid"))}</span>
+          <span>${escapeHtml(focusLabel)} focus</span>
+          <span>${escapeHtml(summary.visibleEdges.toString())} visible relations</span>
+        </div>
+      </article>
+      <article class="world-insight-card">
+        <span class="eyebrow">Owner Clusters</span>
+        <h3>${summary.topOwners.length ? `${summary.topOwners.length} shared owners` : "Owner links quiet"}</h3>
+        <p>${summary.topOwners.length
+          ? escapeHtml(summary.topOwners.map(([ownerId, count]) => `${ownerId.replace(/^human\.github\./, "")} (${count})`).join(" · "))
+          : "No multi-project owner cluster is currently visible."}</p>
+      </article>
+      <article class="world-insight-card">
+        <span class="eyebrow">Cluster Lenses</span>
+        <div class="world-insight-chip-row">
+          ${summary.clusters.map((cluster) => `
+            <button type="button" class="world-insight-chip" data-world-cluster-focus="${escapeHtml(cluster.anchorProjectId)}">
+              ${escapeHtml(cluster.clusterLabel)} <span>${cluster.projectIds.length}</span>
+            </button>
+          `).join("")}
+        </div>
+      </article>
+      <article class="world-insight-card">
+        <span class="eyebrow">Project Signals</span>
+        <div class="world-insight-list">
+          ${summary.hottestProjects.map((project) => `
+            <button type="button" class="world-insight-list-item" data-world-project-shortcut="${escapeHtml(project.projectId)}">
+              <strong>${escapeHtml(project.title)}</strong>
+              <span>${escapeHtml(project.repoFullName || project.repoName)} · heat ${escapeHtml(String(project.heat || 0))}</span>
+            </button>
+          `).join("") || '<div class="empty compact">No project signals available.</div>'}
+        </div>
+      </article>
+    </div>
+  `;
+  root.querySelectorAll("[data-world-project-shortcut]").forEach((node) => {
+    node.addEventListener("click", () => {
+      const nodeId = worldNodeIdForProject(node.dataset.worldProjectShortcut);
+      openWorldDrawer(nodeId);
+      renderWorldSelectionDrawer(nodeId, projects);
+      fitWorldGraph(nodeId);
+    });
+  });
+  root.querySelectorAll("[data-world-cluster-focus]").forEach((node) => {
+    node.addEventListener("click", () => {
+      const nodeId = worldNodeIdForProject(node.dataset.worldClusterFocus);
+      openWorldDrawer(nodeId);
+      state.worldFocusMode = "cluster";
+      renderWorldSelectionDrawer(nodeId, projects);
+      renderWorldGraphChrome(projects);
+      fitWorldCluster(nodeId);
+      state.worldGraphRenderer?.refresh?.();
+      renderWorldGraphOverlay();
+    });
+  });
 }
 
 function relatedProjectsForSelection(projects, selectedProject) {
@@ -2577,6 +2759,11 @@ function renderWorldLegend(projects) {
   if (!legend) return;
   const { sharedOwners, topPlugins, linkedAgents } = buildGraphRelations(projects);
   const foundationCount = projects.filter((project) => isOperatingFoundationProject(project)).length;
+  const hierarchyPresets = [
+    ["project-first", "Project First"],
+    ["expanded", "Expanded Hierarchy"]
+  ];
+  const clusterLenses = worldClusterLensProjects(projects);
   const quickProjects = [...projects]
     .sort((left, right) => {
       const foundationDelta = Number(isOperatingFoundationProject(right)) - Number(isOperatingFoundationProject(left));
@@ -2635,6 +2822,27 @@ function renderWorldLegend(projects) {
         `).join("")}
       </div>
     </div>
+    <div class="world-visual-mode-bar">
+      <span class="world-shortcuts-label">Hierarchy</span>
+      <div class="world-visual-mode-list">
+        ${hierarchyPresets.map(([key, label]) => `
+          <button type="button" class="world-mode-pill ${state.worldHierarchyPreset === key ? "active" : ""}" data-world-hierarchy-preset="${key}">
+            ${escapeHtml(label)}
+          </button>
+        `).join("")}
+      </div>
+    </div>
+    <div class="world-project-shortcuts">
+      <span class="world-shortcuts-label">Cluster Lenses</span>
+      <div class="world-shortcuts-list">
+        ${clusterLenses.map((cluster) => `
+          <button type="button" class="world-project-chip" data-world-cluster-focus="${escapeHtml(cluster.anchorProjectId)}">
+            <span>${escapeHtml(clampInlineLabel(cluster.clusterLabel, 20))}</span>
+            <span class="world-project-chip-count">${cluster.projectIds.length}</span>
+          </button>
+        `).join("")}
+      </div>
+    </div>
     <div class="world-project-shortcuts">
       <span class="world-shortcuts-label">Quick Select</span>
       <div class="world-shortcuts-list">
@@ -2657,6 +2865,7 @@ function renderWorldLegend(projects) {
       state.worldGraphFilters[key] = !state.worldGraphFilters[key];
       renderWorldLegend(projects);
       renderWorldGraphChrome(projects);
+      renderWorldInsights(projects);
       state.worldGraphRenderer?.refresh?.();
       setStatus(`World relation filter updated: ${key} ${state.worldGraphFilters[key] ? "on" : "off"}.`, "ok");
     });
@@ -2670,12 +2879,38 @@ function renderWorldLegend(projects) {
       setStatus(`World visual mode switched to ${mode}.`, "ok");
     });
   });
+  legend.querySelectorAll("[data-world-hierarchy-preset]").forEach((node) => {
+    node.addEventListener("click", () => {
+      const preset = node.dataset.worldHierarchyPreset;
+      saveWorldHierarchyPreset(preset);
+      renderWorldLegend(projects);
+      renderWorldGraphChrome(projects);
+      renderWorldInsights(projects);
+      state.worldGraphRenderer?.refresh?.();
+      renderWorldGraphOverlay();
+      setStatus(`World hierarchy preset switched to ${worldHierarchyPresetLabel(preset)}.`, "ok");
+    });
+  });
   legend.querySelectorAll("[data-world-project-shortcut]").forEach((node) => {
     node.addEventListener("click", () => {
       const nodeId = worldNodeIdForProject(node.dataset.worldProjectShortcut);
       openWorldDrawer(nodeId);
       renderWorldSelectionDrawer(nodeId, projects);
       fitWorldGraph(nodeId);
+    });
+  });
+  legend.querySelectorAll("[data-world-cluster-focus]").forEach((node) => {
+    node.addEventListener("click", () => {
+      const nodeId = worldNodeIdForProject(node.dataset.worldClusterFocus);
+      openWorldDrawer(nodeId);
+      state.worldFocusMode = "cluster";
+      renderWorldSelectionDrawer(nodeId, projects);
+      renderWorldGraphChrome(projects);
+      renderWorldInsights(projects);
+      fitWorldCluster(nodeId);
+      state.worldGraphRenderer?.refresh?.();
+      renderWorldGraphOverlay();
+      setStatus("World graph cluster lens activated.", "ok");
     });
   });
 }
@@ -2765,6 +3000,7 @@ function renderWorldGraphChrome(projects) {
     relation: "Relation",
     cluster: "Cluster"
   }[state.worldFocusMode] || "Open";
+  const hierarchyLabel = worldHierarchyPresetLabel();
   const clusterCapable = selectedMeta?.kind === "project";
 
   if (!projects.length) {
@@ -2778,7 +3014,7 @@ function renderWorldGraphChrome(projects) {
       <div class="world-info-pill world-info-pill-idle">
         <span class="eyebrow">Explorer Ready</span>
         <strong>Pan, zoom, or pick a project to inspect the world graph.</strong>
-        <span>${escapeHtml(visualModeLabel)} · ${escapeHtml(relationModes)}</span>
+        <span>${escapeHtml(visualModeLabel)} · ${escapeHtml(hierarchyLabel)} · ${escapeHtml(relationModes)}</span>
       </div>
     `;
   } else if (activeMeta.kind === "universe") {
@@ -2794,7 +3030,7 @@ function renderWorldGraphChrome(projects) {
       <div class="world-info-pill world-info-pill-active">
         <span class="eyebrow">${activeLabel}</span>
         <strong>${escapeHtml(activeMeta.humanId)}</strong>
-        <span>${(activeMeta.projectIds || []).length} project link${(activeMeta.projectIds || []).length === 1 ? "" : "s"} · ${(activeMeta.agentIds || []).length} agent link${(activeMeta.agentIds || []).length === 1 ? "" : "s"} · ${escapeHtml(visualModeLabel)}</span>
+        <span>${(activeMeta.projectIds || []).length} project link${(activeMeta.projectIds || []).length === 1 ? "" : "s"} · ${(activeMeta.agentIds || []).length} agent link${(activeMeta.agentIds || []).length === 1 ? "" : "s"} · ${escapeHtml(hierarchyLabel)}</span>
       </div>
     `;
   } else if (activeMeta.kind === "agent") {
@@ -2802,7 +3038,7 @@ function renderWorldGraphChrome(projects) {
       <div class="world-info-pill world-info-pill-active">
         <span class="eyebrow">${activeLabel}</span>
         <strong>${escapeHtml(activeMeta.agentId)}</strong>
-        <span>${escapeHtml(activeMeta.humanId || "-")} · ${(activeMeta.projectIds || []).length} project link${(activeMeta.projectIds || []).length === 1 ? "" : "s"} · ${escapeHtml(visualModeLabel)}</span>
+        <span>${escapeHtml(activeMeta.humanId || "-")} · ${(activeMeta.projectIds || []).length} project link${(activeMeta.projectIds || []).length === 1 ? "" : "s"} · ${escapeHtml(hierarchyLabel)}</span>
       </div>
     `;
   } else {
@@ -2811,7 +3047,7 @@ function renderWorldGraphChrome(projects) {
       <div class="world-info-pill world-info-pill-active">
         <span class="eyebrow">${activeLabel}</span>
         <strong>${escapeHtml(project.title)}</strong>
-        <span>${escapeHtml(project.repoFullName || project.repoName)} · ${escapeHtml(project.stage || "source")} · ${escapeHtml(projectStateLabel(project.state))} · ${escapeHtml(focusModeLabel)} focus${isWorldVisualMockProject(project) ? " · visual lab node" : ""}</span>
+        <span>${escapeHtml(project.repoFullName || project.repoName)} · ${escapeHtml(project.stage || "source")} · ${escapeHtml(projectStateLabel(project.state))} · ${escapeHtml(focusModeLabel)} focus · ${escapeHtml(hierarchyLabel)}${isWorldVisualMockProject(project) ? " · visual lab node" : ""}</span>
       </div>
     `;
   }
@@ -2840,7 +3076,7 @@ function renderWorldGraphChrome(projects) {
     </div>
     <div class="world-dock-caption">
       <strong>Explorer Dock</strong>
-      <span>${escapeHtml(visualModeLabel)} · ${escapeHtml(relationModes)} · ${escapeHtml(focusModeLabel)} focus</span>
+      <span>${escapeHtml(visualModeLabel)} · ${escapeHtml(hierarchyLabel)} · ${escapeHtml(focusModeLabel)} focus</span>
     </div>
   `;
 
@@ -2858,6 +3094,7 @@ function renderWorldGraphChrome(projects) {
     state.worldGraphRenderer?.refresh?.();
     renderWorldGraphOverlay();
     renderWorldGraphChrome(projects);
+    renderWorldInsights(projects);
     setStatus("World graph focused on the selected project.", "ok");
   });
   $("world-focus-relation")?.addEventListener("click", () => {
@@ -2866,6 +3103,7 @@ function renderWorldGraphChrome(projects) {
     state.worldGraphRenderer?.refresh?.();
     renderWorldGraphOverlay();
     renderWorldGraphChrome(projects);
+    renderWorldInsights(projects);
     setStatus("World graph relation focus enabled.", "ok");
   });
   $("world-focus-cluster")?.addEventListener("click", () => {
@@ -2874,6 +3112,7 @@ function renderWorldGraphChrome(projects) {
     state.worldGraphRenderer?.refresh?.();
     renderWorldGraphOverlay();
     renderWorldGraphChrome(projects);
+    renderWorldInsights(projects);
     setStatus("World graph cluster focus enabled.", "ok");
   });
 }
@@ -3261,6 +3500,7 @@ function openWorldDrawer(nodeId) {
   state.worldFocusMode = nodeId ? "selection" : "default";
   pauseWorldSceneMotion(900);
   renderWorldGraphChrome(currentWorldProjects());
+  renderWorldInsights(currentWorldProjects());
   if (state.worldGraphRenderer) state.worldGraphRenderer.refresh?.();
 }
 
@@ -3282,6 +3522,7 @@ function closeWorldDrawer() {
     backdrop.setAttribute("hidden", "hidden");
   }
   renderWorldGraphChrome(currentWorldProjects());
+  renderWorldInsights(currentWorldProjects());
   if (state.worldGraphRenderer) state.worldGraphRenderer.refresh?.();
 }
 
@@ -3304,6 +3545,7 @@ function renderWorldProjectDrawer(projects, project) {
   const related = relatedProjectsForSelection(projects, project);
   const serviceHref = sanitizeExternalHref(project.serviceEndpoint || "");
   const visualMock = isWorldVisualMockProject(project);
+  const cluster = worldProjectClusterDescriptor(project);
   return `
     <div class="world-drawer-header">
       <div>
@@ -3325,7 +3567,13 @@ function renderWorldProjectDrawer(projects, project) {
       </section>
       <section class="world-drawer-section detail-grid compact">
         <div class="detail-item"><span>Owner</span><strong class="detail-code">${escapeHtml(project.ownerHumanId || "-")}</strong></div>
-        <div class="detail-item"><span>Cluster</span><strong>${escapeHtml(project.visualClusterLabel || worldProjectClusterDescriptor(project).clusterLabel)}</strong></div>
+        <div class="detail-item"><span>Cluster</span><strong>${escapeHtml(project.visualClusterLabel || cluster.clusterLabel)}</strong></div>
+        <div class="detail-item"><span>Focus Mode</span><strong>${escapeHtml({
+          default: "Open",
+          selection: "Selection",
+          relation: "Relation",
+          cluster: "Cluster"
+        }[state.worldFocusMode] || "Open")}</strong></div>
         <div class="detail-item"><span>Agents</span><strong>${project.memberAgentIds?.length || 0}</strong></div>
         <div class="detail-item"><span>Plugins</span><strong>${project.pluginIds?.length || 0}</strong></div>
         <div class="detail-item"><span>Recruiting</span><strong>${escapeHtml(recruitingState.label)}</strong></div>
@@ -3346,7 +3594,8 @@ function renderWorldProjectDrawer(projects, project) {
         ${renderBoundedNoteList([
           { label: "Shared Owners", value: related.ownerMatches.length ? related.ownerMatches.map((item) => item.title).join(", ") : "No same-owner project links." },
           { label: "Shared Agents", value: related.agentMatches.length ? related.agentMatches.map((item) => item.title).join(", ") : "No shared-agent project links." },
-          { label: "Shared Plugins", value: related.pluginMatches.length ? related.pluginMatches.map((item) => item.title).join(", ") : "No shared-plugin project links." }
+          { label: "Shared Plugins", value: related.pluginMatches.length ? related.pluginMatches.map((item) => item.title).join(", ") : "No shared-plugin project links." },
+          { label: "Cluster Lens", value: `${project.visualClusterLabel || cluster.clusterLabel} · ${worldHierarchyPresetLabel()}` }
         ])}
       </section>
       ${visualMock ? `
@@ -3386,6 +3635,7 @@ function renderWorldUniverseDrawer(projects) {
         <p>The universe node anchors all source projects and highlights the strongest owner, plugin, and foundation clusters in this deployment.</p>
         <div class="nested-list">
           <div class="nested-item"><strong>Data Surface</strong><span>${escapeHtml(visualModeLabel)}</span></div>
+          <div class="nested-item"><strong>Hierarchy</strong><span>${escapeHtml(worldHierarchyPresetLabel())}</span></div>
         </div>
       </section>
       <section class="world-drawer-section detail-grid compact">
@@ -3541,26 +3791,59 @@ function destroyWorldGraphRenderer() {
   state.worldFocusMode = "default";
 }
 
+function showWorldGraphEmpty(message, retryable = false) {
+  const empty = $("world-graph-empty");
+  if (!empty) return;
+  empty.hidden = false;
+  empty.innerHTML = retryable
+    ? `
+      <div class="world-graph-fallback">
+        <strong>World graph unavailable</strong>
+        <span>${escapeHtml(message)}</span>
+        <button type="button" class="topbar-button" id="world-graph-retry">Retry Graph Engine</button>
+      </div>
+    `
+    : escapeHtml(message);
+  $("world-graph-retry")?.addEventListener("click", () => {
+    state.worldGraphEngine = null;
+    state.worldGraphEnginePromise = null;
+    state.worldGraphLoadError = "";
+    void renderProjectGraph(currentWorldProjects());
+  });
+}
+
 async function renderProjectGraph(projects) {
   const root = $("project-graph");
   const empty = $("world-graph-empty");
   if (!root || currentRoute() !== "world") return;
   renderWorldLegend(projects);
   renderWorldGraphChrome(projects);
+  renderWorldInsights(projects);
   if (!projects.length) {
     destroyWorldGraphRenderer();
     state.selectedWorldNodeId = "";
     root.innerHTML = "";
-    if (empty) {
-      empty.hidden = false;
-      empty.textContent = "No source projects yet. Use New Project to create the first project node.";
-    }
+    showWorldGraphEmpty("No source projects yet. Use New Project to create the first project node.");
     closeWorldDrawer();
     return;
   }
 
   if (empty) empty.hidden = true;
-  const { Sigma, EdgeCurveProgram } = await ensureWorldGraphEngine();
+  let Sigma;
+  let EdgeCurveProgram;
+  try {
+    ({ Sigma, EdgeCurveProgram } = await ensureWorldGraphEngine());
+    state.worldGraphLoadError = "";
+  } catch (error) {
+    destroyWorldGraphRenderer();
+    closeWorldDrawer();
+    root.innerHTML = "";
+    state.worldGraphLoadError = error?.message || "Graph engine failed to load.";
+    showWorldGraphEmpty(`The graph engine could not be loaded. ${state.worldGraphLoadError}`, true);
+    console.error("World graph engine failed to load", error);
+    setStatus("World graph engine load failed. Retry available in the world panel.", "error");
+    return;
+  }
   if (currentRoute() !== "world") return;
 
   root.innerHTML = "";
@@ -3606,11 +3889,19 @@ async function renderProjectGraph(projects) {
     maxCameraRatio: 4,
     nodeReducer: (node, data) => {
       const focus = getFocusContext();
+      const hierarchy = worldHierarchyProfile();
       const selected = state.worldDrawerOpen && state.selectedWorldNodeId === node;
       const hovered = state.hoveredWorldNodeId === node;
       const activeNodeId = currentWorldActiveNodeId();
       const isPrimary = focus.primaryNodes.has(node);
       const isSecondary = focus.secondaryNodes.has(node);
+      const isHierarchyNode = data.kind === "human" || data.kind === "agent";
+      const hierarchyVisible = !isHierarchyNode
+        || state.worldHierarchyPreset === "expanded"
+        || selected
+        || hovered
+        || isPrimary
+        || isSecondary;
       const dimmed = activeNodeId && !isPrimary && !isSecondary;
       const typeWeight = data.kind === "project"
         ? 1
@@ -3619,7 +3910,12 @@ async function renderProjectGraph(projects) {
           : data.kind === "human"
             ? 0.46
             : 0.34;
-      const baseAlpha = Math.max(0.18, (data.depthAlpha || 1) * 0.58 * typeWeight);
+      const hierarchyAlpha = data.kind === "human"
+        ? hierarchy.humanBaseAlpha
+        : data.kind === "agent"
+          ? hierarchy.agentBaseAlpha
+          : 1;
+      const baseAlpha = Math.max(0.08, (data.depthAlpha || 1) * 0.58 * typeWeight * hierarchyAlpha);
       const nodeAlpha = selected
         ? 1
         : hovered
@@ -3631,27 +3927,38 @@ async function renderProjectGraph(projects) {
               : isSecondary
                 ? Math.min(1, baseAlpha + 0.12)
                 : baseAlpha;
+      const baseSize = data.kind === "human"
+        ? data.size * hierarchy.humanSizeScale
+        : data.kind === "agent"
+          ? data.size * hierarchy.agentSizeScale
+          : data.size;
       return {
         ...data,
+        hidden: !hierarchyVisible,
         color: worldColorWithAlpha(data.baseColor || data.color, nodeAlpha),
         size: selected
-          ? data.size + (data.depthLayer === "foreground" ? 10.5 : 8.5)
+          ? baseSize + (data.depthLayer === "foreground" ? 10.5 : 8.5)
           : hovered
-            ? data.size + (data.depthLayer === "foreground" ? 6.4 : 5.2)
+            ? baseSize + (data.depthLayer === "foreground" ? 6.4 : 5.2)
             : isPrimary
-              ? data.size + 2.1
+              ? baseSize + 2.1
               : data.kind === "project"
-                ? data.size
-                : data.size * (data.kind === "human" ? 0.76 : data.kind === "agent" ? 0.64 : 0.92),
+                ? baseSize
+                : baseSize * (data.kind === "human" ? 0.92 : data.kind === "agent" ? 0.9 : 0.92),
         label: hovered || selected || isPrimary || (data.kind === "project" && data.forceLabel) || (data.kind === "universe" && data.forceLabel)
+          || (data.kind === "human" && hierarchy.humanLabelBoost && !dimmed)
+          || (data.kind === "agent" && hierarchy.agentLabelBoost && !dimmed)
           ? data.fullLabel || data.label
           : data.label,
-        forceLabel: hovered || selected || isPrimary || (data.kind === "project" && data.forceLabel) || (data.kind === "universe" && data.forceLabel),
+        forceLabel: hovered || selected || isPrimary || (data.kind === "project" && data.forceLabel) || (data.kind === "universe" && data.forceLabel)
+          || (data.kind === "human" && hierarchy.humanLabelBoost && !dimmed)
+          || (data.kind === "agent" && hierarchy.agentLabelBoost && !dimmed),
         zIndex: selected ? 34 : hovered ? 22 : isPrimary ? 16 : data.zIndex
       };
     },
     edgeReducer: (edge, data) => {
       const focus = getFocusContext();
+      const hierarchy = worldHierarchyProfile();
       if (!worldEdgeTypeVisible(data.edgeType)) {
         return {
           ...data,
@@ -3661,17 +3968,21 @@ async function renderProjectGraph(projects) {
       const activeNodeId = currentWorldActiveNodeId();
       const related = focus.highlightedEdges.has(edge);
       if (!activeNodeId) {
+        const passiveAlpha = data.edgeType === "foundation-link"
+          ? 0.18
+          : data.edgeType === "plugin-link"
+            ? 0.06
+            : data.edgeType === "universe-link"
+              ? 0.035
+              : data.edgeType === "owner-link"
+                ? hierarchy.humanEdgeIdleAlpha
+                : hierarchy.agentEdgeIdleAlpha;
         return {
           ...data,
+          hidden: state.worldHierarchyPreset === "project-first" && (data.edgeType === "owner-link" || data.edgeType === "agent-link"),
           color: worldColorWithAlpha(
             data.baseColor || data.color,
-            data.edgeType === "foundation-link"
-              ? 0.18
-              : data.edgeType === "plugin-link"
-                ? 0.06
-                : data.edgeType === "universe-link"
-                  ? 0.035
-                  : 0.085
+            passiveAlpha
           ),
           size: Math.max(0.35, data.size * 0.42)
         };

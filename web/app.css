@@ -757,7 +757,7 @@ button:focus {
 .quickstart-panel,
 .infrastructure,
 .world-graph-panel,
-.chat-placeholder-panel { margin: 18px 0 16px; }
+.world-insights-panel { margin: 18px 0 16px; }
 
 .guide-grid {
   display: grid;
@@ -1012,6 +1012,18 @@ button:focus {
   color: var(--text);
 }
 
+.world-project-chip-count {
+  display: inline-flex;
+  min-width: 18px;
+  height: 18px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: rgba(122, 162, 255, 0.16);
+  color: #cfe0ff;
+  font-size: 11px;
+}
+
 .world-project-chip-dot {
   width: 8px;
   height: 8px;
@@ -1034,6 +1046,98 @@ button:focus {
   padding-top: 12px;
   display: grid;
   gap: 4px;
+}
+
+.world-insights-panel {
+  background:
+    radial-gradient(circle at 16% 20%, rgba(87, 215, 193, 0.08), transparent 28%),
+    linear-gradient(180deg, rgba(10, 15, 24, 0.96), rgba(8, 12, 18, 0.98));
+}
+
+.world-insights {
+  display: grid;
+  gap: 14px;
+}
+
+.world-insight-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.world-insight-card {
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(111, 132, 161, 0.16);
+  background: linear-gradient(180deg, rgba(17, 24, 37, 0.82), rgba(9, 14, 22, 0.9));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 16px 34px rgba(0, 0, 0, 0.18);
+}
+
+.world-insight-card h3,
+.world-insight-card p {
+  margin: 0;
+}
+
+.world-insight-card p {
+  color: var(--muted);
+}
+
+.world-insight-meta,
+.world-insight-chip-row,
+.world-insight-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.world-insight-meta span,
+.world-insight-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(12, 18, 28, 0.84);
+  border: 1px solid rgba(111, 132, 161, 0.14);
+  color: var(--text-soft);
+  font-size: 12px;
+}
+
+.world-insight-chip span {
+  color: #cfe0ff;
+  font-weight: 700;
+}
+
+.world-insight-list {
+  display: grid;
+}
+
+.world-insight-list-item {
+  width: 100%;
+  text-align: left;
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(111, 132, 161, 0.16);
+  background: rgba(10, 15, 23, 0.86);
+  color: var(--text);
+}
+
+.world-insight-list-item span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.world-graph-fallback {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  text-align: center;
+  padding: 20px;
 }
 
 .project-graph-frame {
