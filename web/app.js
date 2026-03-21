@@ -2103,6 +2103,29 @@ function worldInsightsSummary(projects) {
   };
 }
 
+function worldClusterProjects(projects, clusterId) {
+  if (!clusterId) return [];
+  return projects.filter((project) => worldProjectClusterDescriptor(project).clusterId === clusterId);
+}
+
+function worldClusterSummary(projects, clusterId) {
+  const clusterProjects = worldClusterProjects(projects, clusterId)
+    .sort((left, right) => Number(right.heat || 0) - Number(left.heat || 0));
+  const anchorProject = clusterProjects[0] || null;
+  const operatingCount = clusterProjects.filter((project) => String(project.stage || "").toLowerCase() === "operating" || String(project.state || "").toLowerCase() === "operating").length;
+  const foundationCount = clusterProjects.filter((project) => isOperatingFoundationProject(project)).length;
+  const ownerCount = new Set(clusterProjects.map((project) => project.ownerHumanId).filter(Boolean)).size;
+  return {
+    clusterLabel: anchorProject ? (anchorProject.visualClusterLabel || worldProjectClusterDescriptor(anchorProject).clusterLabel) : "Cluster",
+    projectCount: clusterProjects.length,
+    operatingCount,
+    foundationCount,
+    ownerCount,
+    anchorProject,
+    projects: clusterProjects
+  };
+}
+
 function renderWorldInsights(projects) {
   const root = $("world-insights");
   if (!root) return;
@@ -3600,6 +3623,7 @@ function renderWorldProjectDrawer(projects, project) {
   const serviceHref = sanitizeExternalHref(project.serviceEndpoint || "");
   const visualMock = isWorldVisualMockProject(project);
   const cluster = worldProjectClusterDescriptor(project);
+  const clusterSummary = worldClusterSummary(projects, cluster.clusterId);
   return `
     <div class="world-drawer-header">
       <div>
@@ -3652,6 +3676,23 @@ function renderWorldProjectDrawer(projects, project) {
           { label: "Cluster Lens", value: `${project.visualClusterLabel || cluster.clusterLabel} · ${worldHierarchyPresetLabel()}` }
         ])}
       </section>
+      <section class="world-drawer-section">
+        <h4>Cluster Context</h4>
+        <div class="nested-list">
+          <div class="nested-item"><strong>Cluster</strong><span>${escapeHtml(clusterSummary.clusterLabel)}</span></div>
+          <div class="nested-item"><strong>Projects</strong><span>${clusterSummary.projectCount}</span></div>
+          <div class="nested-item"><strong>Operating</strong><span>${clusterSummary.operatingCount}</span></div>
+          <div class="nested-item"><strong>Owners</strong><span>${clusterSummary.ownerCount}</span></div>
+        </div>
+        ${clusterSummary.projects.length
+          ? `<div class="nested-list">${clusterSummary.projects.slice(0, 4).map((entry) => `
+              <button type="button" class="nested-item nested-item-button" data-world-project-shortcut="${escapeHtml(entry.projectId)}">
+                <strong>${escapeHtml(entry.title)}</strong>
+                <span>${escapeHtml(entry.repoFullName || entry.repoName)}${entry.projectId === project.projectId ? " · current" : ""}</span>
+              </button>
+            `).join("")}</div>`
+          : '<div class="empty compact">No cluster siblings available.</div>'}
+      </section>
       ${visualMock ? `
         <section class="world-drawer-section">
           <h4>Visual Lab Note</h4>
@@ -3659,6 +3700,7 @@ function renderWorldProjectDrawer(projects, project) {
         </section>
       ` : ""}
       <section class="world-drawer-section world-drawer-actions">
+        <button type="button" class="topbar-button secondary" data-world-focus-cluster="${escapeHtml(project.projectId)}">Focus Cluster</button>
         ${visualMock
           ? `<button type="button" class="topbar-button ghost" disabled>Visual Mock Node</button>`
           : `<button type="button" class="topbar-button" data-open-project-id="${escapeHtml(project.projectId)}">Open Project</button>`}
@@ -3671,6 +3713,7 @@ function renderWorldProjectDrawer(projects, project) {
 
 function renderWorldUniverseDrawer(projects) {
   const universe = worldUniverseSummary(projects);
+  const topClusters = worldClusterLensProjects(projects);
   const visualModeLabel = {
     live: "Live data only",
     hybrid: "Hybrid visual lab",
@@ -3705,6 +3748,12 @@ function renderWorldUniverseDrawer(projects) {
         ${universe.topPlugins.length
           ? `<div class="nested-list">${universe.topPlugins.map(([pluginId, count]) => `<div class="nested-item"><strong>${escapeHtml(pluginId)}</strong><span>${count} project link${count === 1 ? "" : "s"}</span></div>`).join("")}</div>`
           : '<div class="empty compact">No plugin clusters yet.</div>'}
+      </section>
+      <section class="world-drawer-section">
+        <h4>Top Clusters</h4>
+        ${topClusters.length
+          ? `<div class="nested-list">${topClusters.map((cluster) => `<button type="button" class="nested-item nested-item-button" data-world-focus-cluster="${escapeHtml(cluster.anchorProjectId)}"><strong>${escapeHtml(cluster.clusterLabel)}</strong><span>${cluster.projectIds.length} project node${cluster.projectIds.length === 1 ? "" : "s"}</span></button>`).join("")}</div>`
+          : '<div class="empty compact">No cluster summaries yet.</div>'}
       </section>
       <section class="world-drawer-section world-drawer-actions">
         <button type="button" class="topbar-button" data-route-target="build">Open Project Directory</button>
@@ -3801,6 +3850,27 @@ function renderWorldSelectionDrawer(nodeId, projects) {
     node.addEventListener("click", () => {
       openProjectWorkspace(node.dataset.openProjectId);
       closeWorldDrawer();
+    });
+  });
+  drawer.querySelectorAll("[data-world-project-shortcut]").forEach((node) => {
+    node.addEventListener("click", () => {
+      const projectNodeId = worldNodeIdForProject(node.dataset.worldProjectShortcut);
+      openWorldDrawer(projectNodeId);
+      renderWorldSelectionDrawer(projectNodeId, projects);
+      fitWorldGraph(projectNodeId);
+    });
+  });
+  drawer.querySelectorAll("[data-world-focus-cluster]").forEach((node) => {
+    node.addEventListener("click", () => {
+      const projectNodeId = worldNodeIdForProject(node.dataset.worldFocusCluster);
+      openWorldDrawer(projectNodeId);
+      state.worldFocusMode = "cluster";
+      renderWorldSelectionDrawer(projectNodeId, projects);
+      renderWorldGraphChrome(projects);
+      renderWorldInsights(projects);
+      fitWorldCluster(projectNodeId);
+      state.worldGraphRenderer?.refresh?.();
+      renderWorldGraphOverlay();
     });
   });
   drawer.querySelectorAll("[data-route-target]").forEach((node) => {

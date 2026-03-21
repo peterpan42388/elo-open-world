@@ -1141,6 +1141,22 @@ button:focus {
   font-size: 12px;
 }
 
+.nested-item-button {
+  width: 100%;
+  text-align: left;
+  background: rgba(10, 15, 23, 0.84);
+  border: 1px solid rgba(111, 132, 161, 0.14);
+  border-radius: 14px;
+  padding: 12px 14px;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.nested-item-button:hover {
+  border-color: rgba(87, 215, 193, 0.24);
+  transform: translateY(-1px);
+}
+
 .world-graph-fallback {
   display: grid;
   gap: 10px;
