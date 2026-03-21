@@ -97,6 +97,7 @@ After every execution cycle, update this file with:
 - any new blockers
 
 ## Last Completed
+- Calibrated `World` for the real production seed case by biasing hybrid signal scoring toward live projects, surfacing a `Seeded Baseline` insight card, and making real operating foundation repos dominate hybrid ordering, sizing, depth, and label priority instead of being visually overtaken by hotter synthetic mock nodes
 - Extended `World` drawer grouping so project and universe inspectors now expose cluster context, cluster sibling navigation, and direct cluster-focus actions, turning cluster grouping into an actual drill-in workflow instead of a legend-only control
 - Added `Focused / Balanced` declutter modes to `World`, tightened project-first visibility so low-signal background projects and nonessential human/agent relations back off by default, strengthened selected-node halo affordance, and increased camera drift amplitude without returning to per-node animation
 - Completed the `World` graph-only surface by removing the bottom `World Chat Interface` placeholder, replacing it with a `World Insights` panel, adding `Project First / Expanded Hierarchy` presets, introducing cluster lens shortcuts, and adding a user-visible graph-engine retry fallback instead of allowing silent blank-canvas failures
@@ -153,10 +154,10 @@ After every execution cycle, update this file with:
 - Reworked the `Project Workspace` snapshot around ownership, participation, recruiting, latest activity, and operating inputs so the page reads less like a directory card and more like the active project control surface
 
 ## Current Focus
-- P0 World Completion: final drawer polish, cluster drill-in quality, and seeded-data readability validation so `World` can be treated as a completed graph explorer
+- P0 World Completion: final seeded-data validation and minor polish so `World` can be marked complete as a production graph explorer
 
 ## Next Recommended Action
-- validate drawer-based cluster drill-in against production data, then do one final seeded-data pass on project dominance and `World Insights` density before marking `World` complete
+- run one final production pass on hybrid/live readability and then decide whether `World` is ready to be marked complete or needs one last drawer-density tweak
 
 ## Blockers
 - local runtime still has no seeded project data, so representative graph validation continues to depend on the deployed environment

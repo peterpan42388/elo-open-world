@@ -2060,8 +2060,8 @@ function worldClusterLensProjects(projects) {
       anchorProjectId: project.projectId
     };
     existing.projectIds.push(project.projectId);
-    existing.score += Number(isOperatingFoundationProject(project)) * 5 + Number(project.heat || 0) / 100;
-    if ((project.heat || 0) >= (((projects.find((candidate) => candidate.projectId === existing.anchorProjectId)?.heat) || 0))) {
+    existing.score += Number(isOperatingFoundationProject(project)) * 5 + worldProjectSignalScore(project) / 100;
+    if (worldProjectSignalScore(project) >= worldProjectSignalScore(projects.find((candidate) => candidate.projectId === existing.anchorProjectId) || {})) {
       existing.anchorProjectId = project.projectId;
     }
     clusters.set(key, existing);
@@ -2079,6 +2079,7 @@ function currentWorldVisibleProjects(projects) {
   if (state.worldHierarchyPreset === "expanded") return projects;
   return projects.filter((project) => {
     if (isOperatingFoundationProject(project)) return true;
+    if (!isWorldVisualMockProject(project)) return true;
     if (state.selectedWorldNodeId === worldNodeIdForProject(project.projectId)) return true;
     return Number(project.heat || 0) >= 300 || String(project.stage || "").toLowerCase() === "operating";
   });
@@ -2090,11 +2091,13 @@ function worldInsightsSummary(projects) {
   const visibleEdges = [...state.worldGraphEdgeMap.values()].filter((edge) => worldEdgeTypeVisible(edge.edgeType)).length;
   const clusters = worldClusterLensProjects(projects);
   const hottestProjects = [...visibleProjects]
-    .sort((left, right) => Number(right.heat || 0) - Number(left.heat || 0))
+    .sort((left, right) => worldProjectSignalScore(right) - worldProjectSignalScore(left))
     .slice(0, 3);
+  const liveProjects = projects.filter((project) => !isWorldVisualMockProject(project));
   return {
     visibleProjects: visibleProjects.length,
     totalProjects: projects.length,
+    liveProjects: liveProjects.length,
     visibleEdges,
     topOwners: relations.sharedOwners.slice(0, 3),
     topPlugins: relations.topPlugins.slice(0, 3),
@@ -2156,6 +2159,13 @@ function renderWorldInsights(projects) {
           <span>${escapeHtml(worldDeclutterModeLabel())} declutter</span>
           <span>${escapeHtml(summary.visibleEdges.toString())} visible relations</span>
         </div>
+      </article>
+      <article class="world-insight-card">
+        <span class="eyebrow">Seeded Baseline</span>
+        <h3>${summary.liveProjects} live project${summary.liveProjects === 1 ? "" : "s"}</h3>
+        <p>${summary.liveProjects
+          ? "Hybrid mode now keeps real production projects visually dominant over synthetic calibration nodes."
+          : "No live projects are currently available, so the graph relies entirely on calibration data."}</p>
       </article>
       <article class="world-insight-card">
         <span class="eyebrow">Owner Clusters</span>
@@ -2382,7 +2392,7 @@ function worldProjectClusterDescriptor(project) {
 function worldProjectDepthModel(project, clusterRole = "support") {
   const stage = String(project?.stage || "").toLowerCase();
   const stateValue = String(project?.state || "").toLowerCase();
-  const heat = Number(project?.heat || 0);
+  const heat = worldProjectSignalScore(project);
   let depthLayer = "midfield";
   if (isOperatingFoundationProject(project) || clusterRole === "anchor") depthLayer = "foreground";
   else if (stage === "operating" || stateValue === "operating" || heat >= 700 || clusterRole === "bridge") depthLayer = "foreground";
@@ -2399,18 +2409,29 @@ function worldProjectDepthModel(project, clusterRole = "support") {
   };
 }
 
+function worldProjectSignalScore(project) {
+  const heat = Number(project?.heat || 0);
+  const rating = Number(project?.rating || 0) * 90;
+  const liveBoost = isWorldVisualMockProject(project) ? 0 : 240;
+  const operatingBoost = String(project?.stage || "").toLowerCase() === "operating" || String(project?.state || "").toLowerCase() === "operating" ? 120 : 0;
+  const foundationBoost = isOperatingFoundationProject(project) ? 260 : 0;
+  return heat + rating + liveBoost + operatingBoost + foundationBoost;
+}
+
 function worldProjectNodeSize(project, depthScale = 1, clusterRole = "support") {
   const rating = Number(project?.rating || 0);
-  const heat = Number(project?.heat || 0);
+  const heat = worldProjectSignalScore(project);
   const heatBoost = Math.min(4, heat / 250);
   const ratingBoost = Math.min(3.5, rating * 0.6);
   const foundationBoost = isOperatingFoundationProject(project) ? 3 : 0;
+  const liveBoost = isWorldVisualMockProject(project) ? 0 : 1.6;
   const roleBoost = clusterRole === "anchor" ? 1.8 : clusterRole === "bridge" ? 1.1 : clusterRole === "core" ? 0.8 : 0;
-  return (7 + heatBoost + ratingBoost + foundationBoost + roleBoost) * depthScale;
+  return (7 + heatBoost + ratingBoost + foundationBoost + liveBoost + roleBoost) * depthScale;
 }
 
 function worldProjectShouldForceLabel(project, orderedProjects, index, clusterRole = "support", depthLayer = "midfield") {
   if (isOperatingFoundationProject(project)) return true;
+  if (!isWorldVisualMockProject(project)) return true;
   if (orderedProjects.length <= 8) return true;
   if (clusterRole === "anchor" || clusterRole === "bridge") return true;
   if (depthLayer === "foreground" && index < Math.min(8, orderedProjects.length)) return true;
@@ -2461,7 +2482,7 @@ function buildWorldProjectLayout(orderedProjects) {
     existing.anchorScore += Number(isOperatingFoundationProject(project)) * 4
       + Number(cluster.clusterRole === "anchor") * 2
       + Number(cluster.clusterRole === "bridge")
-      + Number(project.heat || 0) / 1000;
+      + worldProjectSignalScore(project) / 1000;
     existing.operatingCount += Number(String(project.stage || "").toLowerCase() === "operating" || String(project.state || "").toLowerCase() === "operating");
     if (worldDepthRank(depth.depthLayer) > worldDepthRank(existing.dominantDepth)) existing.dominantDepth = depth.depthLayer;
     clusters.set(cluster.clusterId, existing);
@@ -2549,7 +2570,7 @@ function buildWorldGraphData(projects) {
   const orderedProjects = [...projects].sort((left, right) => {
     const foundationDelta = Number(isOperatingFoundationProject(right)) - Number(isOperatingFoundationProject(left));
     if (foundationDelta) return foundationDelta;
-    return Number(right.heat || 0) - Number(left.heat || 0);
+    return worldProjectSignalScore(right) - worldProjectSignalScore(left);
   });
   const projectLayout = buildWorldProjectLayout(orderedProjects);
   orderedProjects.forEach((project, index) => {
