@@ -97,6 +97,7 @@ After every execution cycle, update this file with:
 - any new blockers
 
 ## Last Completed
+- Added `Focused / Balanced` declutter modes to `World`, tightened project-first visibility so low-signal background projects and nonessential human/agent relations back off by default, strengthened selected-node halo affordance, and increased camera drift amplitude without returning to per-node animation
 - Completed the `World` graph-only surface by removing the bottom `World Chat Interface` placeholder, replacing it with a `World Insights` panel, adding `Project First / Expanded Hierarchy` presets, introducing cluster lens shortcuts, and adding a user-visible graph-engine retry fallback instead of allowing silent blank-canvas failures
 - Strengthened `World` selection readability on top of the camera-drift baseline by adding explicit `Selection / Relation / Cluster` focus modes, a tighter selected-node halo pulse, cluster-fit camera behavior, and slightly stronger scene drift so the graph feels more alive without going back to per-node animation
 - Reworked `World` around a performance-first rendering model by removing full-scene custom node and edge overlay from the idle path, replacing per-node floating motion with bounded camera drift, restoring Sigma as the default node and curved-edge renderer, and demoting `Human / Agent` to interaction-time hierarchy so the graph keeps a continuous spatial feel without dragging frame rate down
@@ -151,10 +152,10 @@ After every execution cycle, update this file with:
 - Reworked the `Project Workspace` snapshot around ownership, participation, recruiting, latest activity, and operating inputs so the page reads less like a directory card and more like the active project control surface
 
 ## Current Focus
-- P0 World Completion: finish `Project First` readability, declutter controls, insights, and resilient production behavior so `World` reads like a finished graph explorer instead of an experiment
+- P0 World Completion: tune larger-graph readability, scene motion, and focus affordances so `World` feels finished under both live and visual-lab data
 
 ## Next Recommended Action
-- add one more pass of cluster-aware declutter and selected-node affordance, then tighten `World Insights` against live seeded data so the graph stays readable as project count grows
+- validate the new declutter and drift settings against production visual-lab density, then do a final pass on cluster grouping and drawer polish so larger graphs stay readable without losing motion
 
 ## Blockers
 - local runtime still has no seeded project data, so representative graph validation continues to depend on the deployed environment

@@ -6,6 +6,7 @@ const SESSION_KEY = "elo-open-world.session";
 const SETTINGS_DEFAULT_SECTION = "profile";
 const WORLD_VISUAL_MODE_KEY = "elo-open-world.world-visual-mode";
 const WORLD_HIERARCHY_PRESET_KEY = "elo-open-world.world-hierarchy-preset";
+const WORLD_DECLUTTER_MODE_KEY = "elo-open-world.world-declutter-mode";
 const ROUTES = new Set(["home", "join", "settings", "new-project", "project", "world", "build", "market", "docs"]);
 const ONBOARDER_PRESET = {
   repoName: "elo-agent-onboarder",
@@ -85,6 +86,7 @@ const state = {
   },
   worldVisualMode: loadWorldVisualMode(),
   worldHierarchyPreset: loadWorldHierarchyPreset(),
+  worldDeclutterMode: loadWorldDeclutterMode(),
   worldGraphLoadError: "",
   buildFilters: {
     kind: "",
@@ -131,6 +133,17 @@ function saveWorldHierarchyPreset(preset) {
   const next = ["project-first", "expanded"].includes(preset) ? preset : "project-first";
   localStorage.setItem(WORLD_HIERARCHY_PRESET_KEY, next);
   state.worldHierarchyPreset = next;
+}
+
+function loadWorldDeclutterMode() {
+  const saved = localStorage.getItem(WORLD_DECLUTTER_MODE_KEY) || "";
+  return ["focused", "balanced"].includes(saved) ? saved : "focused";
+}
+
+function saveWorldDeclutterMode(mode) {
+  const next = ["focused", "balanced"].includes(mode) ? mode : "focused";
+  localStorage.setItem(WORLD_DECLUTTER_MODE_KEY, next);
+  state.worldDeclutterMode = next;
 }
 
 function bootstrapSessionFromUrl() {
@@ -2003,27 +2016,34 @@ function worldHierarchyPresetLabel(preset = state.worldHierarchyPreset) {
   return preset === "expanded" ? "Expanded Hierarchy" : "Project First";
 }
 
+function worldDeclutterModeLabel(mode = state.worldDeclutterMode) {
+  return mode === "balanced" ? "Balanced" : "Focused";
+}
+
 function worldHierarchyProfile() {
+  const declutterBoost = state.worldDeclutterMode === "focused";
   return state.worldHierarchyPreset === "expanded"
     ? {
-        humanBaseAlpha: 0.34,
-        agentBaseAlpha: 0.28,
+        humanBaseAlpha: declutterBoost ? 0.28 : 0.34,
+        agentBaseAlpha: declutterBoost ? 0.22 : 0.28,
         humanSizeScale: 0.82,
         agentSizeScale: 0.74,
-        humanLabelBoost: true,
-        agentLabelBoost: true,
-        humanEdgeIdleAlpha: 0.05,
-        agentEdgeIdleAlpha: 0.08
+        humanLabelBoost: !declutterBoost,
+        agentLabelBoost: !declutterBoost,
+        humanEdgeIdleAlpha: declutterBoost ? 0.035 : 0.05,
+        agentEdgeIdleAlpha: declutterBoost ? 0.055 : 0.08,
+        backgroundProjectAlpha: declutterBoost ? 0.56 : 0.7
       }
     : {
-        humanBaseAlpha: 0.12,
-        agentBaseAlpha: 0.08,
-        humanSizeScale: 0.52,
-        agentSizeScale: 0.46,
+        humanBaseAlpha: declutterBoost ? 0.08 : 0.12,
+        agentBaseAlpha: declutterBoost ? 0.05 : 0.08,
+        humanSizeScale: declutterBoost ? 0.46 : 0.52,
+        agentSizeScale: declutterBoost ? 0.4 : 0.46,
         humanLabelBoost: false,
         agentLabelBoost: false,
-        humanEdgeIdleAlpha: 0.02,
-        agentEdgeIdleAlpha: 0.03
+        humanEdgeIdleAlpha: declutterBoost ? 0.012 : 0.02,
+        agentEdgeIdleAlpha: declutterBoost ? 0.018 : 0.03,
+        backgroundProjectAlpha: declutterBoost ? 0.42 : 0.56
       };
 }
 
@@ -2110,6 +2130,7 @@ function renderWorldInsights(projects) {
             mock: "Visual Lab"
           }[state.worldVisualMode] || "Hybrid"))}</span>
           <span>${escapeHtml(focusLabel)} focus</span>
+          <span>${escapeHtml(worldDeclutterModeLabel())} declutter</span>
           <span>${escapeHtml(summary.visibleEdges.toString())} visible relations</span>
         </div>
       </article>
@@ -2783,6 +2804,10 @@ function renderWorldLegend(projects) {
     ["hybrid", "Hybrid"],
     ["mock", "Visual Lab"]
   ];
+  const declutterModes = [
+    ["focused", "Focused"],
+    ["balanced", "Balanced"]
+  ];
   legend.innerHTML = `
     <div class="world-control-header">
       <div>
@@ -2827,6 +2852,16 @@ function renderWorldLegend(projects) {
       <div class="world-visual-mode-list">
         ${hierarchyPresets.map(([key, label]) => `
           <button type="button" class="world-mode-pill ${state.worldHierarchyPreset === key ? "active" : ""}" data-world-hierarchy-preset="${key}">
+            ${escapeHtml(label)}
+          </button>
+        `).join("")}
+      </div>
+    </div>
+    <div class="world-visual-mode-bar">
+      <span class="world-shortcuts-label">Declutter</span>
+      <div class="world-visual-mode-list">
+        ${declutterModes.map(([key, label]) => `
+          <button type="button" class="world-mode-pill ${state.worldDeclutterMode === key ? "active" : ""}" data-world-declutter-mode="${key}">
             ${escapeHtml(label)}
           </button>
         `).join("")}
@@ -2889,6 +2924,18 @@ function renderWorldLegend(projects) {
       state.worldGraphRenderer?.refresh?.();
       renderWorldGraphOverlay();
       setStatus(`World hierarchy preset switched to ${worldHierarchyPresetLabel(preset)}.`, "ok");
+    });
+  });
+  legend.querySelectorAll("[data-world-declutter-mode]").forEach((node) => {
+    node.addEventListener("click", () => {
+      const mode = node.dataset.worldDeclutterMode;
+      saveWorldDeclutterMode(mode);
+      renderWorldLegend(projects);
+      renderWorldGraphChrome(projects);
+      renderWorldInsights(projects);
+      state.worldGraphRenderer?.refresh?.();
+      renderWorldGraphOverlay();
+      setStatus(`World declutter mode switched to ${worldDeclutterModeLabel(mode)}.`, "ok");
     });
   });
   legend.querySelectorAll("[data-world-project-shortcut]").forEach((node) => {
@@ -3001,6 +3048,7 @@ function renderWorldGraphChrome(projects) {
     cluster: "Cluster"
   }[state.worldFocusMode] || "Open";
   const hierarchyLabel = worldHierarchyPresetLabel();
+  const declutterLabel = worldDeclutterModeLabel();
   const clusterCapable = selectedMeta?.kind === "project";
 
   if (!projects.length) {
@@ -3014,7 +3062,7 @@ function renderWorldGraphChrome(projects) {
       <div class="world-info-pill world-info-pill-idle">
         <span class="eyebrow">Explorer Ready</span>
         <strong>Pan, zoom, or pick a project to inspect the world graph.</strong>
-        <span>${escapeHtml(visualModeLabel)} · ${escapeHtml(hierarchyLabel)} · ${escapeHtml(relationModes)}</span>
+        <span>${escapeHtml(visualModeLabel)} · ${escapeHtml(hierarchyLabel)} · ${escapeHtml(declutterLabel)} · ${escapeHtml(relationModes)}</span>
       </div>
     `;
   } else if (activeMeta.kind === "universe") {
@@ -3030,7 +3078,7 @@ function renderWorldGraphChrome(projects) {
       <div class="world-info-pill world-info-pill-active">
         <span class="eyebrow">${activeLabel}</span>
         <strong>${escapeHtml(activeMeta.humanId)}</strong>
-        <span>${(activeMeta.projectIds || []).length} project link${(activeMeta.projectIds || []).length === 1 ? "" : "s"} · ${(activeMeta.agentIds || []).length} agent link${(activeMeta.agentIds || []).length === 1 ? "" : "s"} · ${escapeHtml(hierarchyLabel)}</span>
+        <span>${(activeMeta.projectIds || []).length} project link${(activeMeta.projectIds || []).length === 1 ? "" : "s"} · ${(activeMeta.agentIds || []).length} agent link${(activeMeta.agentIds || []).length === 1 ? "" : "s"} · ${escapeHtml(hierarchyLabel)} · ${escapeHtml(declutterLabel)}</span>
       </div>
     `;
   } else if (activeMeta.kind === "agent") {
@@ -3038,7 +3086,7 @@ function renderWorldGraphChrome(projects) {
       <div class="world-info-pill world-info-pill-active">
         <span class="eyebrow">${activeLabel}</span>
         <strong>${escapeHtml(activeMeta.agentId)}</strong>
-        <span>${escapeHtml(activeMeta.humanId || "-")} · ${(activeMeta.projectIds || []).length} project link${(activeMeta.projectIds || []).length === 1 ? "" : "s"} · ${escapeHtml(hierarchyLabel)}</span>
+        <span>${escapeHtml(activeMeta.humanId || "-")} · ${(activeMeta.projectIds || []).length} project link${(activeMeta.projectIds || []).length === 1 ? "" : "s"} · ${escapeHtml(hierarchyLabel)} · ${escapeHtml(declutterLabel)}</span>
       </div>
     `;
   } else {
@@ -3047,7 +3095,7 @@ function renderWorldGraphChrome(projects) {
       <div class="world-info-pill world-info-pill-active">
         <span class="eyebrow">${activeLabel}</span>
         <strong>${escapeHtml(project.title)}</strong>
-        <span>${escapeHtml(project.repoFullName || project.repoName)} · ${escapeHtml(project.stage || "source")} · ${escapeHtml(projectStateLabel(project.state))} · ${escapeHtml(focusModeLabel)} focus · ${escapeHtml(hierarchyLabel)}${isWorldVisualMockProject(project) ? " · visual lab node" : ""}</span>
+        <span>${escapeHtml(project.repoFullName || project.repoName)} · ${escapeHtml(project.stage || "source")} · ${escapeHtml(projectStateLabel(project.state))} · ${escapeHtml(focusModeLabel)} focus · ${escapeHtml(hierarchyLabel)} · ${escapeHtml(declutterLabel)}${isWorldVisualMockProject(project) ? " · visual lab node" : ""}</span>
       </div>
     `;
   }
@@ -3076,7 +3124,7 @@ function renderWorldGraphChrome(projects) {
     </div>
     <div class="world-dock-caption">
       <strong>Explorer Dock</strong>
-      <span>${escapeHtml(visualModeLabel)} · ${escapeHtml(hierarchyLabel)} · ${escapeHtml(focusModeLabel)} focus</span>
+      <span>${escapeHtml(visualModeLabel)} · ${escapeHtml(hierarchyLabel)} · ${escapeHtml(declutterLabel)} · ${escapeHtml(focusModeLabel)} focus</span>
     </div>
   `;
 
@@ -3140,6 +3188,11 @@ function drawWorldNodeShape(context, attrs, selected, hovered) {
   context.strokeStyle = strokeColor;
   context.lineWidth = selected ? 2.2 : 1.4;
   if (selected) {
+    context.beginPath();
+    context.arc(0, 0, radius * 2.25 * pulse, 0, Math.PI * 2);
+    context.strokeStyle = worldColorWithAlpha(worldNodeTypeColor(attrs.kind, attrs.baseColor), attrs.kind === "project" ? 0.34 : 0.24);
+    context.lineWidth = attrs.kind === "project" ? 2 : 1.4;
+    context.stroke();
     context.beginPath();
     context.arc(0, 0, radius * 1.85 * pulse, 0, Math.PI * 2);
     context.strokeStyle = worldColorWithAlpha(worldNodeTypeColor(attrs.kind, attrs.baseColor), 0.22);
@@ -3474,12 +3527,13 @@ function startWorldSceneMotion(renderer, mount) {
       return;
     }
     const anchor = state.worldSceneMotionAnchor || current;
-    const intensity = state.worldDrawerOpen ? 0.58 : state.selectedWorldNodeId ? 0.92 : 1.18;
+    const focusIntensity = state.worldFocusMode === "cluster" ? 1.08 : state.worldFocusMode === "relation" ? 1 : 0.94;
+    const intensity = (state.worldDrawerOpen ? 0.64 : state.selectedWorldNodeId ? 1.02 : 1.28) * focusIntensity;
     const next = clampWorldCameraState({
       ...current,
-      x: anchor.x + Math.sin(timestamp * 0.00016) * 0.014 * intensity + Math.cos(timestamp * 0.00007) * 0.0044 * intensity,
-      y: anchor.y + Math.cos(timestamp * 0.00014) * 0.0115 * intensity + Math.sin(timestamp * 0.000055) * 0.003 * intensity,
-      ratio: anchor.ratio + Math.sin(timestamp * 0.00009) * 0.016 * intensity,
+      x: anchor.x + Math.sin(timestamp * 0.00017) * 0.0165 * intensity + Math.cos(timestamp * 0.000075) * 0.0052 * intensity,
+      y: anchor.y + Math.cos(timestamp * 0.000145) * 0.0132 * intensity + Math.sin(timestamp * 0.000058) * 0.0036 * intensity,
+      ratio: anchor.ratio + Math.sin(timestamp * 0.000095) * 0.019 * intensity,
       angle: 0
     });
     if (
@@ -3890,6 +3944,7 @@ async function renderProjectGraph(projects) {
     nodeReducer: (node, data) => {
       const focus = getFocusContext();
       const hierarchy = worldHierarchyProfile();
+      const declutterFocused = state.worldDeclutterMode === "focused";
       const selected = state.worldDrawerOpen && state.selectedWorldNodeId === node;
       const hovered = state.hoveredWorldNodeId === node;
       const activeNodeId = currentWorldActiveNodeId();
@@ -3902,6 +3957,7 @@ async function renderProjectGraph(projects) {
         || hovered
         || isPrimary
         || isSecondary;
+      const backgroundProject = data.kind === "project" && data.depthLayer === "background" && !data.operatingFoundation;
       const dimmed = activeNodeId && !isPrimary && !isSecondary;
       const typeWeight = data.kind === "project"
         ? 1
@@ -3915,7 +3971,8 @@ async function renderProjectGraph(projects) {
         : data.kind === "agent"
           ? hierarchy.agentBaseAlpha
           : 1;
-      const baseAlpha = Math.max(0.08, (data.depthAlpha || 1) * 0.58 * typeWeight * hierarchyAlpha);
+      const projectAlpha = backgroundProject && declutterFocused ? hierarchy.backgroundProjectAlpha : 1;
+      const baseAlpha = Math.max(0.08, (data.depthAlpha || 1) * 0.58 * typeWeight * hierarchyAlpha * projectAlpha);
       const nodeAlpha = selected
         ? 1
         : hovered
@@ -3925,16 +3982,17 @@ async function renderProjectGraph(projects) {
             : isPrimary
               ? Math.min(1, baseAlpha + 0.28)
               : isSecondary
-                ? Math.min(1, baseAlpha + 0.12)
+              ? Math.min(1, baseAlpha + 0.12)
                 : baseAlpha;
       const baseSize = data.kind === "human"
         ? data.size * hierarchy.humanSizeScale
         : data.kind === "agent"
           ? data.size * hierarchy.agentSizeScale
           : data.size;
+      const projectVisible = !backgroundProject || !declutterFocused || selected || hovered || isPrimary || isSecondary;
       return {
         ...data,
-        hidden: !hierarchyVisible,
+        hidden: !hierarchyVisible || !projectVisible,
         color: worldColorWithAlpha(data.baseColor || data.color, nodeAlpha),
         size: selected
           ? baseSize + (data.depthLayer === "foreground" ? 10.5 : 8.5)
@@ -3959,6 +4017,7 @@ async function renderProjectGraph(projects) {
     edgeReducer: (edge, data) => {
       const focus = getFocusContext();
       const hierarchy = worldHierarchyProfile();
+      const declutterFocused = state.worldDeclutterMode === "focused";
       if (!worldEdgeTypeVisible(data.edgeType)) {
         return {
           ...data,
@@ -3971,20 +4030,21 @@ async function renderProjectGraph(projects) {
         const passiveAlpha = data.edgeType === "foundation-link"
           ? 0.18
           : data.edgeType === "plugin-link"
-            ? 0.06
+            ? (declutterFocused ? 0.04 : 0.06)
             : data.edgeType === "universe-link"
-              ? 0.035
+              ? (declutterFocused ? 0.028 : 0.035)
               : data.edgeType === "owner-link"
                 ? hierarchy.humanEdgeIdleAlpha
                 : hierarchy.agentEdgeIdleAlpha;
         return {
           ...data,
-          hidden: state.worldHierarchyPreset === "project-first" && (data.edgeType === "owner-link" || data.edgeType === "agent-link"),
+          hidden: (state.worldHierarchyPreset === "project-first" && (data.edgeType === "owner-link" || data.edgeType === "agent-link"))
+            || (declutterFocused && data.edgeType === "plugin-link" && state.worldHierarchyPreset === "project-first"),
           color: worldColorWithAlpha(
             data.baseColor || data.color,
             passiveAlpha
           ),
-          size: Math.max(0.35, data.size * 0.42)
+          size: Math.max(0.28, data.size * (declutterFocused ? 0.34 : 0.42))
         };
       }
       return {
@@ -3997,12 +4057,14 @@ async function renderProjectGraph(projects) {
               ? 0.34
               : 0.26
             : focus.mode === "cluster"
-              ? 0.012
-              : 0.02
+              ? 0.01
+              : declutterFocused
+                ? 0.014
+                : 0.02
         ),
         size: related
-          ? Math.max(0.6, data.size * (focus.mode === "cluster" ? 0.86 : 0.76))
-          : Math.max(0.16, data.size * (focus.mode === "cluster" ? 0.14 : 0.2))
+          ? Math.max(0.7, data.size * (focus.mode === "cluster" ? 0.92 : 0.82))
+          : Math.max(0.14, data.size * (focus.mode === "cluster" ? 0.12 : declutterFocused ? 0.16 : 0.2))
       };
     }
   });
