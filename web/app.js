@@ -2129,6 +2129,12 @@ function worldClusterSummary(projects, clusterId) {
   };
 }
 
+function worldRelationSummary(matches = []) {
+  if (!matches.length) return "0 linked";
+  const preview = matches.slice(0, 2).map((item) => item.title).join(", ");
+  return matches.length > 2 ? `${matches.length} linked · ${preview}, +${matches.length - 2} more` : `${matches.length} linked · ${preview}`;
+}
+
 function renderWorldInsights(projects) {
   const root = $("world-insights");
   if (!root) return;
@@ -3645,6 +3651,13 @@ function renderWorldProjectDrawer(projects, project) {
   const visualMock = isWorldVisualMockProject(project);
   const cluster = worldProjectClusterDescriptor(project);
   const clusterSummary = worldClusterSummary(projects, cluster.clusterId);
+  const latestRun = latestProjectFoundationRun(project);
+  const focusLabel = {
+    default: "Open",
+    selection: "Selection",
+    relation: "Relation",
+    cluster: "Cluster"
+  }[state.worldFocusMode] || "Open";
   return `
     <div class="world-drawer-header">
       <div>
@@ -3663,16 +3676,15 @@ function renderWorldProjectDrawer(projects, project) {
           ${isOperatingFoundationProject(project) ? createBadge("Operating Foundation") : ""}
           ${visualMock ? createBadge("Visual Lab") : ""}
         </div>
+        ${renderBoundedNoteList([
+          { label: "Cluster", value: project.visualClusterLabel || cluster.clusterLabel },
+          { label: "Focus", value: focusLabel },
+          { label: "Surface", value: `${worldHierarchyPresetLabel()} · ${worldDeclutterModeLabel()}` }
+        ])}
       </section>
       <section class="world-drawer-section detail-grid compact">
         <div class="detail-item"><span>Owner</span><strong class="detail-code">${escapeHtml(project.ownerHumanId || "-")}</strong></div>
         <div class="detail-item"><span>Cluster</span><strong>${escapeHtml(project.visualClusterLabel || cluster.clusterLabel)}</strong></div>
-        <div class="detail-item"><span>Focus Mode</span><strong>${escapeHtml({
-          default: "Open",
-          selection: "Selection",
-          relation: "Relation",
-          cluster: "Cluster"
-        }[state.worldFocusMode] || "Open")}</strong></div>
         <div class="detail-item"><span>Agents</span><strong>${project.memberAgentIds?.length || 0}</strong></div>
         <div class="detail-item"><span>Plugins</span><strong>${project.pluginIds?.length || 0}</strong></div>
         <div class="detail-item"><span>Recruiting</span><strong>${escapeHtml(recruitingState.label)}</strong></div>
@@ -3686,14 +3698,19 @@ function renderWorldProjectDrawer(projects, project) {
       <section class="world-drawer-section">
         <h4>Foundation Runs</h4>
         ${renderProjectFoundationRunSummary(project)}
-        ${renderProjectFoundationRunList(project, 3)}
+        ${latestRun ? `
+          <div class="nested-list">
+            <div class="nested-item"><strong>Latest Delivery</strong><span>${escapeHtml(formatActionLabel(latestRun.action))} · ${escapeHtml(latestRun.profile || "-")} · ${escapeHtml(formatCompactTimestamp(latestRun.generatedAt))}</span></div>
+          </div>
+        ` : '<div class="empty compact">No foundation runs recorded yet.</div>'}
+        ${(project.foundationRuns || []).length > 1 ? renderProjectFoundationRunList(project, 2) : ""}
       </section>
       <section class="world-drawer-section">
         <h4>Relationship Summary</h4>
         ${renderBoundedNoteList([
-          { label: "Shared Owners", value: related.ownerMatches.length ? related.ownerMatches.map((item) => item.title).join(", ") : "No same-owner project links." },
-          { label: "Shared Agents", value: related.agentMatches.length ? related.agentMatches.map((item) => item.title).join(", ") : "No shared-agent project links." },
-          { label: "Shared Plugins", value: related.pluginMatches.length ? related.pluginMatches.map((item) => item.title).join(", ") : "No shared-plugin project links." },
+          { label: "Shared Owners", value: worldRelationSummary(related.ownerMatches) },
+          { label: "Shared Agents", value: worldRelationSummary(related.agentMatches) },
+          { label: "Shared Plugins", value: worldRelationSummary(related.pluginMatches) },
           { label: "Cluster Lens", value: `${project.visualClusterLabel || cluster.clusterLabel} · ${worldHierarchyPresetLabel()}` }
         ])}
       </section>
@@ -3706,7 +3723,7 @@ function renderWorldProjectDrawer(projects, project) {
           <div class="nested-item"><strong>Owners</strong><span>${clusterSummary.ownerCount}</span></div>
         </div>
         ${clusterSummary.projects.length
-          ? `<div class="nested-list">${clusterSummary.projects.slice(0, 4).map((entry) => `
+          ? `<div class="nested-list">${clusterSummary.projects.slice(0, 3).map((entry) => `
               <button type="button" class="nested-item nested-item-button" data-world-project-shortcut="${escapeHtml(entry.projectId)}">
                 <strong>${escapeHtml(entry.title)}</strong>
                 <span>${escapeHtml(entry.repoFullName || entry.repoName)}${entry.projectId === project.projectId ? " · current" : ""}</span>

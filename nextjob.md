@@ -97,6 +97,7 @@ After every execution cycle, update this file with:
 - any new blockers
 
 ## Last Completed
+- Tightened `World` drawer density by collapsing repeated focus and cluster signals into a compact top summary, switching relationship summaries from long raw lists to count-plus-preview notes, trimming cluster sibling lists, and reducing foundation-run verbosity so the inspector reads as a precise instrument panel instead of a stacked dump
 - Calibrated `World` for the real production seed case by biasing hybrid signal scoring toward live projects, surfacing a `Seeded Baseline` insight card, and making real operating foundation repos dominate hybrid ordering, sizing, depth, and label priority instead of being visually overtaken by hotter synthetic mock nodes
 - Extended `World` drawer grouping so project and universe inspectors now expose cluster context, cluster sibling navigation, and direct cluster-focus actions, turning cluster grouping into an actual drill-in workflow instead of a legend-only control
 - Added `Focused / Balanced` declutter modes to `World`, tightened project-first visibility so low-signal background projects and nonessential human/agent relations back off by default, strengthened selected-node halo affordance, and increased camera drift amplitude without returning to per-node animation
@@ -154,10 +155,10 @@ After every execution cycle, update this file with:
 - Reworked the `Project Workspace` snapshot around ownership, participation, recruiting, latest activity, and operating inputs so the page reads less like a directory card and more like the active project control surface
 
 ## Current Focus
-- P0 World Completion: final seeded-data validation and minor polish so `World` can be marked complete as a production graph explorer
+- P0 World Completion: final production smoke validation and mark-as-complete decision for the `World` module
 
 ## Next Recommended Action
-- run one final production pass on hybrid/live readability and then decide whether `World` is ready to be marked complete or needs one last drawer-density tweak
+- run one final production smoke pass on hybrid/live readability and drawer interaction; if it holds, mark `World` complete and move to the next module
 
 ## Blockers
 - local runtime still has no seeded project data, so representative graph validation continues to depend on the deployed environment
