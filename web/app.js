@@ -888,7 +888,7 @@ function renderOnboarderCommerceOperator(project, agents) {
         <strong>Paid OpenClaw Packages</strong>
         <span>Stripe one-time payment, fiat only</span>
       </div>
-      <p class="note">Choose a curated OpenClaw package, one environment, and whether installation should register into EOW after setup. Registration defaults to enabled, but local-only install remains available.</p>
+      <p class="note">Choose a curated OpenClaw package, one environment, and whether installation should register into EOW after setup. You can purchase without an existing agent. For register-enabled delivery, bind or create an agent before downloading artifacts.</p>
       <div class="nested-list">${packageCards}</div>
       <form class="foundation-tool-form onboarder-commerce-form" data-project-id="${project.projectId}">
         <div class="form-grid compact-grid">
@@ -4987,7 +4987,6 @@ function renderSettingsData() {
           const form = foundationsRoot.querySelector(`.onboarder-commerce-form[data-project-id="${projectId}"]`);
           if (!form) return;
           try {
-            if (!form.agentId.value) throw new Error('Select one of your agents first.');
             const result = await request('/api/onboarder/checkout-session', 'POST', {
               packageId: form.packageId.value,
               profile: form.profile.value,
