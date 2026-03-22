@@ -889,6 +889,16 @@ function renderOnboarderCommerceOperator(project, agents) {
         <span>Stripe one-time payment, fiat only</span>
       </div>
       <p class="note">Choose a curated OpenClaw package, one environment, and whether installation should register into EOW after setup. You can purchase without an existing agent. For register-enabled delivery, bind or create an agent before downloading artifacts.</p>
+      <div class="copy-stack">
+        <div class="summary-row">
+          <strong>Installer (Recommended)</strong>
+          <span>GUI flow for normal users</span>
+        </div>
+        <div class="action-row">
+          <button type="button" class="topbar-button secondary onboarder-download-installer" data-installer-os="macos">Download Installer (macOS)</button>
+          <button type="button" class="topbar-button ghost onboarder-download-installer" data-installer-os="windows">Download Installer (Windows)</button>
+        </div>
+      </div>
       <div class="nested-list">${packageCards}</div>
       <form class="foundation-tool-form onboarder-commerce-form" data-project-id="${project.projectId}">
         <div class="form-grid compact-grid">
@@ -5005,6 +5015,35 @@ function renderSettingsData() {
             state.onboarderPurchases = await request('/api/onboarder/purchases');
             renderSettingsData();
             setStatus('Onboarder purchases refreshed.', 'ok');
+          } catch (error) {
+            setStatus(error.message, 'error');
+          }
+        });
+      });
+      foundationsRoot.querySelectorAll('.onboarder-download-installer').forEach((node) => {
+        node.addEventListener('click', async () => {
+          try {
+            const targetOs = (node.dataset.installerOs || "macos").toLowerCase();
+            const response = await fetch(`/api/onboarder/installer/download?os=${encodeURIComponent(targetOs)}`, {
+              method: 'GET',
+              headers: {
+                ...(state.sessionHumanId ? { 'X-ELO-Session-Human-Id': state.sessionHumanId } : {})
+              }
+            });
+            if (!response.ok) {
+              const err = await response.json().catch(() => ({}));
+              throw new Error(err.error || 'Installer download failed.');
+            }
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `elo-agent-onboarder-installer-${targetOs}.zip`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(url);
+            setStatus(`Installer downloaded for ${targetOs}.`, 'ok');
           } catch (error) {
             setStatus(error.message, 'error');
           }

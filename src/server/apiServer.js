@@ -9,6 +9,7 @@ import { buildArtifactZip } from "../services/artifactZipService.js";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const WEB_ROOT = join(__dirname, "../../web");
+const INSTALLER_ROOT = join(__dirname, "../../installer");
 const githubAuthStates = new Map();
 const emailService = new EmailService();
 
@@ -776,6 +777,32 @@ const server = http.createServer(async (req, res) => {
         humanId,
         installerSessionId: body.installerSessionId
       }));
+    }
+
+    if (req.method === "GET" && path === "/api/onboarder/installer/download") {
+      requireSessionHumanId(req);
+      const os = String(url.searchParams.get("os") || "macos").toLowerCase();
+      const launcherName = os === "windows" ? "start-installer.bat" : "start-installer.sh";
+      const launcher = os === "windows"
+        ? "@echo off\r\npython eow_onboarder_installer.py\r\npause\r\n"
+        : "#!/usr/bin/env sh\nset -eu\npython3 eow_onboarder_installer.py\n";
+      const readme = await readFile(join(INSTALLER_ROOT, "README.md"), "utf8");
+      const requirements = await readFile(join(INSTALLER_ROOT, "requirements.txt"), "utf8");
+      const installerMain = await readFile(join(INSTALLER_ROOT, "eow_onboarder_installer.py"), "utf8");
+      const bundle = {
+        contract: "elo-agent-onboarder.installer-artifact-bundle.v1",
+        files: {
+          "README.md": readme,
+          "requirements.txt": requirements,
+          "eow_onboarder_installer.py": installerMain,
+          [launcherName]: launcher
+        }
+      };
+      const zip = await buildArtifactZip({
+        bundle,
+        basename: `elo-agent-onboarder-installer-${os}`
+      });
+      return binary(res, 200, zip.data, zip.contentType, zip.filename);
     }
 
     if (req.method === "GET" && path === "/api/onboarder/purchases") {
