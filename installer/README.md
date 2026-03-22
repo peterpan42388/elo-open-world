@@ -18,7 +18,7 @@ This installer is a Python GUI wizard for normal users to install OpenClaw and r
 ## Build End-User Installer (Recommended)
 
 The expected user-facing outputs are:
-- macOS: `.dmg` (and `.app.zip` fallback)
+- macOS: `.app.zip`
 - Windows: `.exe` (and `.zip` fallback)
 
 Build on each target OS:
@@ -34,7 +34,6 @@ py build_installer.py --target windows
 ```
 
 Generated files:
-- `installer/dist/macos/ELO-Agent-Onboarder-Installer.dmg`
 - `installer/dist/macos/ELO-Agent-Onboarder-Installer.app.zip`
 - `installer/dist/windows/ELO-Agent-Onboarder-Installer.exe`
 - `installer/dist/windows/ELO-Agent-Onboarder-Installer.zip`

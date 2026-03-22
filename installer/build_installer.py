@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import argparse
-import os
 import platform
 import shutil
 import subprocess
@@ -63,25 +62,10 @@ def build_macos() -> None:
     target_dir.mkdir(parents=True, exist_ok=True)
     app_bundle = artifact
     app_zip = target_dir / f"{APP_NAME}.app.zip"
-    dmg_path = target_dir / f"{APP_NAME}.dmg"
     if app_zip.exists():
         app_zip.unlink()
-    if dmg_path.exists():
-        dmg_path.unlink()
     run(["ditto", "-c", "-k", "--keepParent", str(app_bundle), str(app_zip)])
-    run([
-        "hdiutil",
-        "create",
-        "-volname",
-        APP_NAME,
-        "-srcfolder",
-        str(app_bundle),
-        "-ov",
-        "-format",
-        "UDZO",
-        str(dmg_path),
-    ])
-    print(f"[build] macOS artifacts ready:\n- {app_zip}\n- {dmg_path}")
+    print(f"[build] macOS artifacts ready:\n- {app_zip}")
 
 
 def build_windows() -> None:

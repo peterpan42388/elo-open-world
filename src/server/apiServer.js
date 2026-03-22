@@ -813,11 +813,6 @@ const server = http.createServer(async (req, res) => {
           ]
         : [
             {
-              path: join(INSTALLER_DIST_ROOT, "macos", "ELO-Agent-Onboarder-Installer.dmg"),
-              filename: "ELO-Agent-Onboarder-Installer.dmg",
-              contentType: "application/x-apple-diskimage"
-            },
-            {
               path: join(INSTALLER_DIST_ROOT, "macos", "ELO-Agent-Onboarder-Installer.app.zip"),
               filename: "ELO-Agent-Onboarder-Installer.app.zip",
               contentType: "application/zip"
