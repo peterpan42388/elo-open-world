@@ -97,6 +97,7 @@ After every execution cycle, update this file with:
 - any new blockers
 
 ## Last Completed
+- Upgraded installer delivery toward end-user executable format by adding cross-platform build tooling (`installer/build_installer.py`) to produce macOS `.dmg/.app.zip` and Windows `.exe/.zip`, and updated `/api/onboarder/installer/download` to serve executable artifacts first when present instead of always returning source (`.py + .sh`) bundles.
 - Implemented installer-first onboarder direction with payment-gated install execution:
   - added installer session APIs (`session/start`, `session/update`, `payment/*`, `plan`, `script`, `complete`, `register`)
   - enforced payment before installer plan/script generation

@@ -1,0 +1,129 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import os
+import platform
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parent
+ENTRY = ROOT / "eow_onboarder_installer.py"
+DIST = ROOT / "dist"
+BUILD = ROOT / "build"
+APP_NAME = "ELO-Agent-Onboarder-Installer"
+
+
+def run(cmd: list[str], cwd: Path | None = None) -> None:
+    print(f"[build] {' '.join(cmd)}")
+    subprocess.run(cmd, cwd=str(cwd or ROOT), check=True)
+
+
+def clean() -> None:
+    for path in [BUILD, ROOT / "__pycache__", ROOT / f"{APP_NAME}.spec"]:
+        if path.exists():
+            if path.is_dir():
+                shutil.rmtree(path)
+            else:
+                path.unlink()
+
+
+def ensure_pyinstaller() -> None:
+    try:
+        import PyInstaller  # noqa: F401
+    except Exception:
+        run([sys.executable, "-m", "pip", "install", "pyinstaller>=6.7.0"])
+
+
+def build_with_pyinstaller() -> Path:
+    ensure_pyinstaller()
+    run([
+        sys.executable,
+        "-m",
+        "PyInstaller",
+        "--noconfirm",
+        "--clean",
+        "--windowed",
+        "--name",
+        APP_NAME,
+        str(ENTRY),
+    ])
+    artifact = ROOT / "dist" / APP_NAME
+    if platform.system() == "Windows":
+        artifact = artifact.with_suffix(".exe")
+    return artifact
+
+
+def build_macos() -> None:
+    artifact = build_with_pyinstaller()
+    target_dir = DIST / "macos"
+    target_dir.mkdir(parents=True, exist_ok=True)
+    app_bundle = artifact
+    app_zip = target_dir / f"{APP_NAME}.app.zip"
+    dmg_path = target_dir / f"{APP_NAME}.dmg"
+    if app_zip.exists():
+        app_zip.unlink()
+    if dmg_path.exists():
+        dmg_path.unlink()
+    run(["ditto", "-c", "-k", "--keepParent", str(app_bundle), str(app_zip)])
+    run([
+        "hdiutil",
+        "create",
+        "-volname",
+        APP_NAME,
+        "-srcfolder",
+        str(app_bundle),
+        "-ov",
+        "-format",
+        "UDZO",
+        str(dmg_path),
+    ])
+    print(f"[build] macOS artifacts ready:\n- {app_zip}\n- {dmg_path}")
+
+
+def build_windows() -> None:
+    artifact = build_with_pyinstaller()
+    target_dir = DIST / "windows"
+    target_dir.mkdir(parents=True, exist_ok=True)
+    exe_path = target_dir / f"{APP_NAME}.exe"
+    zip_path = target_dir / f"{APP_NAME}.zip"
+    if exe_path.exists():
+        exe_path.unlink()
+    if zip_path.exists():
+        zip_path.unlink()
+    shutil.copy2(artifact, exe_path)
+    run([
+        "powershell",
+        "-NoProfile",
+        "-Command",
+        f"Compress-Archive -Path '{exe_path}' -DestinationPath '{zip_path}' -Force",
+    ])
+    print(f"[build] Windows artifacts ready:\n- {exe_path}\n- {zip_path}")
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Build ELO Agent Onboarder GUI installer.")
+    parser.add_argument("--target", choices=["auto", "macos", "windows"], default="auto")
+    args = parser.parse_args()
+    clean()
+    target = args.target
+    if target == "auto":
+        system = platform.system()
+        if system == "Darwin":
+            target = "macos"
+        elif system == "Windows":
+            target = "windows"
+        else:
+            raise SystemExit("Unsupported OS for auto target. Use macOS or Windows build host.")
+    if target == "macos":
+        build_macos()
+    elif target == "windows":
+        build_windows()
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

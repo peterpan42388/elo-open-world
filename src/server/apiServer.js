@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import http from "node:http";
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import { OpenWorldFramework } from "../core/openWorld.js";
@@ -10,6 +10,7 @@ import { buildArtifactZip } from "../services/artifactZipService.js";
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 const WEB_ROOT = join(__dirname, "../../web");
 const INSTALLER_ROOT = join(__dirname, "../../installer");
+const INSTALLER_DIST_ROOT = join(INSTALLER_ROOT, "dist");
 const githubAuthStates = new Map();
 const emailService = new EmailService();
 
@@ -39,6 +40,16 @@ function binary(res, status, data, contentType, filename) {
     "Content-Length": data.length
   });
   res.end(data);
+}
+
+async function readIfExists(path) {
+  try {
+    const info = await stat(path);
+    if (!info.isFile()) return null;
+    return await readFile(path);
+  } catch {
+    return null;
+  }
 }
 
 function oauthConfig() {
@@ -782,6 +793,37 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && path === "/api/onboarder/installer/download") {
       requireSessionHumanId(req);
       const os = String(url.searchParams.get("os") || "macos").toLowerCase();
+      const executableTargets = os === "windows"
+        ? [
+            {
+              path: join(INSTALLER_DIST_ROOT, "windows", "ELO-Agent-Onboarder-Installer.exe"),
+              filename: "ELO-Agent-Onboarder-Installer.exe",
+              contentType: "application/vnd.microsoft.portable-executable"
+            },
+            {
+              path: join(INSTALLER_DIST_ROOT, "windows", "ELO-Agent-Onboarder-Installer.zip"),
+              filename: "ELO-Agent-Onboarder-Installer-windows.zip",
+              contentType: "application/zip"
+            }
+          ]
+        : [
+            {
+              path: join(INSTALLER_DIST_ROOT, "macos", "ELO-Agent-Onboarder-Installer.dmg"),
+              filename: "ELO-Agent-Onboarder-Installer.dmg",
+              contentType: "application/x-apple-diskimage"
+            },
+            {
+              path: join(INSTALLER_DIST_ROOT, "macos", "ELO-Agent-Onboarder-Installer.app.zip"),
+              filename: "ELO-Agent-Onboarder-Installer.app.zip",
+              contentType: "application/zip"
+            }
+          ];
+      for (const target of executableTargets) {
+        const file = await readIfExists(target.path);
+        if (file) {
+          return binary(res, 200, file, target.contentType, target.filename);
+        }
+      }
       const launcherName = os === "windows" ? "start-installer.bat" : "start-installer.sh";
       const launcher = os === "windows"
         ? "@echo off\r\npython eow_onboarder_installer.py\r\npause\r\n"

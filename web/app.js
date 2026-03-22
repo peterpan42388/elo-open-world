@@ -5035,15 +5035,18 @@ function renderSettingsData() {
               throw new Error(err.error || 'Installer download failed.');
             }
             const blob = await response.blob();
+            const disposition = response.headers.get('content-disposition') || '';
+            const matched = disposition.match(/filename="?([^"]+)"?/i);
+            const downloadName = (matched && matched[1]) ? matched[1] : `elo-agent-onboarder-installer-${targetOs}.zip`;
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = `elo-agent-onboarder-installer-${targetOs}.zip`;
+            link.download = downloadName;
             document.body.appendChild(link);
             link.click();
             link.remove();
             URL.revokeObjectURL(url);
-            setStatus(`Installer downloaded for ${targetOs}.`, 'ok');
+            setStatus(`Installer downloaded: ${downloadName}`, 'ok');
           } catch (error) {
             setStatus(error.message, 'error');
           }
