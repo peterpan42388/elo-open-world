@@ -5016,17 +5016,20 @@ function renderSettingsData() {
           const form = foundationsRoot.querySelector(`.onboarder-commerce-form[data-project-id="${projectId}"]`);
           if (!form) return;
           try {
-            if (!form.agentId.value) throw new Error('Select one of your agents first.');
+            const agentId = (form.agentId?.value || "").trim() || (agents[0]?.agentId || "");
+            if (!agentId) throw new Error('No agent available. Create or register an agent first, then retry download.');
+            if (form.agentId) form.agentId.value = agentId;
             const result = await request('/api/onboarder/delivery-contract', 'POST', {
               entitlementId: node.dataset.entitlementId || '',
-              agentId: form.agentId.value
+              agentId
             });
-            state.latestFoundationArtifacts[projectId] = { action: 'delivery-contract', result, agentId: form.agentId.value };
+            state.latestFoundationArtifacts[projectId] = { action: 'delivery-contract', result, agentId };
             renderSettingsData();
             downloadTextFile(`onboarder-${node.dataset.entitlementId}.delivery-contract.json`, JSON.stringify(result, null, 2), 'application/json;charset=utf-8');
             setStatus('Delivery contract downloaded.', 'ok');
           } catch (error) {
             setStatus(error.message, 'error');
+            if (/agent/i.test(error.message || "")) window.alert(error.message);
           }
         });
       });
@@ -5036,18 +5039,21 @@ function renderSettingsData() {
           const form = foundationsRoot.querySelector(`.onboarder-commerce-form[data-project-id="${projectId}"]`);
           if (!form) return;
           try {
-            if (!form.agentId.value) throw new Error('Select one of your agents first.');
+            const agentId = (form.agentId?.value || "").trim() || (agents[0]?.agentId || "");
+            if (!agentId) throw new Error('No agent available. Create or register an agent first, then retry download.');
+            if (form.agentId) form.agentId.value = agentId;
             const result = await request('/api/onboarder/artifact-bundle', 'POST', {
               entitlementId: node.dataset.entitlementId || '',
-              agentId: form.agentId.value,
+              agentId,
               worldUrl: window.location.origin
             });
-            state.latestFoundationArtifacts[projectId] = { action: 'artifact-bundle', result, agentId: form.agentId.value };
+            state.latestFoundationArtifacts[projectId] = { action: 'artifact-bundle', result, agentId };
             renderSettingsData();
             downloadTextFile(`onboarder-${node.dataset.entitlementId}.artifact-bundle.json`, JSON.stringify(result, null, 2), 'application/json;charset=utf-8');
             setStatus('Artifact bundle downloaded.', 'ok');
           } catch (error) {
             setStatus(error.message, 'error');
+            if (/agent/i.test(error.message || "")) window.alert(error.message);
           }
         });
       });
@@ -5057,7 +5063,9 @@ function renderSettingsData() {
           const form = foundationsRoot.querySelector(`.onboarder-commerce-form[data-project-id="${projectId}"]`);
           if (!form) return;
           try {
-            if (!form.agentId.value) throw new Error('Select one of your agents first.');
+            const agentId = (form.agentId?.value || "").trim() || (agents[0]?.agentId || "");
+            if (!agentId) throw new Error('No agent available. Create or register an agent first, then retry download.');
+            if (form.agentId) form.agentId.value = agentId;
             const response = await fetch('/api/onboarder/artifact-zip', {
               method: 'POST',
               headers: {
@@ -5066,11 +5074,14 @@ function renderSettingsData() {
               },
               body: JSON.stringify({
                 entitlementId: node.dataset.entitlementId || '',
-                agentId: form.agentId.value,
+                agentId,
                 worldUrl: window.location.origin
               })
             });
-            if (!response.ok) throw new Error('Artifact ZIP export failed.');
+            if (!response.ok) {
+              const err = await response.json().catch(() => ({}));
+              throw new Error(err.error || 'Artifact ZIP export failed.');
+            }
             const blob = await response.blob();
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
@@ -5083,6 +5094,7 @@ function renderSettingsData() {
             setStatus('Artifact ZIP downloaded.', 'ok');
           } catch (error) {
             setStatus(error.message, 'error');
+            if (/agent/i.test(error.message || "")) window.alert(error.message);
           }
         });
       });
