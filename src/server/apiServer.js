@@ -683,6 +683,101 @@ const server = http.createServer(async (req, res) => {
       }));
     }
 
+    if (req.method === "POST" && path === "/api/onboarder/installer/session/start") {
+      const body = await readJson(req);
+      const humanId = requireSessionHumanId(req);
+      return json(res, 200, framework.onboarderInstaller.startSession({
+        humanId,
+        packageId: body.packageId,
+        profile: body.profile,
+        registrationMode: body.registrationMode,
+        workflowPreset: body.workflowPreset
+      }));
+    }
+
+    if (req.method === "POST" && path === "/api/onboarder/installer/session/update") {
+      const body = await readJson(req);
+      const humanId = requireSessionHumanId(req);
+      return json(res, 200, framework.onboarderInstaller.updateSession({
+        humanId,
+        installerSessionId: body.installerSessionId,
+        agentName: body.agentName,
+        agentPersonality: body.agentPersonality,
+        modelProvider: body.modelProvider,
+        modelName: body.modelName,
+        modelApiKey: body.modelApiKey,
+        chatBinding: body.chatBinding,
+        workflowPreset: body.workflowPreset
+      }));
+    }
+
+    if (req.method === "POST" && path === "/api/onboarder/installer/payment/checkout-session") {
+      const body = await readJson(req);
+      const humanId = requireSessionHumanId(req);
+      return json(res, 200, await framework.onboarderInstaller.createCheckoutSession({
+        humanId,
+        installerSessionId: body.installerSessionId
+      }));
+    }
+
+    if (req.method === "POST" && path === "/api/onboarder/installer/payment/confirm") {
+      const body = await readJson(req);
+      const humanId = requireSessionHumanId(req);
+      return json(res, 200, await framework.onboarderInstaller.confirmPayment({
+        humanId,
+        installerSessionId: body.installerSessionId,
+        checkoutSessionId: body.checkoutSessionId
+      }));
+    }
+
+    if (req.method === "POST" && path === "/api/onboarder/installer/payment/status") {
+      const body = await readJson(req);
+      const humanId = requireSessionHumanId(req);
+      return json(res, 200, framework.onboarderInstaller.paymentStatus({
+        humanId,
+        installerSessionId: body.installerSessionId
+      }));
+    }
+
+    if (req.method === "POST" && path === "/api/onboarder/installer/plan") {
+      const body = await readJson(req);
+      const humanId = requireSessionHumanId(req);
+      return json(res, 200, await framework.onboarderInstaller.plan({
+        humanId,
+        installerSessionId: body.installerSessionId,
+        worldUrl: body.worldUrl || framework.universeConfig.publicBaseUrl
+      }));
+    }
+
+    if (req.method === "POST" && path === "/api/onboarder/installer/script") {
+      const body = await readJson(req);
+      const humanId = requireSessionHumanId(req);
+      return json(res, 200, await framework.onboarderInstaller.script({
+        humanId,
+        installerSessionId: body.installerSessionId,
+        worldUrl: body.worldUrl || framework.universeConfig.publicBaseUrl
+      }));
+    }
+
+    if (req.method === "POST" && path === "/api/onboarder/installer/complete") {
+      const body = await readJson(req);
+      const humanId = requireSessionHumanId(req);
+      return json(res, 200, framework.onboarderInstaller.complete({
+        humanId,
+        installerSessionId: body.installerSessionId,
+        installReport: body.installReport || {}
+      }));
+    }
+
+    if (req.method === "POST" && path === "/api/onboarder/installer/register") {
+      const body = await readJson(req);
+      const humanId = requireSessionHumanId(req);
+      return json(res, 200, await framework.onboarderInstaller.registerToWorld({
+        humanId,
+        installerSessionId: body.installerSessionId
+      }));
+    }
+
     if (req.method === "GET" && path === "/api/onboarder/purchases") {
       const humanId = requireSessionHumanId(req);
       return json(res, 200, framework.onboarderCommerce.listPurchases({ humanId }));

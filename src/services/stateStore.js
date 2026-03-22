@@ -11,7 +11,8 @@ const EMPTY_STATE = {
   onboarder: {
     catalogVersion: "v1",
     purchases: [],
-    entitlements: []
+    entitlements: [],
+    installerSessions: []
   }
 };
 
@@ -34,7 +35,8 @@ export class StateStore {
         onboarder: {
           catalogVersion: parsed.onboarder?.catalogVersion || "v1",
           purchases: Array.isArray(parsed.onboarder?.purchases) ? parsed.onboarder.purchases : [],
-          entitlements: Array.isArray(parsed.onboarder?.entitlements) ? parsed.onboarder.entitlements : []
+          entitlements: Array.isArray(parsed.onboarder?.entitlements) ? parsed.onboarder.entitlements : [],
+          installerSessions: Array.isArray(parsed.onboarder?.installerSessions) ? parsed.onboarder.installerSessions : []
         }
       };
     } catch (error) {

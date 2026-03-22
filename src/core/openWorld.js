@@ -12,6 +12,7 @@ import { OpenClawOnboardingService } from "../services/openClawOnboardingService
 import { WebPluginFoundationService } from "../services/webPluginFoundationService.js";
 import { OnboarderCommerceService } from "../services/onboarderCommerceService.js";
 import { StripeBillingService } from "../services/stripeBillingService.js";
+import { OnboarderInstallerService } from "../services/onboarderInstallerService.js";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
 
@@ -36,6 +37,7 @@ export class OpenWorldFramework {
     this.billingProvider = billingProvider || new StripeBillingService({ publicBaseUrl: this.universeConfig.publicBaseUrl });
     this.onboarder = null;
     this.onboarderCommerce = null;
+    this.onboarderInstaller = null;
     this.webPluginFoundation = null;
     this.identity = null;
     this.plugins = null;
@@ -71,16 +73,31 @@ export class OpenWorldFramework {
       onboarder: snapshot.onboarder,
       onChange: persist
     });
+    this.onboarderInstaller = new OnboarderInstallerService({
+      identityRegistry: this.identity,
+      onboarderService: this.onboarder,
+      onboarderCommerce: this.onboarderCommerce,
+      onboarder: snapshot.onboarder,
+      onChange: persist
+    });
     this.webPluginFoundation = new WebPluginFoundationService();
     return this;
   }
 
   snapshot() {
+    const identity = this.identity.snapshot();
+    const plugins = this.plugins.snapshot();
+    const projects = this.projects.snapshot();
+    const commerce = this.onboarderCommerce.snapshot();
+    const installer = this.onboarderInstaller.snapshot();
     return {
-      ...this.identity.snapshot(),
-      ...this.plugins.snapshot(),
-      ...this.projects.snapshot(),
-      ...this.onboarderCommerce.snapshot()
+      ...identity,
+      ...plugins,
+      ...projects,
+      onboarder: {
+        ...(commerce.onboarder || {}),
+        ...(installer.onboarder || {})
+      }
     };
   }
 

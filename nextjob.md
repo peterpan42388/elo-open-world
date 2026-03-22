@@ -97,6 +97,11 @@ After every execution cycle, update this file with:
 - any new blockers
 
 ## Last Completed
+- Implemented installer-first onboarder direction with payment-gated install execution:
+  - added installer session APIs (`session/start`, `session/update`, `payment/*`, `plan`, `script`, `complete`, `register`)
+  - enforced payment before installer plan/script generation
+  - added server-side installer session persistence and provisioning-agent flow for users without pre-existing agents
+  - shipped Python GUI installer prototype (`PySide6`) covering the guided flow from login to payment, install execution, and register-to-EOW
 - Completed Stripe deployment readiness for `elo-agent-onboarder` commerce:
   - added production env template and protected `deploy/.env.production` from git tracking
   - created/reused Stripe prices for all three package tiers

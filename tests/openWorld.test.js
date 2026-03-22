@@ -642,6 +642,109 @@ test("onboarder commerce should create paid entitlement and gate artifact delive
   );
 });
 
+test("onboarder installer flow should enforce payment before plan and support install completion registration", async () => {
+  const root = await mkdtemp(join(tmpdir(), "open-world-onboarder-installer-"));
+  const world = await new OpenWorldFramework({
+    stateFile: join(root, "state.json"),
+    projectsRoot: join(root, "projects"),
+    billingProvider: new FakeBillingService()
+  }).init();
+
+  await world.identity.registerHuman({
+    humanId: "human.installer",
+    email: "installer@example.com",
+    githubLogin: "peterpan42388",
+    password: "test-password-installer"
+  });
+
+  const session = world.onboarderInstaller.startSession({
+    humanId: "human.installer",
+    packageId: "starter-openclaw",
+    profile: "macos-homebrew",
+    registrationMode: "register-to-eow"
+  });
+  assert.match(session.installerSessionId, /^installer_/);
+  assert.equal(session.paymentStatus, "pending");
+
+  const updated = world.onboarderInstaller.updateSession({
+    humanId: "human.installer",
+    installerSessionId: session.installerSessionId,
+    agentName: "Installer Hero",
+    agentPersonality: "Helpful and reliable",
+    modelProvider: "OpenAI",
+    modelName: "gpt-5",
+    modelApiKey: "sk-test-installer-1234",
+    chatBinding: {
+      platform: "telegram",
+      telegramBotToken: "123456:ABCDEF",
+      telegramChatId: "998877"
+    }
+  });
+  assert.equal(updated.agentName, "Installer Hero");
+  assert.match(updated.modelApiKeyRef, /^ref:/);
+  assert.equal(updated.modelApiKeyRef.includes("sk-test-installer-1234"), false);
+
+  await assert.rejects(
+    () => Promise.resolve(world.onboarderInstaller.plan({
+      humanId: "human.installer",
+      installerSessionId: session.installerSessionId,
+      worldUrl: "https://world.metavie.co"
+    })),
+    /payment is required/
+  );
+
+  const checkout = await world.onboarderInstaller.createCheckoutSession({
+    humanId: "human.installer",
+    installerSessionId: session.installerSessionId
+  });
+  assert.match(checkout.checkoutSessionId, /^cs_test_/);
+
+  const paid = await world.onboarderInstaller.confirmPayment({
+    humanId: "human.installer",
+    installerSessionId: session.installerSessionId,
+    checkoutSessionId: checkout.checkoutSessionId
+  });
+  assert.equal(paid.paymentStatus, "paid");
+  assert.match(paid.entitlementId, /^ent_/);
+
+  const plan = await world.onboarderInstaller.plan({
+    humanId: "human.installer",
+    installerSessionId: session.installerSessionId,
+    worldUrl: "https://world.metavie.co"
+  });
+  assert.equal(plan.contract, "elo-agent-onboarder.install-execution-plan.v1");
+  assert.equal(plan.paymentStatus, "paid");
+  assert.match(plan.agentId, /^agent\./);
+
+  const script = await world.onboarderInstaller.script({
+    humanId: "human.installer",
+    installerSessionId: session.installerSessionId,
+    worldUrl: "https://world.metavie.co"
+  });
+  assert.equal(script.contract, "elo-agent-onboarder.install-script-ticket.v1");
+  assert.match(script.scriptToken, /^script_/);
+  assert.match(script.script, /SOUL\.md/);
+  assert.match(script.script, /openclaw\.json/);
+  assert.equal(script.script.includes("sk-test-installer-1234"), false);
+
+  const completed = world.onboarderInstaller.complete({
+    humanId: "human.installer",
+    installerSessionId: session.installerSessionId,
+    installReport: { ok: true }
+  });
+  assert.equal(completed.status, "installed");
+
+  const registered = await world.onboarderInstaller.registerToWorld({
+    humanId: "human.installer",
+    installerSessionId: session.installerSessionId
+  });
+  assert.equal(registered.ok, true);
+  assert.match(registered.agentId, /^agent\./);
+
+  const refreshed = world.identity.getAgent(registered.agentId);
+  assert.equal(refreshed.online, true);
+});
+
 test("web plugin bridge-pack should expose foundation artifact bundle", async () => {
   const root = await mkdtemp(join(tmpdir(), "open-world-web-plugin-"));
   const world = await new OpenWorldFramework({
