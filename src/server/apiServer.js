@@ -791,7 +791,12 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === "GET" && path === "/api/onboarder/installer/download") {
-      requireSessionHumanId(req);
+      const sessionFromHeader = sessionHumanId(req);
+      const sessionFromQuery = String(url.searchParams.get("sessionHumanId") || "").trim();
+      const effectiveSession = sessionFromHeader || sessionFromQuery;
+      if (!effectiveSession) {
+        throw new Error("Sign in to ELO Open World first.");
+      }
       const os = String(url.searchParams.get("os") || "macos").toLowerCase();
       const executableTargets = os === "windows"
         ? [

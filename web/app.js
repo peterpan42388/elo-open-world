@@ -5024,29 +5024,16 @@ function renderSettingsData() {
         node.addEventListener('click', async () => {
           try {
             const targetOs = (node.dataset.installerOs || "macos").toLowerCase();
-            const response = await fetch(`/api/onboarder/installer/download?os=${encodeURIComponent(targetOs)}`, {
-              method: 'GET',
-              headers: {
-                ...(state.sessionHumanId ? { 'X-ELO-Session-Human-Id': state.sessionHumanId } : {})
-              }
-            });
-            if (!response.ok) {
-              const err = await response.json().catch(() => ({}));
-              throw new Error(err.error || 'Installer download failed.');
-            }
-            const blob = await response.blob();
-            const disposition = response.headers.get('content-disposition') || '';
-            const matched = disposition.match(/filename="?([^"]+)"?/i);
-            const downloadName = (matched && matched[1]) ? matched[1] : `elo-agent-onboarder-installer-${targetOs}.zip`;
-            const url = URL.createObjectURL(blob);
+            const sessionHumanId = (state.sessionHumanId || "").trim();
+            if (!sessionHumanId) throw new Error('Please sign in first, then retry installer download.');
+            const downloadUrl = `/api/onboarder/installer/download?os=${encodeURIComponent(targetOs)}&sessionHumanId=${encodeURIComponent(sessionHumanId)}`;
             const link = document.createElement('a');
-            link.href = url;
-            link.download = downloadName;
+            link.href = downloadUrl;
+            link.rel = 'noopener';
             document.body.appendChild(link);
             link.click();
             link.remove();
-            URL.revokeObjectURL(url);
-            setStatus(`Installer downloaded: ${downloadName}`, 'ok');
+            setStatus(`Installer download started for ${targetOs}.`, 'ok');
           } catch (error) {
             setStatus(error.message, 'error');
           }
