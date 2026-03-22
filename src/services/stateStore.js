@@ -7,7 +7,12 @@ const EMPTY_STATE = {
   plugins: [],
   projects: [],
   requirements: [],
-  joinTokens: []
+  joinTokens: [],
+  onboarder: {
+    catalogVersion: "v1",
+    purchases: [],
+    entitlements: []
+  }
 };
 
 export class StateStore {
@@ -25,7 +30,12 @@ export class StateStore {
         plugins: Array.isArray(parsed.plugins) ? parsed.plugins : [],
         projects: Array.isArray(parsed.projects) ? parsed.projects : [],
         requirements: Array.isArray(parsed.requirements) ? parsed.requirements : [],
-        joinTokens: Array.isArray(parsed.joinTokens) ? parsed.joinTokens : []
+        joinTokens: Array.isArray(parsed.joinTokens) ? parsed.joinTokens : [],
+        onboarder: {
+          catalogVersion: parsed.onboarder?.catalogVersion || "v1",
+          purchases: Array.isArray(parsed.onboarder?.purchases) ? parsed.onboarder.purchases : [],
+          entitlements: Array.isArray(parsed.onboarder?.entitlements) ? parsed.onboarder.entitlements : []
+        }
       };
     } catch (error) {
       if (error && error.code === "ENOENT") return { ...EMPTY_STATE };

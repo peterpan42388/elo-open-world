@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { OpenWorldFramework } from "../src/core/openWorld.js";
 import { buildArtifactZip } from "../src/services/artifactZipService.js";
+import { FakeBillingService } from "../src/services/stripeBillingService.js";
 
 class FakeGitHubRepoService {
   constructor() {
@@ -513,6 +514,145 @@ test("onboarder install-plan and bootstrap report should align with setup-pack c
   assert.ok(report.artifactBundle.files["bootstrap-report.json"]);
   assert.equal(report.setupPack.readme.length > 0, true);
   assert.equal(report.diagnostics.checks.length, 2);
+});
+
+test("onboarder local-only workflow-pack should enforce preset and generate deferred registration assets", async () => {
+  const root = await mkdtemp(join(tmpdir(), "open-world-onboarder-local-only-"));
+  const world = await new OpenWorldFramework({
+    stateFile: join(root, "state.json"),
+    projectsRoot: join(root, "projects")
+  }).init();
+
+  await world.identity.registerHuman({
+    humanId: "human.local",
+    email: "local@example.com",
+    githubLogin: "peterpan42388",
+    password: "test-password-local"
+  });
+
+  await world.identity.registerAgent({
+    agentId: "agent.local.openclaw",
+    humanId: "human.local",
+    runtime: "openclaw",
+    model: "gpt-5",
+    endpoint: "http://127.0.0.1:18789",
+    online: true
+  });
+
+  assert.throws(
+    () =>
+      world.onboarder.generateInstallPlan({
+        humanId: "human.local",
+        agentId: "agent.local.openclaw",
+        profile: "server-docker-compose",
+        packageId: "workflow-pack",
+        registrationMode: "local-only"
+      }),
+    /workflowPreset is required/
+  );
+
+  const plan = world.onboarder.generateInstallPlan({
+    humanId: "human.local",
+    agentId: "agent.local.openclaw",
+    worldUrl: "https://world.metavie.co",
+    profile: "server-docker-compose",
+    packageId: "workflow-pack",
+    registrationMode: "local-only",
+    workflowPreset: "project-copilot"
+  });
+
+  assert.equal(plan.package.packageId, "workflow-pack");
+  assert.equal(plan.package.workflowPreset, "project-copilot");
+  assert.equal(plan.target.registrationMode, "local-only");
+  assert.equal(plan.steps[plan.steps.length - 1].id, "register-later");
+  assert.ok(plan.templates["workflow-manifest.json"]);
+  assert.ok(plan.templates["workflows/project-copilot.preset.json"]);
+  assert.ok(plan.templates["register-to-eow-later.sh"]);
+  assert.match(plan.templates["run-bootstrap.sh"], /Keeping install local-only/);
+});
+
+test("onboarder commerce should create paid entitlement and gate artifact delivery by owner", async () => {
+  const root = await mkdtemp(join(tmpdir(), "open-world-onboarder-commerce-"));
+  const world = await new OpenWorldFramework({
+    stateFile: join(root, "state.json"),
+    projectsRoot: join(root, "projects"),
+    billingProvider: new FakeBillingService()
+  }).init();
+
+  await world.identity.registerHuman({
+    humanId: "human.buyer",
+    email: "buyer@example.com",
+    githubLogin: "peterpan42388",
+    password: "test-password-buyer"
+  });
+  await world.identity.registerHuman({
+    humanId: "human.other",
+    email: "other@example.com",
+    githubLogin: "octocat",
+    password: "test-password-other"
+  });
+  await world.identity.registerAgent({
+    agentId: "agent.buyer.openclaw",
+    humanId: "human.buyer",
+    runtime: "openclaw",
+    model: "gpt-5",
+    endpoint: "http://127.0.0.1:18789",
+    online: true
+  });
+
+  const checkout = await world.onboarderCommerce.createCheckoutSession({
+    humanId: "human.buyer",
+    packageId: "configured-openclaw",
+    profile: "macos-homebrew",
+    registrationMode: "register-to-eow"
+  });
+  assert.match(checkout.purchaseId, /^purchase_/);
+  assert.match(checkout.checkoutSessionId, /^cs_test_/);
+
+  const confirmed = await world.onboarderCommerce.confirmCheckout({
+    humanId: "human.buyer",
+    purchaseId: checkout.purchaseId,
+    checkoutSessionId: checkout.checkoutSessionId
+  });
+  assert.equal(confirmed.ok, true);
+  assert.match(confirmed.entitlementId, /^ent_/);
+
+  const history = world.onboarderCommerce.listPurchases({ humanId: "human.buyer" });
+  assert.equal(history.purchases.length, 1);
+  assert.equal(history.purchases[0].status, "paid");
+  assert.equal(history.entitlements.length, 1);
+  assert.equal(history.entitlements[0].packageId, "configured-openclaw");
+
+  const delivery = world.onboarderCommerce.generateDeliveryContract({
+    humanId: "human.buyer",
+    entitlementId: confirmed.entitlementId,
+    agentId: "agent.buyer.openclaw"
+  });
+  assert.equal(delivery.contract, "elo-agent-onboarder.delivery-contract.v1");
+  assert.equal(delivery.packageId, "configured-openclaw");
+
+  const bundle = world.onboarderCommerce.generateArtifactBundle({
+    humanId: "human.buyer",
+    entitlementId: confirmed.entitlementId,
+    agentId: "agent.buyer.openclaw",
+    worldUrl: "https://world.metavie.co"
+  });
+  assert.equal(bundle.contract, "elo-agent-onboarder.artifact-bundle.v1");
+  assert.ok(bundle.files["delivery-contract.json"]);
+  assert.ok(bundle.files["setup-pack.json"]);
+  assert.ok(bundle.files["runtime-contract.json"]);
+  assert.equal(bundle.delivery.entitlementId, confirmed.entitlementId);
+
+  assert.throws(
+    () =>
+      world.onboarderCommerce.generateArtifactBundle({
+        humanId: "human.other",
+        entitlementId: confirmed.entitlementId,
+        agentId: "agent.buyer.openclaw",
+        worldUrl: "https://world.metavie.co"
+      }),
+    /entitlement does not belong/
+  );
 });
 
 test("web plugin bridge-pack should expose foundation artifact bundle", async () => {

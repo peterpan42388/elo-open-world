@@ -10,11 +10,13 @@ import { GitHubRepoService } from "../services/githubRepoService.js";
 import { ProjectInitializer } from "../services/projectInitializer.js";
 import { OpenClawOnboardingService } from "../services/openClawOnboardingService.js";
 import { WebPluginFoundationService } from "../services/webPluginFoundationService.js";
+import { OnboarderCommerceService } from "../services/onboarderCommerceService.js";
+import { StripeBillingService } from "../services/stripeBillingService.js";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
 
 export class OpenWorldFramework {
-  constructor({ stateFile, projectsRoot, githubRepoService, universeConfig = {} } = {}) {
+  constructor({ stateFile, projectsRoot, githubRepoService, universeConfig = {}, billingProvider = null } = {}) {
     this.stateFile = stateFile || join(ROOT, "runtime", "state.json");
     this.projectsRoot = projectsRoot || join(ROOT, "runtime", "projects");
     this.store = new StateStore(this.stateFile);
@@ -31,7 +33,9 @@ export class OpenWorldFramework {
       operatorLabel: universeConfig.operatorLabel || process.env.OPERATOR_LABEL || "MetaVie",
       protocolVersion: universeConfig.protocolVersion || "openworld.universe.v1"
     };
+    this.billingProvider = billingProvider || new StripeBillingService({ publicBaseUrl: this.universeConfig.publicBaseUrl });
     this.onboarder = null;
+    this.onboarderCommerce = null;
     this.webPluginFoundation = null;
     this.identity = null;
     this.plugins = null;
@@ -60,6 +64,13 @@ export class OpenWorldFramework {
       projectInitializer: this.projectInitializer
     });
     this.onboarder = new OpenClawOnboardingService({ identityRegistry: this.identity });
+    this.onboarderCommerce = new OnboarderCommerceService({
+      identityRegistry: this.identity,
+      onboarderService: this.onboarder,
+      billingProvider: this.billingProvider,
+      onboarder: snapshot.onboarder,
+      onChange: persist
+    });
     this.webPluginFoundation = new WebPluginFoundationService();
     return this;
   }
@@ -68,7 +79,8 @@ export class OpenWorldFramework {
     return {
       ...this.identity.snapshot(),
       ...this.plugins.snapshot(),
-      ...this.projects.snapshot()
+      ...this.projects.snapshot(),
+      ...this.onboarderCommerce.snapshot()
     };
   }
 

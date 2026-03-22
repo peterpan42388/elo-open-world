@@ -1,31 +1,12 @@
 import { text, token } from "../lib/validation.js";
-
-const FOUNDATION_INSTALL_PROFILES = {
-  "macos-homebrew": {
-    target: "local",
-    platform: "macos",
-    packageMode: "node",
-    runtimeMode: "homebrew",
-    installRoot: "~/elo-open-world",
-    machineLabel: "macbook-homebrew"
-  },
-  "linux-systemd": {
-    target: "local",
-    platform: "linux",
-    packageMode: "node",
-    runtimeMode: "systemd",
-    installRoot: "~/elo-open-world",
-    machineLabel: "linux-systemd"
-  },
-  "server-docker-compose": {
-    target: "server",
-    platform: "linux",
-    packageMode: "docker",
-    runtimeMode: "docker-compose",
-    installRoot: "/opt/elo-open-world",
-    machineLabel: "server-docker-compose"
-  }
-};
+import {
+  FOUNDATION_INSTALL_PROFILES,
+  buildOnboarderCatalogContract,
+  buildCapabilityManifest,
+  buildPackageManifest,
+  buildWorkflowManifest,
+  normalizeOnboarderPackageSelection
+} from "./openClawPackageCatalog.js";
 
 function shellPath(path) {
   return path.startsWith("~/") ? `\${HOME}/${path.slice(2)}` : path;
@@ -35,14 +16,27 @@ function systemdPath(path) {
   return path.startsWith("~/") ? `%h/${path.slice(2)}` : path;
 }
 
+function onboardingSelection(input = {}) {
+  return normalizeOnboarderPackageSelection({
+    packageId: input.packageId || "base-openclaw",
+    profile: input.profile || "macos-homebrew",
+    registrationMode: input.registrationMode || "register-to-eow",
+    workflowPreset: input.workflowPreset || ""
+  });
+}
+
 function buildRuntimeContract(cfg, world) {
   return JSON.stringify({
     contract: "elo-agent-onboarder.runtime-contract.v1",
     runtime: cfg.runtime,
+    packageId: cfg.packageId || "base-openclaw",
+    registrationMode: cfg.registrationMode || "register-to-eow",
+    workflowPreset: cfg.workflowPreset || null,
     entrypoint: "bin/openclaw-runtime.js",
     configPath: "config/openclaw-runtime.json",
     healthPath: `${(cfg.endpoint || "http://127.0.0.1:18789").replace(/\/$/, "")}/health`,
     statusApi: `${world.apiBaseUrl}/api/agents/status`,
+    autoRegister: (cfg.registrationMode || "register-to-eow") === "register-to-eow",
     expectedEnv: [
       "ELO_OPEN_WORLD_API_BASE",
       "ELO_OPEN_WORLD_HUMAN_ID",
@@ -58,6 +52,9 @@ function buildRuntimeConfigTemplate(cfg, world) {
   return JSON.stringify({
     contract: "elo-agent-onboarder.runtime-config.example.v1",
     runtime: cfg.runtime,
+    packageId: cfg.packageId || "base-openclaw",
+    registrationMode: cfg.registrationMode || "register-to-eow",
+    workflowPreset: cfg.workflowPreset || null,
     worldUrl: world.apiBaseUrl,
     humanId: cfg.humanId,
     agentId: cfg.agentId,
@@ -94,6 +91,7 @@ try {
     runtime: "${cfg.runtime}",
     agentId: "${cfg.agentId}",
     humanId: "${cfg.humanId}",
+    packageId: "${cfg.packageId || "base-openclaw"}",
     model: "${cfg.model || ""}",
     endpoint: "${cfg.endpoint || "http://127.0.0.1:18789"}",
     worldUrl: "${world.apiBaseUrl}"
@@ -126,8 +124,39 @@ server.listen(port, "0.0.0.0", () => {
 `;
 }
 
+function buildRegisterLaterScriptTemplate(cfg, world) {
+  const shellRoot = shellPath(cfg.installRoot);
+  const envFile = cfg.profile === "server-docker-compose" ? ".env" : (cfg.profile === "linux-systemd" ? "openclaw.env" : ".env.local");
+  return `#!/usr/bin/env sh
+set -eu
+ROOT="\${1:-${shellRoot}}"
+ENV_FILE="$ROOT/${envFile}"
+
+if [ -f "$ENV_FILE" ]; then
+  set -a
+  . "$ENV_FILE"
+  set +a
+fi
+
+cat <<JSON | curl -fsS -X POST "${world.apiBaseUrl}/api/agents/status" \\
+  -H 'Content-Type: application/json' \\
+  --data-binary @-
+{
+  "agentId": "${cfg.agentId}",
+  "online": true,
+  "runtime": "${cfg.runtime}",
+  "endpoint": "${cfg.endpoint}",
+  "model": "${cfg.model}"
+}
+JSON
+echo
+echo "Registered ${cfg.agentId} into EOW"
+`;
+}
+
 function buildBootstrapRunnerTemplate(cfg) {
   const shellRoot = shellPath(cfg.installRoot);
+  const registerEnabled = (cfg.registrationMode || "register-to-eow") === "register-to-eow";
   if (cfg.profile === "server-docker-compose") {
     return `#!/usr/bin/env sh
 set -eu
@@ -140,8 +169,9 @@ echo "[1/3] Bootstrapping docker compose runtime"
 echo "[2/3] Running health checks"
 ./healthcheck.sh "$ROOT"
 
-echo "[3/3] Reporting agent status to EOW"
-./report-status.sh "$ROOT"
+${registerEnabled ? `echo "[3/3] Reporting agent status to EOW"
+./report-status.sh "$ROOT"` : `echo "[3/3] Keeping install local-only"
+echo "Run ./register-to-eow-later.sh $ROOT when you want to register this runtime into EOW."`}
 
 echo
 echo "Bootstrap execution completed for ${cfg.agentId}"
@@ -163,8 +193,9 @@ sleep 3
 echo "[3/4] Running health checks"
 ./healthcheck.sh "$ROOT"
 
-echo "[4/4] Reporting agent status to EOW"
-./report-status.sh "$ROOT"
+${registerEnabled ? `echo "[4/4] Reporting agent status to EOW"
+./report-status.sh "$ROOT"` : `echo "[4/4] Keeping install local-only"
+echo "Run ./register-to-eow-later.sh $ROOT when you want to register this runtime into EOW."`}
 
 echo
 echo "Bootstrap execution completed for ${cfg.agentId}"
@@ -188,8 +219,9 @@ sleep 3
 echo "[3/4] Running health checks"
 ./healthcheck.sh "$ROOT"
 
-echo "[4/4] Reporting agent status to EOW"
-./report-status.sh "$ROOT"
+${registerEnabled ? `echo "[4/4] Reporting agent status to EOW"
+./report-status.sh "$ROOT"` : `echo "[4/4] Keeping install local-only"
+echo "Run ./register-to-eow-later.sh $ROOT when you want to register this runtime into EOW."`}
 
 echo
 echo "Bootstrap execution completed for ${cfg.agentId}. Runtime pid: $RUNTIME_PID"
@@ -264,6 +296,25 @@ cat "$ROOT/logs/bootstrap-run.log" || true
 function buildProfileTemplates(cfg, world) {
   const shellRoot = shellPath(cfg.installRoot);
   const systemdRoot = systemdPath(cfg.installRoot);
+  const selection = onboardingSelection(cfg);
+  const packageFiles = {};
+  if (selection.packageId !== "base-openclaw") {
+    packageFiles["package-manifest.json"] = `${JSON.stringify(buildPackageManifest(selection, cfg), null, 2)}\n`;
+    packageFiles["capability-manifest.json"] = `${JSON.stringify(buildCapabilityManifest(selection, cfg), null, 2)}\n`;
+  }
+  if (selection.workflowPresetConfig) {
+    packageFiles["workflow-manifest.json"] = `${JSON.stringify(buildWorkflowManifest(selection), null, 2)}\n`;
+    packageFiles[`workflows/${selection.workflowPreset}.preset.json`] = `${JSON.stringify({
+      presetId: selection.workflowPresetConfig.presetId,
+      displayName: selection.workflowPresetConfig.displayName,
+      tags: selection.workflowPresetConfig.tags,
+      packageId: selection.packageId,
+      runtime: cfg.runtime
+    }, null, 2)}\n`;
+  }
+  if (selection.registrationMode === "local-only") {
+    packageFiles["register-to-eow-later.sh"] = buildRegisterLaterScriptTemplate(cfg, world);
+  }
   if (cfg.profile === "macos-homebrew") {
     return {
       "runtime-contract.json": buildRuntimeContract(cfg, world),
@@ -394,7 +445,8 @@ fi
 
 export OPENCLAW_RUNTIME_CONFIG="$CONFIG_FILE"
 exec node "$RUNTIME_FILE"
-`
+`,
+      ...packageFiles
     };
   }
 
@@ -528,7 +580,8 @@ chmod +x "$ROOT/run-bootstrap.sh" "$ROOT/diagnose-bootstrap.sh" "$ROOT/healthche
 cp openclaw.service ~/.config/systemd/user/openclaw.service
 systemctl --user daemon-reload
 systemctl --user enable --now openclaw.service
-`
+`,
+      ...packageFiles
     };
   }
 
@@ -632,7 +685,8 @@ cd "$ROOT"
 docker compose pull
 docker compose up -d
 docker compose ps
-`
+`,
+      ...packageFiles
     };
   }
 
@@ -681,12 +735,17 @@ export class OpenClawOnboardingService {
     this.defaultWorldUrl = defaultWorldUrl;
   }
 
-  generateBundle({ humanId, agentId, worldUrl = "", machineLabel = "", notes = "" }) {
+  catalog() {
+    return buildOnboarderCatalogContract();
+  }
+
+  generateBundle({ humanId, agentId, worldUrl = "", machineLabel = "", notes = "", packageId = "base-openclaw", profile = "macos-homebrew", registrationMode = "register-to-eow", workflowPreset = "" }) {
     const human = this.identityRegistry.getHuman(humanId);
     const agent = this.identityRegistry.getAgent(agentId);
     if (agent.humanId !== human.humanId) {
       throw new Error("agent does not belong to the provided human");
     }
+    const selection = onboardingSelection({ packageId, profile, registrationMode, workflowPreset });
 
     const safeWorldUrl = text("worldUrl", worldUrl, 512) || this.defaultWorldUrl;
     const safeMachineLabel = text("machineLabel", machineLabel, 128) || `${agent.agentId}.local`;
@@ -703,6 +762,13 @@ export class OpenClawOnboardingService {
       schemaVersion: "elo-open-world.onboarder.v2",
       contract: "elo-agent-onboarder.setup-pack.v1",
       generatedAt,
+      package: {
+        packageId: selection.packageId,
+        displayName: selection.package.displayName,
+        profile: selection.profile,
+        registrationMode: selection.registrationMode,
+        workflowPreset: selection.workflowPreset || null
+      },
       plugin: {
         pluginId: "plugin.elo-agent-onboarder",
         title: "ELO OpenClaw Onboarding Assistant",
@@ -766,12 +832,25 @@ export class OpenClawOnboardingService {
     packageMode = "",
     runtimeMode = "",
     installRoot = "",
-    machineLabel = ""
+    machineLabel = "",
+    registrationMode = "register-to-eow",
+    packageId = "base-openclaw",
+    workflowPreset = ""
   }) {
-    const safeProfile = token("profile", profile || "", 64).toLowerCase();
+    const selection = onboardingSelection({ packageId, profile, registrationMode, workflowPreset });
+    const safeProfile = selection.profile;
     const selected = FOUNDATION_INSTALL_PROFILES[safeProfile] || {};
     const safeMachineLabel = text("machineLabel", machineLabel || selected.machineLabel || "", 128);
-    const bundle = this.generateBundle({ humanId, agentId, worldUrl, machineLabel: safeMachineLabel });
+    const bundle = this.generateBundle({
+      humanId,
+      agentId,
+      worldUrl,
+      machineLabel: safeMachineLabel,
+      packageId: selection.packageId,
+      profile: safeProfile,
+      registrationMode: selection.registrationMode,
+      workflowPreset: selection.workflowPreset
+    });
     const safeTarget = token("target", target || selected.target || "local", 32).toLowerCase();
     const safePlatform = token("platform", platform || selected.platform || "unknown", 32).toLowerCase();
     const safePackageMode = token("packageMode", packageMode || selected.packageMode || "node", 32).toLowerCase();
@@ -867,20 +946,33 @@ export class OpenClawOnboardingService {
         action: "start-runtime",
         command: safeProfile === "server-docker-compose" ? "docker compose up -d" : (safeProfile === "linux-systemd" ? "systemctl --user enable --now openclaw.service" : (safePackageMode === "docker" ? "docker run ..." : "start your local OpenClaw-compatible runtime")),
         rationale: "Bring the user-owned agent runtime online before reporting status."
-      },
-      {
+      }
+    );
+    if (selection.registrationMode === "register-to-eow") {
+      steps.push({
         id: "report-status",
         title: "Report status to EOW",
         action: "report-status",
         command: bundle.world.agentStatusUrl,
         rationale: "Make the local agent visible in EOW after the runtime is up."
-      }
-    );
+      });
+    } else {
+      steps.push({
+        id: "register-later",
+        title: "Optional later registration",
+        action: "register-later",
+        command: "./register-to-eow-later.sh",
+        rationale: "Keep the install local-only now, with a later opt-in registration path."
+      });
+    }
 
     const templates = buildProfileTemplates({
       humanId: bundle.identity.humanId,
       agentId: bundle.identity.agentId,
       profile: safeProfile || "custom",
+      packageId: selection.packageId,
+      registrationMode: selection.registrationMode,
+      workflowPreset: selection.workflowPreset,
       installRoot: safeInstallRoot,
       runtime: bundle.runtime.runtime,
       model: bundle.runtime.model,
@@ -898,8 +990,12 @@ export class OpenClawOnboardingService {
         platform: safePlatform,
         packageMode: safePackageMode,
         runtimeMode: safeRuntimeMode,
-        installRoot: safeInstallRoot
+        installRoot: safeInstallRoot,
+        packageId: selection.packageId,
+        registrationMode: selection.registrationMode,
+        workflowPreset: selection.workflowPreset || null
       },
+      package: bundle.package,
       world: bundle.world,
       setupPackContract: bundle.contract,
       steps,

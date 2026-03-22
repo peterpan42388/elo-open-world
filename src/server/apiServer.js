@@ -50,6 +50,10 @@ function oauthConfig() {
   };
 }
 
+function onboarderPublicServiceEnabled() {
+  return String(process.env.ONBOARDER_PUBLIC_SERVICE_ENABLED || "").toLowerCase() === "true";
+}
+
 function renderAuthResultPage({ ok, message, humanId = "" }) {
   const safeMessage = String(message || "Authentication failed.").replace(/</g, "&lt;");
   const safeHumanId = String(humanId || "").replace(/'/g, "\\'");
@@ -243,6 +247,23 @@ async function readJson(req) {
   return JSON.parse(raw);
 }
 
+async function readRaw(req) {
+  let raw = "";
+  for await (const chunk of req) raw += chunk;
+  return raw;
+}
+
+function sessionHumanId(req) {
+  const value = req.headers["x-elo-session-human-id"];
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function requireSessionHumanId(req) {
+  const humanId = sessionHumanId(req);
+  if (!humanId) throw new Error("Sign in to ELO Open World first.");
+  return humanId;
+}
+
 async function serveStatic(pathname, res) {
   const target = pathname === "/" ? "/index.html" : pathname;
   const safe = normalize(target).replace(/^\.\.(\/|\\|$)/, "");
@@ -342,6 +363,13 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, oauthConfig());
     }
 
+    if (req.method === "POST" && path === "/api/billing/stripe/webhook") {
+      const raw = await readRaw(req);
+      const signature = req.headers["stripe-signature"];
+      const event = await framework.onboarderCommerce.billingProvider.verifyWebhook(raw, signature);
+      return json(res, 200, await framework.onboarderCommerce.handleStripeEvent(event));
+    }
+
     if (req.method === "POST" && path === "/api/auth/login") {
       const body = await readJson(req);
       return json(res, 200, framework.identity.authenticateLocal(body));
@@ -397,10 +425,12 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === "GET" && path === "/services/elo-agent-onboarder") {
+      if (!onboarderPublicServiceEnabled()) return json(res, 404, { error: "not found" });
       return html(res, 200, renderOnboarderServicePage());
     }
 
     if (req.method === "GET" && path === "/services/elo-agent-onboarder/health") {
+      if (!onboarderPublicServiceEnabled()) return json(res, 404, { error: "not found" });
       return json(res, 200, {
         ok: true,
         service: "elo-agent-onboarder",
@@ -410,6 +440,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === "GET" && path === "/services/elo-agent-onboarder/manifest") {
+      if (!onboarderPublicServiceEnabled()) return json(res, 404, { error: "not found" });
       return json(res, 200, {
         serviceId: "service.elo-agent-onboarder",
         project: "elo-agent-onboarder",
@@ -449,21 +480,25 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === "POST" && path === "/services/elo-agent-onboarder/setup-pack") {
+      if (!onboarderPublicServiceEnabled()) return json(res, 404, { error: "not found" });
       const body = await readJson(req);
       return json(res, 200, framework.onboarder.generateBundle(body));
     }
 
     if (req.method === "POST" && path === "/services/elo-agent-onboarder/install-plan") {
+      if (!onboarderPublicServiceEnabled()) return json(res, 404, { error: "not found" });
       const body = await readJson(req);
       return json(res, 200, framework.onboarder.generateInstallPlan(body));
     }
 
     if (req.method === "POST" && path === "/services/elo-agent-onboarder/bootstrap") {
+      if (!onboarderPublicServiceEnabled()) return json(res, 404, { error: "not found" });
       const body = await readJson(req);
       return json(res, 200, framework.onboarder.generateBootstrapReport(body));
     }
 
     if (req.method === "POST" && path === "/services/elo-agent-onboarder/artifact-zip") {
+      if (!onboarderPublicServiceEnabled()) return json(res, 404, { error: "not found" });
       const body = await readJson(req);
       const action = String(body.action || "artifact").trim().toLowerCase();
       const basename = `elo-agent-onboarder-${action}`;
@@ -475,6 +510,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === "POST" && path === "/services/elo-agent-onboarder/bundle") {
+      if (!onboarderPublicServiceEnabled()) return json(res, 404, { error: "not found" });
       const body = await readJson(req);
       return json(res, 200, framework.onboarder.generateBundle(body));
     }
@@ -620,22 +656,95 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, await framework.identity.updateAgentStatus(body));
     }
 
+    if (req.method === "GET" && path === "/api/onboarder/catalog") {
+      requireSessionHumanId(req);
+      return json(res, 200, framework.onboarder.catalog());
+    }
+
+    if (req.method === "POST" && path === "/api/onboarder/checkout-session") {
+      const body = await readJson(req);
+      const humanId = requireSessionHumanId(req);
+      return json(res, 200, await framework.onboarderCommerce.createCheckoutSession({
+        humanId,
+        packageId: body.packageId,
+        profile: body.profile,
+        registrationMode: body.registrationMode,
+        workflowPreset: body.workflowPreset
+      }));
+    }
+
+    if (req.method === "POST" && path === "/api/onboarder/checkout-confirm") {
+      const body = await readJson(req);
+      const humanId = requireSessionHumanId(req);
+      return json(res, 200, await framework.onboarderCommerce.confirmCheckout({
+        humanId,
+        purchaseId: body.purchaseId,
+        checkoutSessionId: body.checkoutSessionId
+      }));
+    }
+
+    if (req.method === "GET" && path === "/api/onboarder/purchases") {
+      const humanId = requireSessionHumanId(req);
+      return json(res, 200, framework.onboarderCommerce.listPurchases({ humanId }));
+    }
+
+    if (req.method === "POST" && path === "/api/onboarder/delivery-contract") {
+      const body = await readJson(req);
+      const humanId = requireSessionHumanId(req);
+      return json(res, 200, framework.onboarderCommerce.generateDeliveryContract({
+        humanId,
+        entitlementId: body.entitlementId,
+        agentId: body.agentId
+      }));
+    }
+
+    if (req.method === "POST" && path === "/api/onboarder/artifact-bundle") {
+      const body = await readJson(req);
+      const humanId = requireSessionHumanId(req);
+      return json(res, 200, framework.onboarderCommerce.generateArtifactBundle({
+        humanId,
+        entitlementId: body.entitlementId,
+        agentId: body.agentId,
+        worldUrl: body.worldUrl || framework.universeConfig.publicBaseUrl
+      }));
+    }
+
+    if (req.method === "POST" && path === "/api/onboarder/artifact-zip") {
+      const body = await readJson(req);
+      const humanId = requireSessionHumanId(req);
+      const bundle = framework.onboarderCommerce.generateArtifactBundle({
+        humanId,
+        entitlementId: body.entitlementId,
+        agentId: body.agentId,
+        worldUrl: body.worldUrl || framework.universeConfig.publicBaseUrl
+      });
+      const result = await buildArtifactZip({
+        bundle,
+        basename: bundle.basename || "elo-agent-onboarder-delivery"
+      });
+      return binary(res, 200, result.data, result.contentType, result.filename);
+    }
+
     if (req.method === "POST" && path === "/api/onboarder/setup-pack") {
+      if (!onboarderPublicServiceEnabled()) return json(res, 404, { error: "not found" });
       const body = await readJson(req);
       return json(res, 200, framework.onboarder.generateBundle(body));
     }
 
     if (req.method === "POST" && path === "/api/onboarder/install-plan") {
+      if (!onboarderPublicServiceEnabled()) return json(res, 404, { error: "not found" });
       const body = await readJson(req);
       return json(res, 200, framework.onboarder.generateInstallPlan(body));
     }
 
     if (req.method === "POST" && path === "/api/onboarder/bootstrap") {
+      if (!onboarderPublicServiceEnabled()) return json(res, 404, { error: "not found" });
       const body = await readJson(req);
       return json(res, 200, framework.onboarder.generateBootstrapReport(body));
     }
 
     if (req.method === "POST" && path === "/api/onboarder/bundle") {
+      if (!onboarderPublicServiceEnabled()) return json(res, 404, { error: "not found" });
       const body = await readJson(req);
       return json(res, 200, framework.onboarder.generateBundle(body));
     }

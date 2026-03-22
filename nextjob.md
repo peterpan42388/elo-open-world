@@ -97,6 +97,16 @@ After every execution cycle, update this file with:
 - any new blockers
 
 ## Last Completed
+- Completed Stripe deployment readiness for `elo-agent-onboarder` commerce:
+  - added production env template and protected `deploy/.env.production` from git tracking
+  - created/reused Stripe prices for all three package tiers
+  - wired production billing env and verified live checkout session creation smoke (`cs_live_*` with valid hosted checkout URL)
+- Recovered the interrupted `elo-agent-onboarder` paid onboarding implementation path by wiring package catalog, Stripe billing abstraction, purchase + entitlement persistence, authenticated onboarder commerce APIs, and Settings-side commerce UI integration in the current branch state
+- Added regression coverage for package-aware onboarding and commerce flow:
+  - enforced workflow preset requirement for `workflow-pack`
+  - verified `local-only` output includes deferred registration assets
+  - verified paid checkout confirmation creates entitlement and gates artifact delivery by owner
+- Added runtime dependency for Stripe SDK in `elo-open-world` so production checkout/webhook paths can execute with configured secrets
 - Tightened `World` drawer density by collapsing repeated focus and cluster signals into a compact top summary, switching relationship summaries from long raw lists to count-plus-preview notes, trimming cluster sibling lists, and reducing foundation-run verbosity so the inspector reads as a precise instrument panel instead of a stacked dump
 - Calibrated `World` for the real production seed case by biasing hybrid signal scoring toward live projects, surfacing a `Seeded Baseline` insight card, and making real operating foundation repos dominate hybrid ordering, sizing, depth, and label priority instead of being visually overtaken by hotter synthetic mock nodes
 - Extended `World` drawer grouping so project and universe inspectors now expose cluster context, cluster sibling navigation, and direct cluster-focus actions, turning cluster grouping into an actual drill-in workflow instead of a legend-only control
@@ -156,9 +166,23 @@ After every execution cycle, update this file with:
 
 ## Current Focus
 - `World` is complete and frozen. Do not reopen structural work on this module unless a production bug or explicit redesign request appears.
+- Primary execution focus has moved to `elo-agent-onboarder` paid productization inside EOW:
+  - finalize Stripe-backed purchase confirmation and webhook idempotency behavior end-to-end
+  - harden entitlement-gated delivery/download paths
+  - complete deployment-safe env/config readiness checks
 
 ## Next Recommended Action
-- move to the next module and treat `World` work as maintenance-only
+- continue `elo-agent-onboarder` phase execution in this order:
+1. complete backend commerce hardening:
+   - webhook duplicate and delayed-confirm scenarios
+   - entitlement ownership checks across all delivery endpoints
+2. complete UI hardening:
+   - purchase state clarity (pending / paid / failed)
+   - clearer post-checkout return and error handling
+3. run production-focused verification:
+   - Stripe env variable presence check
+   - sandbox checkout smoke test
+   - artifact download smoke test per package/registration mode
 
 ## Blockers
 - local runtime still has no seeded project data, so representative graph validation continues to depend on the deployed environment

@@ -7,6 +7,7 @@ const SETTINGS_DEFAULT_SECTION = "profile";
 const WORLD_VISUAL_MODE_KEY = "elo-open-world.world-visual-mode";
 const WORLD_HIERARCHY_PRESET_KEY = "elo-open-world.world-hierarchy-preset";
 const WORLD_DECLUTTER_MODE_KEY = "elo-open-world.world-declutter-mode";
+const ONBOARDER_CHECKOUT_PARAMS = ["onboarderCheckout", "purchaseId", "checkoutSessionId"];
 const ROUTES = new Set(["home", "join", "settings", "new-project", "project", "world", "build", "market", "docs"]);
 const ONBOARDER_PRESET = {
   repoName: "elo-agent-onboarder",
@@ -110,10 +111,14 @@ const state = {
   starterBridgeStatus: null,
   latestStarterConversation: null,
   latestFoundationArtifacts: {},
+  onboarderCatalog: null,
+  onboarderPurchases: { purchases: [], entitlements: [] },
+  pendingOnboarderCheckout: null,
   activeProjectId: ""
 };
 
 bootstrapSessionFromUrl();
+bootstrapOnboarderCheckoutFromUrl();
 
 function loadSession() {
   return localStorage.getItem(SESSION_KEY) || "";
@@ -155,6 +160,18 @@ function bootstrapSessionFromUrl() {
   history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
 }
 
+function bootstrapOnboarderCheckoutFromUrl() {
+  const url = new URL(window.location.href);
+  if (!url.searchParams.get("onboarderCheckout")) return;
+  state.pendingOnboarderCheckout = {
+    status: (url.searchParams.get("onboarderCheckout") || "").trim(),
+    purchaseId: (url.searchParams.get("purchaseId") || "").trim(),
+    checkoutSessionId: (url.searchParams.get("checkoutSessionId") || "").trim()
+  };
+  ONBOARDER_CHECKOUT_PARAMS.forEach((key) => url.searchParams.delete(key));
+  history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+}
+
 function saveSession(humanId) {
   if (humanId) localStorage.setItem(SESSION_KEY, humanId);
   else localStorage.removeItem(SESSION_KEY);
@@ -168,9 +185,12 @@ function saveWorldVisualMode(mode) {
 }
 
 async function request(path, method = "GET", body) {
+  const headers = {};
+  if (body) headers["Content-Type"] = "application/json";
+  if (state.sessionHumanId) headers["X-ELO-Session-Human-Id"] = state.sessionHumanId;
   const res = await fetch(path, {
     method,
-    headers: body ? { "Content-Type": "application/json" } : {},
+    headers,
     body: body ? JSON.stringify(body) : undefined
   });
   const payload = await res.json();
@@ -823,26 +843,55 @@ function renderProjectFoundationRunList(project, limit = 5) {
   `;
 }
 
-function renderFoundationOperator(project, agents) {
-  if (project.repoFullName === "peterpan42388/elo-agent-onboarder") {
-  const defaults = foundationToolDefaults();
+function renderOnboarderCommerceOperator(project, agents) {
+  const catalog = state.onboarderCatalog;
+  const purchases = state.onboarderPurchases || { purchases: [], entitlements: [] };
   const artifact = state.latestFoundationArtifacts?.[project.projectId];
-  const outputText = artifact?.result ? JSON.stringify(artifact.result, null, 2) : "No foundation artifact generated yet.";
+  const outputText = artifact?.result ? JSON.stringify(artifact.result, null, 2) : "No paid deliverable generated yet.";
+  if (!state.sessionHumanId) {
+    return `
+      <div class="foundation-operator copy-stack">
+        <div class="summary-row">
+          <strong>Paid OpenClaw Packages</strong>
+          <span>Sign in required</span>
+        </div>
+        <p class="note">Sign in to ELO Open World first. Package purchase, purchase history, and deliverable downloads are only available to authenticated humans.</p>
+      </div>
+    `;
+  }
+  const packageCards = (catalog?.packages || []).map((pkg) => `
+    <div class="nested-item">
+      <strong>${pkg.displayName}</strong>
+      <span>$${pkg.displayPriceUsd}</span>
+      <span>${pkg.description}</span>
+      <span>${pkg.workflowPresetRequired ? "Requires workflow preset" : "No workflow preset required"}</span>
+    </div>
+  `).join("");
+  const purchaseRows = purchases.entitlements.length ? purchases.entitlements.map((entitlement) => `
+    <div class="nested-item">
+      <strong>${entitlement.packageId}</strong>
+      <span>${entitlement.profile}</span>
+      <span>${entitlement.registrationMode}</span>
+      <span>${entitlement.workflowPreset || "-"}</span>
+      <span>${formatTimestamp(entitlement.createdAt)}</span>
+      <div class="action-row">
+        <button type="button" class="topbar-button ghost onboarder-download-delivery" data-project-id="${project.projectId}" data-entitlement-id="${entitlement.entitlementId}">Delivery Contract</button>
+        <button type="button" class="topbar-button ghost onboarder-download-bundle" data-project-id="${project.projectId}" data-entitlement-id="${entitlement.entitlementId}">Artifact Bundle</button>
+        <button type="button" class="topbar-button secondary onboarder-download-zip" data-project-id="${project.projectId}" data-entitlement-id="${entitlement.entitlementId}">Download ZIP</button>
+      </div>
+    </div>
+  `).join("") : '<div class="empty">No paid entitlements yet.</div>';
+  const defaults = foundationToolDefaults();
   return `
     <div class="foundation-operator copy-stack">
       <div class="summary-row">
-        <strong>Foundation Operator</strong>
-        <span>Generate onboarding artifacts from EOW</span>
+        <strong>Paid OpenClaw Packages</strong>
+        <span>Stripe one-time payment, fiat only</span>
       </div>
-      ${renderFoundationRuntimeNotice()}
-      <div class="action-row foundation-preset-actions">
-        <button type="button" class="topbar-button ghost foundation-preset-button" data-project-id="${project.projectId}" data-foundation-preset="macos-homebrew">macOS Homebrew</button>
-        <button type="button" class="topbar-button ghost foundation-preset-button" data-project-id="${project.projectId}" data-foundation-preset="linux-systemd">Linux systemd</button>
-        <button type="button" class="topbar-button ghost foundation-preset-button" data-project-id="${project.projectId}" data-foundation-preset="server-docker-compose">Server Docker Compose</button>
-      </div>
-      <form class="foundation-tool-form" data-project-id="${project.projectId}">
+      <p class="note">Choose a curated OpenClaw package, one environment, and whether installation should register into EOW after setup. Registration defaults to enabled, but local-only install remains available.</p>
+      <div class="nested-list">${packageCards}</div>
+      <form class="foundation-tool-form onboarder-commerce-form" data-project-id="${project.projectId}">
         <div class="form-grid compact-grid">
-          <input type="hidden" name="profile" value="${defaults.profile}" />
           <label>
             <span>Agent</span>
             <select name="agentId" required>
@@ -851,51 +900,123 @@ function renderFoundationOperator(project, agents) {
             </select>
           </label>
           <label>
-            <span>Target</span>
-            <select name="target">
-              <option value="local">Local</option>
-              <option value="server">Server</option>
+            <span>Package</span>
+            <select name="packageId">
+              ${(catalog?.packages || []).map((pkg) => `<option value="${pkg.packageId}">${pkg.displayName} ($${pkg.displayPriceUsd})</option>`).join("")}
             </select>
           </label>
           <label>
-            <span>Platform</span>
-            <select name="platform">
-              <option value="${defaults.platform}">${defaults.platform}</option>
-              <option value="macos">macOS</option>
-              <option value="linux">Linux</option>
+            <span>Environment</span>
+            <select name="profile">
+              <option value="${defaults.profile}">${defaults.profile}</option>
+              <option value="macos-homebrew">macos-homebrew</option>
+              <option value="linux-systemd">linux-systemd</option>
+              <option value="server-docker-compose">server-docker-compose</option>
             </select>
           </label>
           <label>
-            <span>Package Mode</span>
-            <select name="packageMode">
-              <option value="node">node</option>
-              <option value="docker">docker</option>
+            <span>Registration Mode</span>
+            <select name="registrationMode">
+              <option value="register-to-eow">register-to-eow</option>
+              <option value="local-only">local-only</option>
             </select>
           </label>
           <label>
-            <span>Runtime Mode</span>
-            <input name="runtimeMode" value="${defaults.runtimeMode}" />
-          </label>
-          <label>
-            <span>Install Root</span>
-            <input name="installRoot" value="${defaults.installRoot}" />
-          </label>
-          <label>
-            <span>Machine Label</span>
-            <input name="machineLabel" value="${defaults.machineLabel}" />
+            <span>Workflow Preset</span>
+            <select name="workflowPreset">
+              <option value="">Not required</option>
+              ${(catalog?.workflowPresets || []).map((preset) => `<option value="${preset.presetId}">${preset.displayName}</option>`).join("")}
+            </select>
           </label>
         </div>
         <div class="action-row">
-          <button type="button" class="topbar-button secondary foundation-run-button" data-foundation-action="setup-pack" data-project-id="${project.projectId}">Generate Setup Pack</button>
-          <button type="button" class="topbar-button ghost foundation-run-button" data-foundation-action="install-plan" data-project-id="${project.projectId}">Generate Install Plan</button>
-          <button type="button" class="topbar-button ghost foundation-run-button" data-foundation-action="bootstrap" data-project-id="${project.projectId}">Generate Bootstrap Report</button>
+          <button type="button" class="topbar-button secondary onboarder-checkout-button" data-project-id="${project.projectId}">Purchase With Stripe</button>
+          <button type="button" class="topbar-button ghost onboarder-refresh-purchases" data-project-id="${project.projectId}">Refresh Purchases</button>
         </div>
       </form>
+      <div class="copy-stack">
+        <div class="summary-row">
+          <strong>My Purchases</strong>
+          <span>${purchases.entitlements.length}</span>
+        </div>
+        <div class="nested-list">${purchaseRows}</div>
+      </div>
+      <details class="expand-card">
+        <summary>
+          <div class="summary-row">
+            <strong>Developer Tools</strong>
+            <span>Legacy internal artifact generation</span>
+          </div>
+        </summary>
+        <div class="expand-body">
+          ${renderFoundationRuntimeNotice()}
+          <div class="action-row foundation-preset-actions">
+            <button type="button" class="topbar-button ghost foundation-preset-button" data-project-id="${project.projectId}" data-foundation-preset="macos-homebrew">macOS Homebrew</button>
+            <button type="button" class="topbar-button ghost foundation-preset-button" data-project-id="${project.projectId}" data-foundation-preset="linux-systemd">Linux systemd</button>
+            <button type="button" class="topbar-button ghost foundation-preset-button" data-project-id="${project.projectId}" data-foundation-preset="server-docker-compose">Server Docker Compose</button>
+          </div>
+          <form class="foundation-tool-form" data-project-id="${project.projectId}">
+            <div class="form-grid compact-grid">
+              <input type="hidden" name="profile" value="${defaults.profile}" />
+              <label>
+                <span>Agent</span>
+                <select name="agentId" required>
+                  <option value="">Select one of your agents</option>
+                  ${agents.map((agent) => `<option value="${agent.agentId}">${agent.label || agent.agentId}</option>`).join("")}
+                </select>
+              </label>
+              <label>
+                <span>Target</span>
+                <select name="target">
+                  <option value="local">Local</option>
+                  <option value="server">Server</option>
+                </select>
+              </label>
+              <label>
+                <span>Platform</span>
+                <select name="platform">
+                  <option value="${defaults.platform}">${defaults.platform}</option>
+                  <option value="macos">macOS</option>
+                  <option value="linux">Linux</option>
+                </select>
+              </label>
+              <label>
+                <span>Package Mode</span>
+                <select name="packageMode">
+                  <option value="node">node</option>
+                  <option value="docker">docker</option>
+                </select>
+              </label>
+              <label>
+                <span>Runtime Mode</span>
+                <input name="runtimeMode" value="${defaults.runtimeMode}" />
+              </label>
+              <label>
+                <span>Install Root</span>
+                <input name="installRoot" value="${defaults.installRoot}" />
+              </label>
+              <label>
+                <span>Machine Label</span>
+                <input name="machineLabel" value="${defaults.machineLabel}" />
+              </label>
+            </div>
+            <div class="action-row">
+              <button type="button" class="topbar-button ghost foundation-run-button" data-foundation-action="setup-pack" data-project-id="${project.projectId}">Generate Setup Pack</button>
+              <button type="button" class="topbar-button ghost foundation-run-button" data-foundation-action="install-plan" data-project-id="${project.projectId}">Generate Install Plan</button>
+              <button type="button" class="topbar-button ghost foundation-run-button" data-foundation-action="bootstrap" data-project-id="${project.projectId}">Generate Bootstrap Report</button>
+            </div>
+          </form>
+        </div>
+      </details>
       ${renderFoundationRunHistory(project)}
-      ${renderFoundationArtifactActions(project)}
       <pre class="code-block compact foundation-output" id="foundation-output-${project.projectId}">${outputText}</pre>
     </div>
   `;
+}
+
+function renderFoundationOperator(project, agents) {
+  if (project.repoFullName === "peterpan42388/elo-agent-onboarder") {
+    return renderOnboarderCommerceOperator(project, agents);
   }
   if (project.repoFullName === "peterpan42388/elo-agent-web-plugin") {
     const defaults = foundationBridgeDefaults();
@@ -4795,7 +4916,7 @@ function renderSettingsData() {
       foundationsRoot.querySelectorAll('.foundation-run-button').forEach((node) => {
         node.addEventListener('click', async () => {
           const projectId = node.dataset.projectId || '';
-          const form = foundationsRoot.querySelector(`.foundation-tool-form[data-project-id="${projectId}"]`);
+          const form = node.closest('.expand-body')?.querySelector(`.foundation-tool-form[data-project-id="${projectId}"]`);
           if (!form) return;
           try {
             const agentId = form.agentId.value;
@@ -4848,7 +4969,7 @@ function renderSettingsData() {
         node.addEventListener('click', () => {
           const preset = foundationPresetMap()[node.dataset.foundationPreset || ""];
           const projectId = node.dataset.projectId || "";
-          const form = foundationsRoot.querySelector(`.foundation-tool-form[data-project-id="${projectId}"]`);
+          const form = node.closest('.expand-body')?.querySelector(`.foundation-tool-form[data-project-id="${projectId}"]`);
           if (!preset || !form) return;
           form.profile.value = preset.profile;
           form.target.value = preset.target;
@@ -4858,6 +4979,112 @@ function renderSettingsData() {
           form.installRoot.value = preset.installRoot;
           form.machineLabel.value = preset.machineLabel;
           setStatus(`Applied ${node.textContent?.trim() || "foundation"} preset.`, "ok");
+        });
+      });
+      foundationsRoot.querySelectorAll('.onboarder-checkout-button').forEach((node) => {
+        node.addEventListener('click', async () => {
+          const projectId = node.dataset.projectId || '';
+          const form = foundationsRoot.querySelector(`.onboarder-commerce-form[data-project-id="${projectId}"]`);
+          if (!form) return;
+          try {
+            if (!form.agentId.value) throw new Error('Select one of your agents first.');
+            const result = await request('/api/onboarder/checkout-session', 'POST', {
+              packageId: form.packageId.value,
+              profile: form.profile.value,
+              registrationMode: form.registrationMode.value,
+              workflowPreset: form.workflowPreset.value
+            });
+            window.location.href = result.checkoutUrl;
+          } catch (error) {
+            setStatus(error.message, 'error');
+          }
+        });
+      });
+      foundationsRoot.querySelectorAll('.onboarder-refresh-purchases').forEach((node) => {
+        node.addEventListener('click', async () => {
+          try {
+            state.onboarderPurchases = await request('/api/onboarder/purchases');
+            renderSettingsData();
+            setStatus('Onboarder purchases refreshed.', 'ok');
+          } catch (error) {
+            setStatus(error.message, 'error');
+          }
+        });
+      });
+      foundationsRoot.querySelectorAll('.onboarder-download-delivery').forEach((node) => {
+        node.addEventListener('click', async () => {
+          const projectId = node.dataset.projectId || '';
+          const form = foundationsRoot.querySelector(`.onboarder-commerce-form[data-project-id="${projectId}"]`);
+          if (!form) return;
+          try {
+            if (!form.agentId.value) throw new Error('Select one of your agents first.');
+            const result = await request('/api/onboarder/delivery-contract', 'POST', {
+              entitlementId: node.dataset.entitlementId || '',
+              agentId: form.agentId.value
+            });
+            state.latestFoundationArtifacts[projectId] = { action: 'delivery-contract', result, agentId: form.agentId.value };
+            renderSettingsData();
+            downloadTextFile(`onboarder-${node.dataset.entitlementId}.delivery-contract.json`, JSON.stringify(result, null, 2), 'application/json;charset=utf-8');
+            setStatus('Delivery contract downloaded.', 'ok');
+          } catch (error) {
+            setStatus(error.message, 'error');
+          }
+        });
+      });
+      foundationsRoot.querySelectorAll('.onboarder-download-bundle').forEach((node) => {
+        node.addEventListener('click', async () => {
+          const projectId = node.dataset.projectId || '';
+          const form = foundationsRoot.querySelector(`.onboarder-commerce-form[data-project-id="${projectId}"]`);
+          if (!form) return;
+          try {
+            if (!form.agentId.value) throw new Error('Select one of your agents first.');
+            const result = await request('/api/onboarder/artifact-bundle', 'POST', {
+              entitlementId: node.dataset.entitlementId || '',
+              agentId: form.agentId.value,
+              worldUrl: window.location.origin
+            });
+            state.latestFoundationArtifacts[projectId] = { action: 'artifact-bundle', result, agentId: form.agentId.value };
+            renderSettingsData();
+            downloadTextFile(`onboarder-${node.dataset.entitlementId}.artifact-bundle.json`, JSON.stringify(result, null, 2), 'application/json;charset=utf-8');
+            setStatus('Artifact bundle downloaded.', 'ok');
+          } catch (error) {
+            setStatus(error.message, 'error');
+          }
+        });
+      });
+      foundationsRoot.querySelectorAll('.onboarder-download-zip').forEach((node) => {
+        node.addEventListener('click', async () => {
+          const projectId = node.dataset.projectId || '';
+          const form = foundationsRoot.querySelector(`.onboarder-commerce-form[data-project-id="${projectId}"]`);
+          if (!form) return;
+          try {
+            if (!form.agentId.value) throw new Error('Select one of your agents first.');
+            const response = await fetch('/api/onboarder/artifact-zip', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                ...(state.sessionHumanId ? { 'X-ELO-Session-Human-Id': state.sessionHumanId } : {})
+              },
+              body: JSON.stringify({
+                entitlementId: node.dataset.entitlementId || '',
+                agentId: form.agentId.value,
+                worldUrl: window.location.origin
+              })
+            });
+            if (!response.ok) throw new Error('Artifact ZIP export failed.');
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `onboarder-${node.dataset.entitlementId}.zip`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(url);
+            setStatus('Artifact ZIP downloaded.', 'ok');
+          } catch (error) {
+            setStatus(error.message, 'error');
+          }
         });
       });
       foundationsRoot.querySelectorAll('.foundation-copy-json').forEach((node) => {
@@ -6929,6 +7156,34 @@ async function loadAuthConfig() {
 
 async function refresh() {
   state.summary = await request("/api/world/summary");
+  if (state.sessionHumanId) {
+    try {
+      state.onboarderCatalog = await request("/api/onboarder/catalog");
+      state.onboarderPurchases = await request("/api/onboarder/purchases");
+    } catch (error) {
+      state.onboarderCatalog = null;
+      state.onboarderPurchases = { purchases: [], entitlements: [] };
+      console.warn("Failed to load onboarder commerce data", error);
+    }
+    if (state.pendingOnboarderCheckout?.status === "success" && state.pendingOnboarderCheckout.purchaseId && state.pendingOnboarderCheckout.checkoutSessionId) {
+      try {
+        const result = await request("/api/onboarder/checkout-confirm", "POST", {
+          purchaseId: state.pendingOnboarderCheckout.purchaseId,
+          checkoutSessionId: state.pendingOnboarderCheckout.checkoutSessionId
+        });
+        setStatus(`Onboarder purchase confirmed. Entitlement ${result.entitlementId} is ready.`, "ok");
+        state.onboarderPurchases = await request("/api/onboarder/purchases");
+      } catch (error) {
+        setStatus(error.message, "error");
+      } finally {
+        state.pendingOnboarderCheckout = null;
+      }
+    }
+  } else {
+    state.onboarderCatalog = null;
+    state.onboarderPurchases = { purchases: [], entitlements: [] };
+    state.pendingOnboarderCheckout = null;
+  }
   if (state.starterRequirementId) {
     state.latestStarterRequirement = (state.summary.requirements || []).find((item) => item.requirementId === state.starterRequirementId) || state.latestStarterRequirement;
   }
