@@ -18,7 +18,7 @@ function systemdPath(path) {
 
 function onboardingSelection(input = {}) {
   return normalizeOnboarderPackageSelection({
-    packageId: input.packageId || "base-openclaw",
+    packageId: input.packageId || "starter-openclaw",
     profile: input.profile || "macos-homebrew",
     registrationMode: input.registrationMode || "register-to-eow",
     workflowPreset: input.workflowPreset || ""
@@ -29,7 +29,7 @@ function buildRuntimeContract(cfg, world) {
   return JSON.stringify({
     contract: "elo-agent-onboarder.runtime-contract.v1",
     runtime: cfg.runtime,
-    packageId: cfg.packageId || "base-openclaw",
+    packageId: cfg.packageId || "starter-openclaw",
     registrationMode: cfg.registrationMode || "register-to-eow",
     workflowPreset: cfg.workflowPreset || null,
     entrypoint: "bin/openclaw-runtime.js",
@@ -52,7 +52,7 @@ function buildRuntimeConfigTemplate(cfg, world) {
   return JSON.stringify({
     contract: "elo-agent-onboarder.runtime-config.example.v1",
     runtime: cfg.runtime,
-    packageId: cfg.packageId || "base-openclaw",
+    packageId: cfg.packageId || "starter-openclaw",
     registrationMode: cfg.registrationMode || "register-to-eow",
     workflowPreset: cfg.workflowPreset || null,
     worldUrl: world.apiBaseUrl,
@@ -91,7 +91,7 @@ try {
     runtime: "${cfg.runtime}",
     agentId: "${cfg.agentId}",
     humanId: "${cfg.humanId}",
-    packageId: "${cfg.packageId || "base-openclaw"}",
+    packageId: "${cfg.packageId || "starter-openclaw"}",
     model: "${cfg.model || ""}",
     endpoint: "${cfg.endpoint || "http://127.0.0.1:18789"}",
     worldUrl: "${world.apiBaseUrl}"
@@ -298,18 +298,42 @@ function buildProfileTemplates(cfg, world) {
   const systemdRoot = systemdPath(cfg.installRoot);
   const selection = onboardingSelection(cfg);
   const packageFiles = {};
-  if (selection.packageId !== "base-openclaw") {
+  if (selection.packageId !== "starter-openclaw") {
     packageFiles["package-manifest.json"] = `${JSON.stringify(buildPackageManifest(selection, cfg), null, 2)}\n`;
     packageFiles["capability-manifest.json"] = `${JSON.stringify(buildCapabilityManifest(selection, cfg), null, 2)}\n`;
   }
-  if (selection.workflowPresetConfig) {
-    packageFiles["workflow-manifest.json"] = `${JSON.stringify(buildWorkflowManifest(selection), null, 2)}\n`;
-    packageFiles[`workflows/${selection.workflowPreset}.preset.json`] = `${JSON.stringify({
-      presetId: selection.workflowPresetConfig.presetId,
-      displayName: selection.workflowPresetConfig.displayName,
-      tags: selection.workflowPresetConfig.tags,
+  if (selection.packageId === "work-openclaw" || selection.packageId === "vision-openclaw" || selection.packageId === "builder-openclaw") {
+    packageFiles["skills/office-productivity.json"] = `${JSON.stringify({
+      contract: "elo-agent-onboarder.skill-pack.v1",
       packageId: selection.packageId,
-      runtime: cfg.runtime
+      skills: ["ppt-authoring", "spreadsheet-analysis", "document-composer", "image-processing"],
+      imageModelGuidance: "Configure image-model API credentials inside config/openclaw-runtime.json."
+    }, null, 2)}\n`;
+  }
+  if (selection.packageId === "vision-openclaw" || selection.packageId === "builder-openclaw") {
+    packageFiles["workflow-manifest.json"] = `${JSON.stringify(buildWorkflowManifest({
+      ...selection,
+      workflowPreset: "visual-publisher",
+      workflowPresetConfig: {
+        presetId: "visual-publisher",
+        displayName: "Visual Publisher",
+        description: "Video creation and multi-platform publishing workflow.",
+        tags: ["video", "publishing", "automation"]
+      }
+    }), null, 2)}\n`;
+    packageFiles["workflows/video-publisher.workflow.json"] = `${JSON.stringify({
+      contract: "elo-agent-onboarder.video-workflow.v1",
+      packageId: selection.packageId,
+      steps: ["script", "scene-plan", "video-render", "publish-youtube", "publish-tiktok", "publish-instagram"],
+      videoModelGuidance: "Set video-model API credentials before enabling auto-publish."
+    }, null, 2)}\n`;
+  }
+  if (selection.packageId === "builder-openclaw") {
+    packageFiles["protocols/project-protocol-framework.json"] = `${JSON.stringify({
+      contract: "elo-agent-onboarder.project-protocol-framework.v1",
+      packageId: selection.packageId,
+      framework: "elo-open-world project protocol baseline",
+      includes: ["project-manifest", "requirement-review-flow", "delivery-checkpoints", "workspace-collaboration-guides"]
     }, null, 2)}\n`;
   }
   if (selection.registrationMode === "local-only") {
@@ -739,7 +763,7 @@ export class OpenClawOnboardingService {
     return buildOnboarderCatalogContract();
   }
 
-  generateBundle({ humanId, agentId, worldUrl = "", machineLabel = "", notes = "", packageId = "base-openclaw", profile = "macos-homebrew", registrationMode = "register-to-eow", workflowPreset = "" }) {
+  generateBundle({ humanId, agentId, worldUrl = "", machineLabel = "", notes = "", packageId = "starter-openclaw", profile = "macos-homebrew", registrationMode = "register-to-eow", workflowPreset = "" }) {
     const human = this.identityRegistry.getHuman(humanId);
     const agent = this.identityRegistry.getAgent(agentId);
     if (agent.humanId !== human.humanId) {
@@ -834,7 +858,7 @@ export class OpenClawOnboardingService {
     installRoot = "",
     machineLabel = "",
     registrationMode = "register-to-eow",
-    packageId = "base-openclaw",
+    packageId = "starter-openclaw",
     workflowPreset = ""
   }) {
     const selection = onboardingSelection({ packageId, profile, registrationMode, workflowPreset });

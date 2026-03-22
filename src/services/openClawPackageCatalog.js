@@ -28,56 +28,66 @@ export const FOUNDATION_INSTALL_PROFILES = {
 };
 
 export const ONBOARDER_WORKFLOW_PRESETS = {
-  "content-studio": {
-    presetId: "content-studio",
-    displayName: "Content Studio",
-    description: "Writing, editorial, and publishing-oriented preset.",
-    tags: ["content", "publishing", "editorial"]
+  "office-productivity": {
+    presetId: "office-productivity",
+    displayName: "Office Productivity",
+    description: "PPT, Excel, document, and image-processing skill set.",
+    tags: ["ppt", "excel", "documents", "image"]
   },
-  "research-assistant": {
-    presetId: "research-assistant",
-    displayName: "Research Assistant",
-    description: "Research, note synthesis, and memory-oriented preset.",
-    tags: ["research", "memory", "analysis"]
+  "visual-publisher": {
+    presetId: "visual-publisher",
+    displayName: "Visual Publisher",
+    description: "Video workflow with multi-platform publishing automation.",
+    tags: ["video", "publishing", "automation"]
   },
-  "project-copilot": {
-    presetId: "project-copilot",
-    displayName: "Project Copilot",
-    description: "Project planning, delivery, and coordination preset.",
-    tags: ["project", "delivery", "coordination"]
+  "protocol-copilot": {
+    presetId: "protocol-copilot",
+    displayName: "Protocol Copilot",
+    description: "Project protocol framework and coding collaboration baseline.",
+    tags: ["protocol", "coding", "workflow"]
   }
 };
 
 export const ONBOARDER_PACKAGES = {
-  "base-openclaw": {
-    packageId: "base-openclaw",
-    displayName: "Base OpenClaw",
-    description: "Basic OpenClaw installation with minimal curated defaults.",
+  "starter-openclaw": {
+    packageId: "starter-openclaw",
+    displayName: "Starter OpenClaw",
+    description: "Basic official OpenClaw install with model configuration guidance.",
+    displayPriceUsd: 8,
+    availableProfiles: Object.keys(FOUNDATION_INSTALL_PROFILES),
+    supportsRegistrationModes: ["register-to-eow", "local-only"],
+    workflowPresetRequired: false,
+    includedCapabilities: ["runtime-contract", "bootstrap-runner", "diagnostics", "stub-runtime", "model-guides"]
+  },
+  "work-openclaw": {
+    packageId: "work-openclaw",
+    displayName: "Work OpenClaw",
+    description: "Starter package plus office productivity skills and image-model setup guidance.",
+    displayPriceUsd: 16,
+    availableProfiles: Object.keys(FOUNDATION_INSTALL_PROFILES),
+    supportsRegistrationModes: ["register-to-eow", "local-only"],
+    workflowPresetRequired: false,
+    includedCapabilities: ["runtime-contract", "bootstrap-runner", "diagnostics", "stub-runtime", "model-guides", "office-skills", "image-model-guides", "capability-manifest", "package-manifest"]
+  },
+  "vision-openclaw": {
+    packageId: "vision-openclaw",
+    displayName: "Vision OpenClaw",
+    description: "Work package plus video creation workflow and cross-platform publishing automation guides.",
     displayPriceUsd: 29,
     availableProfiles: Object.keys(FOUNDATION_INSTALL_PROFILES),
     supportsRegistrationModes: ["register-to-eow", "local-only"],
     workflowPresetRequired: false,
-    includedCapabilities: ["runtime-contract", "bootstrap-runner", "diagnostics", "stub-runtime"]
+    includedCapabilities: ["runtime-contract", "bootstrap-runner", "diagnostics", "stub-runtime", "model-guides", "office-skills", "image-model-guides", "video-workflows", "publish-workflows", "video-model-guides", "capability-manifest", "package-manifest", "workflow-manifest"]
   },
-  "configured-openclaw": {
-    packageId: "configured-openclaw",
-    displayName: "Configured OpenClaw",
-    description: "Stronger OpenClaw defaults intended for faster EOW-ready setup.",
+  "builder-openclaw": {
+    packageId: "builder-openclaw",
+    displayName: "Builder OpenClaw",
+    description: "Vision package plus EOW project protocol framework for coding and delivery operations.",
     displayPriceUsd: 79,
     availableProfiles: Object.keys(FOUNDATION_INSTALL_PROFILES),
     supportsRegistrationModes: ["register-to-eow", "local-only"],
     workflowPresetRequired: false,
-    includedCapabilities: ["runtime-contract", "bootstrap-runner", "diagnostics", "stub-runtime", "capability-manifest", "package-manifest"]
-  },
-  "workflow-pack": {
-    packageId: "workflow-pack",
-    displayName: "Workflow Pack",
-    description: "Configured OpenClaw plus one curated official workflow preset.",
-    displayPriceUsd: 149,
-    availableProfiles: Object.keys(FOUNDATION_INSTALL_PROFILES),
-    supportsRegistrationModes: ["register-to-eow", "local-only"],
-    workflowPresetRequired: true,
-    includedCapabilities: ["runtime-contract", "bootstrap-runner", "diagnostics", "stub-runtime", "capability-manifest", "package-manifest", "workflow-manifest"]
+    includedCapabilities: ["runtime-contract", "bootstrap-runner", "diagnostics", "stub-runtime", "model-guides", "office-skills", "image-model-guides", "video-workflows", "publish-workflows", "video-model-guides", "project-protocol-framework", "capability-manifest", "package-manifest", "workflow-manifest"]
   }
 };
 
@@ -103,7 +113,7 @@ export function buildOnboarderCatalogContract() {
 }
 
 export function normalizeOnboarderPackageSelection(input = {}) {
-  const packageId = token("packageId", String(input.packageId || "base-openclaw"), 64).toLowerCase();
+  const packageId = token("packageId", String(input.packageId || "starter-openclaw"), 64).toLowerCase();
   const profile = token("profile", String(input.profile || "macos-homebrew"), 64).toLowerCase();
   const registrationMode = token("registrationMode", String(input.registrationMode || "register-to-eow"), 64).toLowerCase();
   const workflowPreset = text("workflowPreset", input.workflowPreset, 64).toLowerCase();
@@ -120,7 +130,7 @@ export function normalizeOnboarderPackageSelection(input = {}) {
     if (!workflowPreset) throw new Error(`workflowPreset is required for package ${packageId}`);
     if (!ONBOARDER_WORKFLOW_PRESETS[workflowPreset]) throw new Error(`unknown workflowPreset: ${workflowPreset}`);
   } else if (workflowPreset) {
-    throw new Error(`workflowPreset is only allowed for package workflow-pack`);
+    if (!ONBOARDER_WORKFLOW_PRESETS[workflowPreset]) throw new Error(`unknown workflowPreset: ${workflowPreset}`);
   }
 
   return {

@@ -19,9 +19,10 @@ export class StripeBillingService {
 
   priceIdForPackage(packageId) {
     const mapping = {
-      "base-openclaw": process.env.STRIPE_PRICE_BASE_OPENCLAW || "",
-      "configured-openclaw": process.env.STRIPE_PRICE_CONFIGURED_OPENCLAW || "",
-      "workflow-pack": process.env.STRIPE_PRICE_WORKFLOW_PACK || ""
+      "starter-openclaw": process.env.STRIPE_PRICE_STARTER_OPENCLAW || "",
+      "work-openclaw": process.env.STRIPE_PRICE_WORK_OPENCLAW || "",
+      "vision-openclaw": process.env.STRIPE_PRICE_VISION_OPENCLAW || "",
+      "builder-openclaw": process.env.STRIPE_PRICE_BUILDER_OPENCLAW || ""
     };
     const priceId = mapping[packageId] || "";
     if (!priceId) throw new Error(`Stripe price is not configured for package ${packageId}`);

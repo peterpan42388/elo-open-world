@@ -516,7 +516,7 @@ test("onboarder install-plan and bootstrap report should align with setup-pack c
   assert.equal(report.diagnostics.checks.length, 2);
 });
 
-test("onboarder local-only workflow-pack should enforce preset and generate deferred registration assets", async () => {
+test("onboarder local-only vision package should generate deferred registration and workflow assets", async () => {
   const root = await mkdtemp(join(tmpdir(), "open-world-onboarder-local-only-"));
   const world = await new OpenWorldFramework({
     stateFile: join(root, "state.json"),
@@ -539,34 +539,21 @@ test("onboarder local-only workflow-pack should enforce preset and generate defe
     online: true
   });
 
-  assert.throws(
-    () =>
-      world.onboarder.generateInstallPlan({
-        humanId: "human.local",
-        agentId: "agent.local.openclaw",
-        profile: "server-docker-compose",
-        packageId: "workflow-pack",
-        registrationMode: "local-only"
-      }),
-    /workflowPreset is required/
-  );
-
   const plan = world.onboarder.generateInstallPlan({
     humanId: "human.local",
     agentId: "agent.local.openclaw",
     worldUrl: "https://world.metavie.co",
     profile: "server-docker-compose",
-    packageId: "workflow-pack",
-    registrationMode: "local-only",
-    workflowPreset: "project-copilot"
+    packageId: "vision-openclaw",
+    registrationMode: "local-only"
   });
 
-  assert.equal(plan.package.packageId, "workflow-pack");
-  assert.equal(plan.package.workflowPreset, "project-copilot");
+  assert.equal(plan.package.packageId, "vision-openclaw");
+  assert.equal(plan.package.workflowPreset, null);
   assert.equal(plan.target.registrationMode, "local-only");
   assert.equal(plan.steps[plan.steps.length - 1].id, "register-later");
   assert.ok(plan.templates["workflow-manifest.json"]);
-  assert.ok(plan.templates["workflows/project-copilot.preset.json"]);
+  assert.ok(plan.templates["workflows/video-publisher.workflow.json"]);
   assert.ok(plan.templates["register-to-eow-later.sh"]);
   assert.match(plan.templates["run-bootstrap.sh"], /Keeping install local-only/);
 });
@@ -602,7 +589,7 @@ test("onboarder commerce should create paid entitlement and gate artifact delive
 
   const checkout = await world.onboarderCommerce.createCheckoutSession({
     humanId: "human.buyer",
-    packageId: "configured-openclaw",
+    packageId: "builder-openclaw",
     profile: "macos-homebrew",
     registrationMode: "register-to-eow"
   });
@@ -621,7 +608,7 @@ test("onboarder commerce should create paid entitlement and gate artifact delive
   assert.equal(history.purchases.length, 1);
   assert.equal(history.purchases[0].status, "paid");
   assert.equal(history.entitlements.length, 1);
-  assert.equal(history.entitlements[0].packageId, "configured-openclaw");
+  assert.equal(history.entitlements[0].packageId, "builder-openclaw");
 
   const delivery = world.onboarderCommerce.generateDeliveryContract({
     humanId: "human.buyer",
@@ -629,7 +616,7 @@ test("onboarder commerce should create paid entitlement and gate artifact delive
     agentId: "agent.buyer.openclaw"
   });
   assert.equal(delivery.contract, "elo-agent-onboarder.delivery-contract.v1");
-  assert.equal(delivery.packageId, "configured-openclaw");
+  assert.equal(delivery.packageId, "builder-openclaw");
 
   const bundle = world.onboarderCommerce.generateArtifactBundle({
     humanId: "human.buyer",
