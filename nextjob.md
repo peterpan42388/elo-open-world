@@ -97,6 +97,7 @@ After every execution cycle, update this file with:
 - any new blockers
 
 ## Last Completed
+- Stabilized macOS installer packaging by moving build validation to Python 3.12 and adding ad-hoc codesign verification in the builder flow; replaced server-side macOS installer artifact with the newly signed `.app.zip` output.
 - Upgraded installer delivery toward end-user executable format by adding cross-platform build tooling (`installer/build_installer.py`) to produce macOS `.dmg/.app.zip` and Windows `.exe/.zip`, and updated `/api/onboarder/installer/download` to serve executable artifacts first when present instead of always returning source (`.py + .sh`) bundles.
 - Implemented installer-first onboarder direction with payment-gated install execution:
   - added installer session APIs (`session/start`, `session/update`, `payment/*`, `plan`, `script`, `complete`, `register`)

@@ -39,7 +39,7 @@ def ensure_pyinstaller() -> None:
 
 def build_with_pyinstaller() -> Path:
     ensure_pyinstaller()
-    run([
+    cmd = [
         sys.executable,
         "-m",
         "PyInstaller",
@@ -49,7 +49,8 @@ def build_with_pyinstaller() -> Path:
         "--name",
         APP_NAME,
         str(ENTRY),
-    ])
+    ]
+    run(cmd)
     artifact = ROOT / "dist" / APP_NAME
     if platform.system() == "Windows":
         artifact = artifact.with_suffix(".exe")
@@ -64,6 +65,9 @@ def build_macos() -> None:
     app_zip = target_dir / f"{APP_NAME}.app.zip"
     if app_zip.exists():
         app_zip.unlink()
+    # No Apple Developer account required: ad-hoc sign to improve local trust checks.
+    run(["codesign", "--force", "--deep", "--sign", "-", str(app_bundle)])
+    run(["codesign", "--verify", "--deep", "--strict", "--verbose=2", str(app_bundle)])
     run(["ditto", "-c", "-k", "--keepParent", str(app_bundle), str(app_zip)])
     print(f"[build] macOS artifacts ready:\n- {app_zip}")
 

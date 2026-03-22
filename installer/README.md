@@ -25,7 +25,10 @@ Build on each target OS:
 
 ```bash
 cd installer
-python3 build_installer.py --target macos
+python3.12 -m venv .venv312
+source .venv312/bin/activate
+pip install -r requirements.txt "pyinstaller>=6.7.0"
+python build_installer.py --target macos
 ```
 
 ```powershell
@@ -56,3 +59,4 @@ python eow_onboarder_installer.py
 - Stripe payment is required before install execution.
 - Install script is written to a temporary file and deleted after execution.
 - If executable artifacts do not exist, the API currently falls back to source bundle delivery (`.py + launcher`) for internal use.
+- macOS packaging is recommended on `Python 3.12` for runtime stability.
