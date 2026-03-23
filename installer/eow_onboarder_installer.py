@@ -1,11 +1,18 @@
 #!/usr/bin/env python3
+import base64
+import hashlib
 import json
 import os
 import platform
+import secrets
 import subprocess
 import sys
 import tempfile
+import threading
+import time
+import urllib.parse
 import webbrowser
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from dataclasses import dataclass, field
 from typing import Dict, Optional
 
@@ -70,6 +77,14 @@ class InstallerState:
     installer_auth_status: str = "pending"
     installer_auth_url: str = ""
     installer_auth_expires_at: int = 0
+    oauth_client_id: str = "eow-installer-desktop"
+    oauth_scope: str = "openid profile onboarder.install"
+    oauth_redirect_uri: str = "http://127.0.0.1:53682/callback"
+    oauth_access_token: str = ""
+    oauth_refresh_token: str = ""
+    oauth_authorize_state: str = ""
+    oauth_code_verifier: str = ""
+    oauth_auth_code: str = ""
     installer_session_id: str = ""
     package_id: str = "starter-openclaw"
     profile: str = "macos-homebrew"
@@ -126,6 +141,10 @@ class EOWInstaller(QWidget):
         self.auth_poll_timer = QTimer(self)
         self.auth_poll_timer.setInterval(2500)
         self.auth_poll_timer.timeout.connect(self.check_auth_status)
+        self.oauth_callback_server = None
+        self.oauth_callback_thread = None
+        self.oauth_callback_error = ""
+        self.oauth_callback_received_at = 0.0
         self.refresh_nav()
 
     def build_pages(self):
@@ -213,16 +232,30 @@ class EOWInstaller(QWidget):
                 return False
         return True
 
-    def request(self, path: str, method: str = "POST", payload: Optional[Dict] = None, require_auth: bool = True):
-        if require_auth and not self.state.human_id:
-            raise RuntimeError("human_id is not set")
-        headers = {
-            "Content-Type": "application/json",
-        }
-        if self.state.human_id:
+    def request(
+        self,
+        path: str,
+        method: str = "POST",
+        payload: Optional[Dict] = None,
+        require_auth: bool = True,
+        content_type: str = "application/json"
+    ):
+        if require_auth and not (self.state.human_id or self.state.oauth_access_token):
+            raise RuntimeError("human identity is not authorized")
+        headers = {}
+        if content_type:
+            headers["Content-Type"] = content_type
+        if self.state.oauth_access_token:
+            headers["Authorization"] = f"Bearer {self.state.oauth_access_token}"
+        elif self.state.human_id:
             headers["X-ELO-Session-Human-Id"] = self.state.human_id
         url = f"{self.state.base_url}{path}"
-        response = requests.request(method, url, headers=headers, json=payload or {}, timeout=60)
+        request_kwargs = {"headers": headers, "timeout": 60}
+        if content_type == "application/x-www-form-urlencoded":
+            request_kwargs["data"] = payload or {}
+        else:
+            request_kwargs["json"] = payload or {}
+        response = requests.request(method, url, **request_kwargs)
         if response.status_code >= 400:
             try:
                 message = response.json().get("error", response.text)
@@ -233,7 +266,113 @@ class EOWInstaller(QWidget):
             return response.json()
         return response.content
 
+    def pkce_challenge(self, verifier: str) -> str:
+        digest = hashlib.sha256(verifier.encode("utf-8")).digest()
+        return base64.urlsafe_b64encode(digest).decode("utf-8").rstrip("=")
+
+    def start_oauth_flow(self):
+        self.state.base_url = self.base_url_input.text().strip().rstrip("/")
+        self.state.oauth_client_id = self.oauth_client_id_input.text().strip() or "eow-installer-desktop"
+        self.state.oauth_scope = self.oauth_scope_input.text().strip() or "openid profile onboarder.install"
+        self.state.oauth_redirect_uri = self.oauth_redirect_input.text().strip() or "http://127.0.0.1:53682/callback"
+        self.state.oauth_authorize_state = secrets.token_urlsafe(24)
+        self.state.oauth_code_verifier = secrets.token_urlsafe(64)
+        self.state.oauth_auth_code = ""
+        self.oauth_callback_error = ""
+        self.oauth_callback_received_at = 0.0
+        self.state.oauth_access_token = ""
+        self.state.oauth_refresh_token = ""
+        self.state.human_id = ""
+        self.state.installer_auth_status = "pending"
+
+        parsed = urllib.parse.urlparse(self.state.oauth_redirect_uri)
+        if parsed.scheme in ("http", "https"):
+            if not parsed.hostname or not parsed.port:
+                self.render_auth_status("OAuth start failed: loopback redirect_uri must include host and port.")
+                return
+            self.start_loopback_callback_server(parsed.hostname, parsed.port, parsed.path or "/callback")
+
+        try:
+            authorize_url = (
+                f"{self.state.base_url}/oauth/authorize?"
+                f"response_type=code&client_id={urllib.parse.quote(self.state.oauth_client_id)}"
+                f"&redirect_uri={urllib.parse.quote(self.state.oauth_redirect_uri, safe='')}"
+                f"&scope={urllib.parse.quote(self.state.oauth_scope)}"
+                f"&state={urllib.parse.quote(self.state.oauth_authorize_state)}"
+                f"&code_challenge={urllib.parse.quote(self.pkce_challenge(self.state.oauth_code_verifier))}"
+                f"&code_challenge_method=S256"
+            )
+            webbrowser.open(authorize_url)
+            self.auth_poll_timer.start()
+            self.render_auth_status("OAuth browser flow started. Complete login and authorization in browser.")
+        except Exception as exc:
+            self.render_auth_status(f"OAuth start failed: {exc}")
+
+    def start_loopback_callback_server(self, host: str, port: int, callback_path: str):
+        installer = self
+
+        class OAuthCallbackHandler(BaseHTTPRequestHandler):
+            def do_GET(self):
+                parsed_url = urllib.parse.urlparse(self.path)
+                if parsed_url.path != callback_path:
+                    self.send_response(404)
+                    self.end_headers()
+                    return
+                params = urllib.parse.parse_qs(parsed_url.query)
+                installer.state.oauth_auth_code = params.get("code", [""])[0]
+                returned_state = params.get("state", [""])[0]
+                if returned_state != installer.state.oauth_authorize_state:
+                    installer.oauth_callback_error = "OAuth state mismatch. Retry login."
+                installer.oauth_callback_received_at = time.time()
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.end_headers()
+                self.wfile.write(
+                    b"<html><body><h3>EOW authorization received.</h3>"
+                    b"<p>You can return to the installer.</p></body></html>"
+                )
+
+            def log_message(self, format, *args):
+                return
+
+        try:
+            self.oauth_callback_server = HTTPServer((host, port), OAuthCallbackHandler)
+            self.oauth_callback_thread = threading.Thread(target=self.oauth_callback_server.handle_request, daemon=True)
+            self.oauth_callback_thread.start()
+        except Exception as exc:
+            self.oauth_callback_server = None
+            self.oauth_callback_thread = None
+            self.oauth_callback_error = f"Loopback callback listener failed: {exc}"
+
+    def exchange_oauth_token(self):
+        if not self.state.oauth_auth_code:
+            return False
+        token = self.request(
+            "/oauth/token",
+            method="POST",
+            payload={
+                "grant_type": "authorization_code",
+                "code": self.state.oauth_auth_code,
+                "redirect_uri": self.state.oauth_redirect_uri,
+                "client_id": self.state.oauth_client_id,
+                "code_verifier": self.state.oauth_code_verifier
+            },
+            require_auth=False,
+            content_type="application/x-www-form-urlencoded"
+        )
+        self.state.oauth_access_token = token.get("access_token", "")
+        self.state.oauth_refresh_token = token.get("refresh_token", "")
+        if not self.state.oauth_access_token:
+            return False
+        me = self.request("/api/auth/me", method="GET", require_auth=True)
+        self.state.human_id = me.get("human", {}).get("humanId", "")
+        self.state.installer_auth_status = "authorized" if self.state.human_id else "pending"
+        return bool(self.state.human_id)
+
     def start_auth_flow(self):
+        self.start_oauth_flow()
+
+    def start_legacy_auth_flow(self):
         self.state.base_url = self.base_url_input.text().strip().rstrip("/")
         try:
             result = self.request("/api/onboarder/installer/auth/start", payload={}, require_auth=False)
@@ -250,8 +389,24 @@ class EOWInstaller(QWidget):
             self.render_auth_status(f"Authorization start failed: {exc}")
 
     def check_auth_status(self):
+        if self.oauth_callback_error:
+            self.auth_poll_timer.stop()
+            self.state.installer_auth_status = "failed"
+            self.render_auth_status(self.oauth_callback_error)
+            return
+        if self.state.oauth_auth_code:
+            try:
+                if self.exchange_oauth_token():
+                    self.auth_poll_timer.stop()
+                    self.render_auth_status(f"OAuth authorized as {self.state.human_id}")
+                    return
+            except Exception as exc:
+                self.auth_poll_timer.stop()
+                self.state.installer_auth_status = "failed"
+                self.render_auth_status(f"OAuth token exchange failed: {exc}")
+                return
         if not self.state.installer_auth_session_id:
-            self.render_auth_status("No auth session yet. Click 'Login to EOW'.")
+            self.render_auth_status("No legacy auth session. Use OAuth login, or click fallback login.")
             return
         try:
             result = self.request(
@@ -279,9 +434,10 @@ class EOWInstaller(QWidget):
     def render_auth_status(self, note: str = ""):
         status_line = f"Status: {self.state.installer_auth_status}"
         human_line = f"Authorized Human: {self.state.human_id or '-'}"
+        token_line = f"Access Token: {'ready' if self.state.oauth_access_token else '-'}"
         session_line = f"Auth Session: {self.state.installer_auth_session_id or '-'}"
-        note_line = f"Note: {note or 'Use Login/Register in browser, then return here.'}"
-        self.auth_status_box.setPlainText("\n".join([status_line, human_line, session_line, note_line]))
+        note_line = f"Note: {note or 'Use OAuth login in browser, then return here.'}"
+        self.auth_status_box.setPlainText("\n".join([status_line, human_line, token_line, session_line, note_line]))
 
     def start_installer_session(self) -> bool:
         self.state.package_id = self.package_combo.currentData()
@@ -451,20 +607,29 @@ class EOWInstaller(QWidget):
         hero.setFrameShape(QFrame.StyledPanel)
         hero_layout = QVBoxLayout(hero)
         hero_layout.addWidget(QLabel("ELO Agent Onboarder"))
-        hero_layout.addWidget(QLabel("Authorize with EOW to continue. No manual Session ID is required."))
+        hero_layout.addWidget(QLabel("Authorize with EOW OAuth2 PKCE to continue. No manual Session ID is required."))
         layout.addWidget(hero)
         form = QFormLayout()
         self.base_url_input = QLineEdit(self.state.base_url)
+        self.oauth_client_id_input = QLineEdit(self.state.oauth_client_id)
+        self.oauth_scope_input = QLineEdit(self.state.oauth_scope)
+        self.oauth_redirect_input = QLineEdit(self.state.oauth_redirect_uri)
         form.addRow("EOW Base URL", self.base_url_input)
+        form.addRow("OAuth Client ID", self.oauth_client_id_input)
+        form.addRow("OAuth Scope", self.oauth_scope_input)
+        form.addRow("OAuth Redirect URI", self.oauth_redirect_input)
         layout.addLayout(form)
         btns = QHBoxLayout()
-        login_btn = QPushButton("Login to EOW")
+        login_btn = QPushButton("Login to EOW (OAuth)")
+        fallback_btn = QPushButton("Fallback Login")
         reg_btn = QPushButton("Go to Register")
         check_btn = QPushButton("Check Authorization")
         login_btn.clicked.connect(self.start_auth_flow)
-        reg_btn.clicked.connect(lambda: webbrowser.open(f"{self.base_url_input.text().strip().rstrip('/')}/#join"))
+        fallback_btn.clicked.connect(self.start_legacy_auth_flow)
+        reg_btn.clicked.connect(lambda: webbrowser.open(f"{self.base_url_input.text().strip().rstrip('/')}/human-auth"))
         check_btn.clicked.connect(self.check_auth_status)
         btns.addWidget(login_btn)
+        btns.addWidget(fallback_btn)
         btns.addWidget(reg_btn)
         btns.addWidget(check_btn)
         layout.addLayout(btns)
@@ -472,7 +637,7 @@ class EOWInstaller(QWidget):
         self.auth_status_box.setReadOnly(True)
         self.auth_status_box.setMinimumHeight(120)
         layout.addWidget(self.auth_status_box)
-        self.render_auth_status("Click 'Login to EOW' to start authorization.")
+        self.render_auth_status("Click 'Login to EOW (OAuth)' to start authorization.")
         return page
 
     def build_env_page(self):

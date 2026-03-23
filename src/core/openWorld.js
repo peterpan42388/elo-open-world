@@ -13,6 +13,7 @@ import { WebPluginFoundationService } from "../services/webPluginFoundationServi
 import { OnboarderCommerceService } from "../services/onboarderCommerceService.js";
 import { StripeBillingService } from "../services/stripeBillingService.js";
 import { OnboarderInstallerService } from "../services/onboarderInstallerService.js";
+import { OAuthService } from "../services/oauthService.js";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
 
@@ -43,6 +44,7 @@ export class OpenWorldFramework {
     this.plugins = null;
     this.requirements = null;
     this.projects = null;
+    this.oauth = null;
   }
 
   async init() {
@@ -82,6 +84,11 @@ export class OpenWorldFramework {
       onChange: persist
     });
     this.webPluginFoundation = new WebPluginFoundationService();
+    this.oauth = new OAuthService({
+      identityRegistry: this.identity,
+      oauth: snapshot.oauth,
+      onChange: persist
+    });
     return this;
   }
 
@@ -91,10 +98,12 @@ export class OpenWorldFramework {
     const projects = this.projects.snapshot();
     const commerce = this.onboarderCommerce.snapshot();
     const installer = this.onboarderInstaller.snapshot();
+    const oauth = this.oauth.snapshot();
     return {
       ...identity,
       ...plugins,
       ...projects,
+      ...(oauth || {}),
       onboarder: {
         ...(commerce.onboarder || {}),
         ...(installer.onboarder || {})

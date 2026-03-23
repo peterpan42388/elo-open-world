@@ -13,6 +13,12 @@ const EMPTY_STATE = {
     purchases: [],
     entitlements: [],
     installerSessions: []
+  },
+  oauth: {
+    clients: [],
+    authorizationCodes: [],
+    accessTokens: [],
+    refreshTokens: []
   }
 };
 
@@ -37,6 +43,12 @@ export class StateStore {
           purchases: Array.isArray(parsed.onboarder?.purchases) ? parsed.onboarder.purchases : [],
           entitlements: Array.isArray(parsed.onboarder?.entitlements) ? parsed.onboarder.entitlements : [],
           installerSessions: Array.isArray(parsed.onboarder?.installerSessions) ? parsed.onboarder.installerSessions : []
+        },
+        oauth: {
+          clients: Array.isArray(parsed.oauth?.clients) ? parsed.oauth.clients : [],
+          authorizationCodes: Array.isArray(parsed.oauth?.authorizationCodes) ? parsed.oauth.authorizationCodes : [],
+          accessTokens: Array.isArray(parsed.oauth?.accessTokens) ? parsed.oauth.accessTokens : [],
+          refreshTokens: Array.isArray(parsed.oauth?.refreshTokens) ? parsed.oauth.refreshTokens : []
         }
       };
     } catch (error) {

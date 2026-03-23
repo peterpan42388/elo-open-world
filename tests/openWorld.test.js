@@ -980,6 +980,118 @@ test("project metadata update should persist editable fields", async () => {
   assert.equal(world.projects.listOperating().length, 1);
 });
 
+test("oauth pkce flow should issue one-time code, refresh and revoke tokens", async () => {
+  const root = await mkdtemp(join(tmpdir(), "open-world-oauth-"));
+  const world = await new OpenWorldFramework({
+    stateFile: join(root, "state.json"),
+    projectsRoot: join(root, "projects")
+  }).init();
+
+  await world.identity.registerHuman({
+    humanId: "human.oauth",
+    email: "oauth@example.com",
+    password: "test-password-oauth"
+  });
+
+  const verifier = "pkce-test-verifier-123456789";
+  const challenge = crypto.createHash("sha256").update(verifier).digest("base64url");
+  const redirectUri = process.env.EOW_OAUTH_REDIRECT_URI || "eow://auth/callback";
+  const clientId = process.env.EOW_OAUTH_CLIENT_ID || "eow-installer-desktop";
+
+  const grant = world.oauth.authorize({
+    humanId: "human.oauth",
+    query: {
+      response_type: "code",
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      scope: "openid profile onboarder.install",
+      state: "state-1",
+      code_challenge: challenge,
+      code_challenge_method: "S256"
+    }
+  });
+
+  await assert.rejects(
+    () => world.oauth.token({
+      grantType: "authorization_code",
+      code: grant.code,
+      redirectUri,
+      clientId,
+      codeVerifier: "wrong-verifier"
+    }),
+    /code_verifier mismatch/
+  );
+
+  const grant2 = world.oauth.authorize({
+    humanId: "human.oauth",
+    query: {
+      response_type: "code",
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      scope: "openid profile onboarder.install",
+      state: "state-2",
+      code_challenge: challenge,
+      code_challenge_method: "S256"
+    }
+  });
+
+  const token = await world.oauth.token({
+    grantType: "authorization_code",
+    code: grant2.code,
+    redirectUri,
+    clientId,
+    codeVerifier: verifier
+  });
+
+  assert.equal(token.token_type, "Bearer");
+  assert.ok(token.access_token.startsWith("eow_at_"));
+  assert.ok(token.refresh_token.startsWith("eow_rt_"));
+  assert.equal(world.oauth.verifyAccessToken({
+    accessToken: token.access_token,
+    requiredScopes: ["onboarder.install"]
+  }).humanId, "human.oauth");
+
+  await assert.rejects(
+    () => world.oauth.token({
+      grantType: "authorization_code",
+      code: grant2.code,
+      redirectUri,
+      clientId,
+      codeVerifier: verifier
+    }),
+    /authorization code is invalid/
+  );
+
+  await assert.rejects(
+    () => world.oauth.token({
+      grantType: "authorization_code",
+      code: "oauth_code_invalid",
+      redirectUri,
+      clientId,
+      codeVerifier: "wrong"
+    }),
+    /authorization code is invalid/
+  );
+
+  const refreshed = await world.oauth.token({
+    grantType: "refresh_token",
+    refreshToken: token.refresh_token,
+    clientId
+  });
+  assert.ok(refreshed.access_token.startsWith("eow_at_"));
+  assert.equal(refreshed.refresh_token, token.refresh_token);
+
+  const revoked = await world.oauth.revoke({
+    token: refreshed.refresh_token,
+    clientId
+  });
+  assert.equal(revoked.ok, true);
+  assert.throws(
+    () => world.oauth.verifyAccessToken({ accessToken: refreshed.access_token }),
+    /invalid access token|expired/
+  );
+});
+
 test("project member roles should reject unknown role values", async () => {
   const root = await mkdtemp(join(tmpdir(), "open-world-member-roles-"));
   const github = new FakeGitHubRepoService();

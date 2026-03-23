@@ -27,8 +27,8 @@ function redirect(res, location) {
   res.end();
 }
 
-function html(res, status, content) {
-  res.writeHead(status, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
+function html(res, status, content, headers = {}) {
+  res.writeHead(status, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", ...headers });
   res.end(content);
 }
 
@@ -78,13 +78,13 @@ function renderAuthResultPage({ ok, message, humanId = "", installerAuthSessionI
     </script><p>${safeMessage}</p></body></html>`;
   }
   return `<!doctype html><html><body><script>
-    window.location.replace('/#join');
+    window.location.replace('/human-auth');
   </script><p>${safeMessage}</p></body></html>`;
 }
 
 function renderEmailVerifyResultPage({ ok, message }) {
   const safeMessage = String(message || "Email verification failed.").replace(/</g, "&lt;");
-  const route = ok ? "/#settings" : "/#join";
+  const route = ok ? "/#settings" : "/human-auth";
   return `<!doctype html><html><body><script>
     window.location.replace('${route}');
   </script><p>${safeMessage}</p></body></html>`;
@@ -105,7 +105,7 @@ function renderPasswordResetPage({ token = "", message = "", ok = false }) {
       <div class="page">
         <header class="topbar">
           <a class="brand" href="/#home">ELO Open World</a>
-          <div class="topbar-actions"><a class="topbar-button secondary" href="/#join">Back To Join</a></div>
+          <div class="topbar-actions"><a class="topbar-button secondary" href="/human-auth">Back To Sign In</a></div>
         </header>
         <main>
           <section class="panel guide-page">
@@ -146,8 +146,8 @@ function renderPasswordResetPage({ token = "", message = "", ok = false }) {
             status.textContent = payload.error || 'Password reset failed.';
             return;
           }
-          status.textContent = 'Password reset complete. Redirecting to Join...';
-          setTimeout(() => window.location.replace('/#join'), 1200);
+          status.textContent = 'Password reset complete. Redirecting to sign in...';
+          setTimeout(() => window.location.replace('/human-auth'), 1200);
         });
       </script>`}
     </body>
@@ -267,15 +267,69 @@ async function readRaw(req) {
   return raw;
 }
 
+async function readBodyParams(req) {
+  const raw = await readRaw(req);
+  if (!raw) return {};
+  const contentType = String(req.headers["content-type"] || "").toLowerCase();
+  if (contentType.includes("application/x-www-form-urlencoded")) {
+    const params = new URLSearchParams(raw);
+    return Object.fromEntries(params.entries());
+  }
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
+function parseCookies(req) {
+  const source = String(req.headers?.cookie || "");
+  const parts = source.split(";").map((part) => part.trim()).filter(Boolean);
+  const cookies = {};
+  for (const pair of parts) {
+    const index = pair.indexOf("=");
+    if (index <= 0) continue;
+    const key = decodeURIComponent(pair.slice(0, index).trim());
+    const value = decodeURIComponent(pair.slice(index + 1).trim());
+    cookies[key] = value;
+  }
+  return cookies;
+}
+
+function sessionCookie(res, humanId) {
+  const safeValue = encodeURIComponent(String(humanId || "").trim());
+  res.setHeader("Set-Cookie", `eow_human=${safeValue}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800`);
+}
+
 function sessionHumanId(req) {
   const value = req.headers["x-elo-session-human-id"];
   return typeof value === "string" ? value.trim() : "";
 }
 
+function resolveSessionHumanId(req) {
+  const fromHeader = sessionHumanId(req);
+  if (fromHeader) return fromHeader;
+  const fromCookie = parseCookies(req).eow_human || "";
+  return typeof fromCookie === "string" ? fromCookie.trim() : "";
+}
+
 function requireSessionHumanId(req) {
-  const humanId = sessionHumanId(req);
+  const humanId = resolveSessionHumanId(req);
   if (!humanId) throw new Error("Sign in to ELO Open World first.");
   return humanId;
+}
+
+function requireActiveHumanId(req, requiredScopes = []) {
+  const bearer = framework.oauth.parseBearerTokenFromRequest(req);
+  if (bearer) {
+    try {
+      const claims = framework.oauth.verifyAccessToken({ accessToken: bearer, requiredScopes });
+      return claims.humanId;
+    } catch (error) {
+      throw new Error(error.message || "Invalid OAuth access token.");
+    }
+  }
+  return requireSessionHumanId(req);
 }
 
 async function serveStatic(pathname, res) {
@@ -350,13 +404,20 @@ const server = http.createServer(async (req, res) => {
 
     if ((req.method === "GET" || req.method === "HEAD") && (
       path === "/" ||
+      path === "/human-auth" ||
+      path === "/oauth/consent" ||
       path === "/index.html" ||
       path === "/app.css" ||
       path === "/app.js" ||
       path.startsWith("/guides/") ||
       path.startsWith("/lib/")
     )) {
-      return await serveStatic(path, res);
+      const staticPath = path === "/human-auth"
+        ? "/human-auth.html"
+        : path === "/oauth/consent"
+          ? "/oauth-consent.html"
+          : path;
+      return await serveStatic(staticPath, res);
     }
 
     if (req.method === "GET" && path === "/favicon.ico") {
@@ -377,6 +438,55 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, oauthConfig());
     }
 
+    if (req.method === "GET" && path === "/oauth/authorize") {
+      const params = Object.fromEntries(url.searchParams.entries());
+      const humanId = resolveSessionHumanId(req);
+      if (!humanId) {
+        const returnTo = encodeURIComponent(`${path}${url.search}`);
+        return redirect(res, `/human-auth?returnTo=${returnTo}`);
+      }
+      const granted = framework.oauth.authorize({ humanId, query: params });
+      const redirectUri = String(params.redirect_uri || "");
+      const location = new URL(redirectUri);
+      location.searchParams.set("code", granted.code);
+      if (typeof granted.state === "string" && granted.state) {
+        location.searchParams.set("state", granted.state);
+      }
+      return redirect(res, location.toString());
+    }
+
+    if (req.method === "POST" && path === "/oauth/token") {
+      const body = await readBodyParams(req);
+      try {
+        const payload = await framework.oauth.token({
+          grantType: body.grant_type,
+          code: body.code,
+          redirectUri: body.redirect_uri,
+          clientId: body.client_id,
+          codeVerifier: body.code_verifier,
+          refreshToken: body.refresh_token
+        });
+        return json(res, 200, payload);
+      } catch (error) {
+        if (error?.oauth) return json(res, 400, error.oauth);
+        throw error;
+      }
+    }
+
+    if (req.method === "POST" && path === "/oauth/revoke") {
+      const body = await readBodyParams(req);
+      try {
+        const payload = await framework.oauth.revoke({
+          token: body.token,
+          clientId: body.client_id
+        });
+        return json(res, 200, payload);
+      } catch (error) {
+        if (error?.oauth) return json(res, 400, error.oauth);
+        throw error;
+      }
+    }
+
     if (req.method === "POST" && path === "/api/billing/stripe/webhook") {
       const raw = await readRaw(req);
       const signature = req.headers["stripe-signature"];
@@ -386,7 +496,16 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === "POST" && path === "/api/auth/login") {
       const body = await readJson(req);
-      return json(res, 200, framework.identity.authenticateLocal(body));
+      const auth = framework.identity.authenticateLocal(body);
+      sessionCookie(res, auth.human.humanId);
+      return json(res, 200, auth);
+    }
+
+    if (req.method === "GET" && path === "/api/auth/me") {
+      const humanId = requireActiveHumanId(req);
+      return json(res, 200, {
+        human: framework.identity.getHuman(humanId)
+      });
     }
 
     if (req.method === "GET" && path === "/auth/github/start") {
@@ -397,8 +516,9 @@ const server = http.createServer(async (req, res) => {
       const mode = (url.searchParams.get("mode") || "signin").trim().toLowerCase();
       const humanId = (url.searchParams.get("humanId") || "").trim();
       const installerAuthSessionId = (url.searchParams.get("installerAuthSessionId") || "").trim();
+      const returnTo = (url.searchParams.get("returnTo") || "").trim();
       const state = crypto.randomUUID();
-      githubAuthStates.set(state, { createdAt: Date.now(), mode, humanId, installerAuthSessionId });
+      githubAuthStates.set(state, { createdAt: Date.now(), mode, humanId, installerAuthSessionId, returnTo });
       const redirectUri = `${cfg.publicBaseUrl}/auth/github/callback`;
       const authUrl = new URL("https://github.com/login/oauth/authorize");
       authUrl.searchParams.set("client_id", cfg.githubClientId);
@@ -434,6 +554,11 @@ const server = http.createServer(async (req, res) => {
         } catch {
           // Ignore bind failure at callback stage. Web app can retry bind after landing.
         }
+      }
+      sessionCookie(res, human.humanId);
+      if (authState.returnTo) {
+        const target = new URL(authState.returnTo, cfg.publicBaseUrl);
+        if (target.origin === cfg.publicBaseUrl) return redirect(res, target.pathname + target.search + target.hash);
       }
       return html(res, 200, renderAuthResultPage({
         ok: true,
@@ -600,7 +725,9 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === "POST" && path === "/api/humans/register") {
       const body = await readJson(req);
-      return json(res, 200, await framework.identity.registerHuman(body));
+      const human = await framework.identity.registerHuman(body);
+      sessionCookie(res, human.humanId);
+      return json(res, 200, human);
     }
 
     if (req.method === "POST" && path === "/api/auth/email/send-verification") {
@@ -687,13 +814,13 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === "GET" && path === "/api/onboarder/catalog") {
-      requireSessionHumanId(req);
+      requireActiveHumanId(req, ["onboarder.install"]);
       return json(res, 200, framework.onboarder.catalog());
     }
 
     if (req.method === "POST" && path === "/api/onboarder/checkout-session") {
       const body = await readJson(req);
-      const humanId = requireSessionHumanId(req);
+      const humanId = requireActiveHumanId(req, ["onboarder.install"]);
       return json(res, 200, await framework.onboarderCommerce.createCheckoutSession({
         humanId,
         packageId: body.packageId,
@@ -705,7 +832,7 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === "POST" && path === "/api/onboarder/checkout-confirm") {
       const body = await readJson(req);
-      const humanId = requireSessionHumanId(req);
+      const humanId = requireActiveHumanId(req, ["onboarder.install"]);
       return json(res, 200, await framework.onboarderCommerce.confirmCheckout({
         humanId,
         purchaseId: body.purchaseId,
@@ -715,7 +842,7 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === "POST" && path === "/api/onboarder/installer/session/start") {
       const body = await readJson(req);
-      const humanId = requireSessionHumanId(req);
+      const humanId = requireActiveHumanId(req, ["onboarder.install"]);
       return json(res, 200, framework.onboarderInstaller.startSession({
         humanId,
         packageId: body.packageId,
@@ -747,7 +874,7 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === "POST" && path === "/api/onboarder/installer/auth/bind") {
       const body = await readJson(req);
-      const humanId = requireSessionHumanId(req);
+      const humanId = requireActiveHumanId(req, ["onboarder.install"]);
       return json(res, 200, framework.onboarderInstaller.bindAuthSession({
         humanId,
         installerAuthSessionId: body.installerAuthSessionId
@@ -756,7 +883,7 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === "POST" && path === "/api/onboarder/installer/session/update") {
       const body = await readJson(req);
-      const humanId = requireSessionHumanId(req);
+      const humanId = requireActiveHumanId(req, ["onboarder.install"]);
       return json(res, 200, framework.onboarderInstaller.updateSession({
         humanId,
         installerSessionId: body.installerSessionId,
@@ -772,7 +899,7 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === "POST" && path === "/api/onboarder/installer/payment/checkout-session") {
       const body = await readJson(req);
-      const humanId = requireSessionHumanId(req);
+      const humanId = requireActiveHumanId(req, ["onboarder.install"]);
       return json(res, 200, await framework.onboarderInstaller.createCheckoutSession({
         humanId,
         installerSessionId: body.installerSessionId
@@ -781,7 +908,7 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === "POST" && path === "/api/onboarder/installer/payment/confirm") {
       const body = await readJson(req);
-      const humanId = requireSessionHumanId(req);
+      const humanId = requireActiveHumanId(req, ["onboarder.install"]);
       return json(res, 200, await framework.onboarderInstaller.confirmPayment({
         humanId,
         installerSessionId: body.installerSessionId,
@@ -791,7 +918,7 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === "POST" && path === "/api/onboarder/installer/payment/status") {
       const body = await readJson(req);
-      const humanId = requireSessionHumanId(req);
+      const humanId = requireActiveHumanId(req, ["onboarder.install"]);
       return json(res, 200, framework.onboarderInstaller.paymentStatus({
         humanId,
         installerSessionId: body.installerSessionId
@@ -800,7 +927,7 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === "POST" && path === "/api/onboarder/installer/plan") {
       const body = await readJson(req);
-      const humanId = requireSessionHumanId(req);
+      const humanId = requireActiveHumanId(req, ["onboarder.install"]);
       return json(res, 200, await framework.onboarderInstaller.plan({
         humanId,
         installerSessionId: body.installerSessionId,
@@ -810,7 +937,7 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === "POST" && path === "/api/onboarder/installer/script") {
       const body = await readJson(req);
-      const humanId = requireSessionHumanId(req);
+      const humanId = requireActiveHumanId(req, ["onboarder.install"]);
       return json(res, 200, await framework.onboarderInstaller.script({
         humanId,
         installerSessionId: body.installerSessionId,
@@ -820,7 +947,7 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === "POST" && path === "/api/onboarder/installer/complete") {
       const body = await readJson(req);
-      const humanId = requireSessionHumanId(req);
+      const humanId = requireActiveHumanId(req, ["onboarder.install"]);
       return json(res, 200, framework.onboarderInstaller.complete({
         humanId,
         installerSessionId: body.installerSessionId,
@@ -830,7 +957,7 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === "POST" && path === "/api/onboarder/installer/register") {
       const body = await readJson(req);
-      const humanId = requireSessionHumanId(req);
+      const humanId = requireActiveHumanId(req, ["onboarder.install"]);
       return json(res, 200, await framework.onboarderInstaller.registerToWorld({
         humanId,
         installerSessionId: body.installerSessionId
@@ -838,7 +965,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === "GET" && path === "/api/onboarder/installer/download") {
-      const sessionFromHeader = sessionHumanId(req);
+      const sessionFromHeader = resolveSessionHumanId(req);
       const sessionFromQuery = String(url.searchParams.get("sessionHumanId") || "").trim();
       const effectiveSession = sessionFromHeader || sessionFromQuery;
       if (!effectiveSession) {
@@ -895,13 +1022,13 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === "GET" && path === "/api/onboarder/purchases") {
-      const humanId = requireSessionHumanId(req);
+      const humanId = requireActiveHumanId(req, ["onboarder.install"]);
       return json(res, 200, framework.onboarderCommerce.listPurchases({ humanId }));
     }
 
     if (req.method === "POST" && path === "/api/onboarder/delivery-contract") {
       const body = await readJson(req);
-      const humanId = requireSessionHumanId(req);
+      const humanId = requireActiveHumanId(req, ["onboarder.install"]);
       return json(res, 200, framework.onboarderCommerce.generateDeliveryContract({
         humanId,
         entitlementId: body.entitlementId,
@@ -911,7 +1038,7 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === "POST" && path === "/api/onboarder/artifact-bundle") {
       const body = await readJson(req);
-      const humanId = requireSessionHumanId(req);
+      const humanId = requireActiveHumanId(req, ["onboarder.install"]);
       return json(res, 200, framework.onboarderCommerce.generateArtifactBundle({
         humanId,
         entitlementId: body.entitlementId,
@@ -922,7 +1049,7 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === "POST" && path === "/api/onboarder/artifact-zip") {
       const body = await readJson(req);
-      const humanId = requireSessionHumanId(req);
+      const humanId = requireActiveHumanId(req, ["onboarder.install"]);
       const bundle = framework.onboarderCommerce.generateArtifactBundle({
         humanId,
         entitlementId: body.entitlementId,

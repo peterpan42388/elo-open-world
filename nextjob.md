@@ -174,23 +174,23 @@ After every execution cycle, update this file with:
 
 ## Current Focus
 - `World` is complete and frozen. Do not reopen structural work on this module unless a production bug or explicit redesign request appears.
-- Primary execution focus has moved to `elo-agent-onboarder` paid productization inside EOW:
-  - finalize Stripe-backed purchase confirmation and webhook idempotency behavior end-to-end
-  - harden entitlement-gated delivery/download paths
-  - complete deployment-safe env/config readiness checks
+- Human auth split + OAuth2 PKCE support for local app authorization has been implemented and must now be validated in deployment:
+  - dedicated `/human-auth` page for human sign-in/register/GitHub sign-in
+  - OAuth endpoints `/oauth/authorize`, `/oauth/token`, `/oauth/revoke`
+  - native public client defaults (`eow://auth/callback`) with strict PKCE (`S256`)
+  - onboarder endpoints now support Bearer token auth (`onboarder.install`) with session fallback
+- Continue `elo-agent-onboarder` hardening with OAuth-native installer path and Stripe flow continuity.
 
 ## Next Recommended Action
-- continue `elo-agent-onboarder` phase execution in this order:
-1. complete backend commerce hardening:
-   - webhook duplicate and delayed-confirm scenarios
-   - entitlement ownership checks across all delivery endpoints
-2. complete UI hardening:
-   - purchase state clarity (pending / paid / failed)
-   - clearer post-checkout return and error handling
-3. run production-focused verification:
-   - Stripe env variable presence check
-   - sandbox checkout smoke test
-   - artifact download smoke test per package/registration mode
+1. Deploy and smoke-test OAuth PKCE in production:
+   - `/human-auth` load + local login + GitHub login
+   - `/oauth/authorize` redirect flow with and without login
+   - `/oauth/token` code exchange + refresh + revoke
+2. Update installer to prefer OAuth PKCE (`eow://auth/callback`) as primary auth path, keep installerAuth as fallback.
+3. Finish onboarder commerce hardening:
+   - webhook duplicate/delayed confirm idempotency
+   - entitlement ownership checks across every download/delivery endpoint
+   - purchase state clarity and retry UX in installer/web settings
 
 ## Blockers
-- local runtime still has no seeded project data, so representative graph validation continues to depend on the deployed environment
+- None for implementation. Remaining work is deployment verification and installer OAuth callback integration.

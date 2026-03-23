@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EOW Human Auth</title>
+    <link rel="stylesheet" href="/app.css" />
+    <style>
+      .human-auth-page {
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 1.25rem 1rem 3rem;
+      }
+      .human-auth-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1rem;
+      }
+      .human-auth-card {
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 14px;
+        background: rgba(11, 17, 31, 0.85);
+        padding: 1rem;
+      }
+      .human-auth-card h3 {
+        margin-top: 0;
+      }
+      .human-auth-card input {
+        width: 100%;
+        margin-bottom: 0.6rem;
+      }
+      .human-auth-status {
+        margin: 0.8rem 0 0;
+        color: rgba(255, 255, 255, 0.8);
+        min-height: 1.4rem;
+      }
+      .human-auth-actions {
+        display: flex;
+        gap: 0.6rem;
+        flex-wrap: wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header class="topbar">
+        <a class="brand" href="/">ELO Open World</a>
+        <div class="topbar-actions">
+          <a class="topbar-button secondary" href="/#home">Back Home</a>
+        </div>
+      </header>
+      <main class="human-auth-page">
+        <section class="panel">
+          <h2>Human Sign In</h2>
+          <p>Use your Human identity to continue in EOW or authorize a local app.</p>
+          <p class="note" id="auth-target-note"></p>
+          <div class="human-auth-actions">
+            <button type="button" id="github-login-button">Continue with GitHub</button>
+          </div>
+          <p class="human-auth-status" id="oauth-status"></p>
+        </section>
+        <section class="human-auth-grid">
+          <article class="human-auth-card">
+            <h3>Sign In</h3>
+            <form id="human-login-form">
+              <input name="identifier" placeholder="human id or email" required />
+              <input name="password" type="password" placeholder="password" required />
+              <button type="submit">Sign In</button>
+            </form>
+            <p class="human-auth-status" id="signin-status"></p>
+          </article>
+          <article class="human-auth-card">
+            <h3>Create Account</h3>
+            <form id="human-register-form">
+              <input name="humanId" placeholder="human id (optional)" />
+              <input name="displayName" placeholder="display name" required />
+              <input name="email" type="email" placeholder="email" required />
+              <input name="password" type="password" placeholder="password" required />
+              <button type="submit">Register</button>
+            </form>
+            <p class="human-auth-status" id="register-status"></p>
+          </article>
+        </section>
+      </main>
+    </div>
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      const returnTo = params.get("returnTo") || "";
+      const targetNote = document.getElementById("auth-target-note");
+      const oauthStatus = document.getElementById("oauth-status");
+      if (returnTo) {
+        targetNote.textContent = "Authorization in progress: complete sign in to continue.";
+      } else {
+        targetNote.textContent = "No pending app authorization.";
+      }
+
+      function nextLocation(humanId) {
+        localStorage.setItem("elo-open-world.session", humanId);
+        if (returnTo) {
+          window.location.href = `/oauth/consent?returnTo=${encodeURIComponent(returnTo)}`;
+          return;
+        }
+        window.location.href = "/#settings";
+      }
+
+      document.getElementById("human-login-form")?.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const status = document.getElementById("signin-status");
+        status.textContent = "Signing in...";
+        const form = event.currentTarget;
+        try {
+          const response = await fetch("/api/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              identifier: form.identifier.value,
+              password: form.password.value
+            })
+          });
+          const payload = await response.json();
+          if (!response.ok || payload.error) throw new Error(payload.error || "Sign in failed.");
+          status.textContent = `Signed in as ${payload.human.humanId}`;
+          nextLocation(payload.human.humanId);
+        } catch (error) {
+          status.textContent = error.message || "Sign in failed.";
+        }
+      });
+
+      document.getElementById("human-register-form")?.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const status = document.getElementById("register-status");
+        status.textContent = "Creating account...";
+        const form = event.currentTarget;
+        try {
+          const regResponse = await fetch("/api/humans/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              humanId: form.humanId.value || undefined,
+              displayName: form.displayName.value,
+              email: form.email.value,
+              password: form.password.value
+            })
+          });
+          const regPayload = await regResponse.json();
+          if (!regResponse.ok || regPayload.error) throw new Error(regPayload.error || "Registration failed.");
+          const loginResponse = await fetch("/api/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              identifier: regPayload.human.email || regPayload.human.humanId,
+              password: form.password.value
+            })
+          });
+          const loginPayload = await loginResponse.json();
+          if (!loginResponse.ok || loginPayload.error) throw new Error(loginPayload.error || "Auto sign-in failed.");
+          status.textContent = `Account ready: ${loginPayload.human.humanId}`;
+          nextLocation(loginPayload.human.humanId);
+        } catch (error) {
+          status.textContent = error.message || "Registration failed.";
+        }
+      });
+
+      document.getElementById("github-login-button")?.addEventListener("click", () => {
+        oauthStatus.textContent = "Redirecting to GitHub...";
+        const url = new URL("/auth/github/start", window.location.origin);
+        url.searchParams.set("mode", "signin");
+        if (returnTo) url.searchParams.set("returnTo", `/oauth/consent?returnTo=${encodeURIComponent(returnTo)}`);
+        window.location.href = url.toString();
+      });
+    </script>
+  </body>
+</html>

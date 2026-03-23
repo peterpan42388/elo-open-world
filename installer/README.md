@@ -4,7 +4,7 @@ This installer is a Python GUI wizard for normal users to install OpenClaw and r
 
 ## Features
 
-- EOW browser authorization (no manual Session Human ID input)
+- EOW OAuth2 PKCE browser authorization (no manual Session Human ID input)
 - Environment check
 - 4-tier package selection
 - Agent info (`name`, `personality`)
@@ -56,7 +56,8 @@ python eow_onboarder_installer.py
 
 ## Notes
 
-- The installer now uses browser authorization session binding and auto-detects authorized human identity.
+- The installer now uses OAuth2 Authorization Code + PKCE as primary auth flow and auto-detects authorized human identity.
+- Legacy installer auth-session binding remains available as a fallback button.
 - Stripe payment is required before install execution.
 - Install script is written to a temporary file and deleted after execution.
 - If executable artifacts do not exist, the API currently falls back to source bundle delivery (`.py + launcher`) for internal use.
