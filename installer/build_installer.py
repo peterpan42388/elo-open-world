@@ -51,9 +51,14 @@ def build_with_pyinstaller() -> Path:
         str(ENTRY),
     ]
     run(cmd)
-    artifact = ROOT / "dist" / APP_NAME
-    if platform.system() == "Windows":
-        artifact = artifact.with_suffix(".exe")
+    if platform.system() == "Darwin":
+        artifact = ROOT / "dist" / f"{APP_NAME}.app"
+    else:
+        artifact = ROOT / "dist" / APP_NAME
+        if platform.system() == "Windows":
+            artifact = artifact.with_suffix(".exe")
+    if not artifact.exists():
+        raise FileNotFoundError(f"Installer artifact not found: {artifact}")
     return artifact
 
 
