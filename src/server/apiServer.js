@@ -66,13 +66,15 @@ function onboarderPublicServiceEnabled() {
   return String(process.env.ONBOARDER_PUBLIC_SERVICE_ENABLED || "").toLowerCase() === "true";
 }
 
-function renderAuthResultPage({ ok, message, humanId = "" }) {
+function renderAuthResultPage({ ok, message, humanId = "", installerAuthSessionId = "" }) {
   const safeMessage = String(message || "Authentication failed.").replace(/</g, "&lt;");
   const safeHumanId = String(humanId || "").replace(/'/g, "\\'");
+  const safeInstallerAuthSessionId = String(installerAuthSessionId || "").replace(/'/g, "\\'");
   if (ok) {
+    const extra = safeInstallerAuthSessionId ? `&installerAuthSessionId=${encodeURIComponent(installerAuthSessionId || "")}` : "";
     return `<!doctype html><html><body><script>
       localStorage.setItem('elo-open-world.session', '${safeHumanId}');
-      window.location.replace('/?sessionHumanId=${encodeURIComponent(humanId || "")}#settings');
+      window.location.replace('/?sessionHumanId=${encodeURIComponent(humanId || "")}${extra}#settings');
     </script><p>${safeMessage}</p></body></html>`;
   }
   return `<!doctype html><html><body><script>
@@ -394,8 +396,9 @@ const server = http.createServer(async (req, res) => {
       }
       const mode = (url.searchParams.get("mode") || "signin").trim().toLowerCase();
       const humanId = (url.searchParams.get("humanId") || "").trim();
+      const installerAuthSessionId = (url.searchParams.get("installerAuthSessionId") || "").trim();
       const state = crypto.randomUUID();
-      githubAuthStates.set(state, { createdAt: Date.now(), mode, humanId });
+      githubAuthStates.set(state, { createdAt: Date.now(), mode, humanId, installerAuthSessionId });
       const redirectUri = `${cfg.publicBaseUrl}/auth/github/callback`;
       const authUrl = new URL("https://github.com/login/oauth/authorize");
       authUrl.searchParams.set("client_id", cfg.githubClientId);
@@ -422,7 +425,22 @@ const server = http.createServer(async (req, res) => {
       const human = authState.mode === "link" && authState.humanId
         ? await framework.identity.linkGitHubHuman({ humanId: authState.humanId, ...profile })
         : await framework.identity.upsertGitHubHuman(profile);
-      return html(res, 200, renderAuthResultPage({ ok: true, humanId: human.humanId, message: `Signed in as ${human.humanId}` }));
+      if (authState.installerAuthSessionId) {
+        try {
+          framework.onboarderInstaller.bindAuthSession({
+            humanId: human.humanId,
+            installerAuthSessionId: authState.installerAuthSessionId
+          });
+        } catch {
+          // Ignore bind failure at callback stage. Web app can retry bind after landing.
+        }
+      }
+      return html(res, 200, renderAuthResultPage({
+        ok: true,
+        humanId: human.humanId,
+        installerAuthSessionId: authState.installerAuthSessionId || "",
+        message: `Signed in as ${human.humanId}`
+      }));
     }
 
     if (req.method === "GET" && path === "/auth/verify-email") {
@@ -704,6 +722,35 @@ const server = http.createServer(async (req, res) => {
         profile: body.profile,
         registrationMode: body.registrationMode,
         workflowPreset: body.workflowPreset
+      }));
+    }
+
+    if (req.method === "POST" && path === "/api/onboarder/installer/auth/start") {
+      const body = await readJson(req);
+      return json(res, 200, framework.onboarderInstaller.startAuthSession({
+        installerSessionId: body.installerSessionId || ""
+      }));
+    }
+
+    if (req.method === "GET" && path === "/api/onboarder/installer/auth/status") {
+      return json(res, 200, framework.onboarderInstaller.authStatus({
+        installerAuthSessionId: url.searchParams.get("installerAuthSessionId") || ""
+      }));
+    }
+
+    if (req.method === "POST" && path === "/api/onboarder/installer/auth/cancel") {
+      const body = await readJson(req);
+      return json(res, 200, framework.onboarderInstaller.cancelAuthSession({
+        installerAuthSessionId: body.installerAuthSessionId
+      }));
+    }
+
+    if (req.method === "POST" && path === "/api/onboarder/installer/auth/bind") {
+      const body = await readJson(req);
+      const humanId = requireSessionHumanId(req);
+      return json(res, 200, framework.onboarderInstaller.bindAuthSession({
+        humanId,
+        installerAuthSessionId: body.installerAuthSessionId
       }));
     }
 

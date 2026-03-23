@@ -114,11 +114,13 @@ const state = {
   onboarderCatalog: null,
   onboarderPurchases: { purchases: [], entitlements: [] },
   pendingOnboarderCheckout: null,
+  pendingInstallerAuthSessionId: "",
   activeProjectId: ""
 };
 
 bootstrapSessionFromUrl();
 bootstrapOnboarderCheckoutFromUrl();
+bootstrapInstallerAuthFromUrl();
 
 function loadSession() {
   return localStorage.getItem(SESSION_KEY) || "";
@@ -169,6 +171,15 @@ function bootstrapOnboarderCheckoutFromUrl() {
     checkoutSessionId: (url.searchParams.get("checkoutSessionId") || "").trim()
   };
   ONBOARDER_CHECKOUT_PARAMS.forEach((key) => url.searchParams.delete(key));
+  history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+}
+
+function bootstrapInstallerAuthFromUrl() {
+  const url = new URL(window.location.href);
+  const installerAuthSessionId = (url.searchParams.get("installerAuthSessionId") || "").trim();
+  if (!installerAuthSessionId) return;
+  state.pendingInstallerAuthSessionId = installerAuthSessionId;
+  url.searchParams.delete("installerAuthSessionId");
   history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
 }
 
@@ -7142,9 +7153,10 @@ async function signInWithValue(identifier, password) {
     password
   });
   saveSession(result.humanId);
+  await bindPendingInstallerAuthSession();
   state.activeSettingsSection = SETTINGS_DEFAULT_SECTION;
   setStatus(`Signed in as ${result.humanId}`, "ok");
-  renderAll();
+  await refresh();
   goToRoute("settings");
   return true;
 }
@@ -7228,7 +7240,22 @@ async function refresh() {
     state.latestStarterRequirement = (state.summary.requirements || []).find((item) => item.requirementId === state.starterRequirementId) || state.latestStarterRequirement;
   }
   state.authResolved = true;
+  await bindPendingInstallerAuthSession();
   renderAll();
+}
+
+async function bindPendingInstallerAuthSession() {
+  if (!state.pendingInstallerAuthSessionId || !state.sessionHumanId) return;
+  try {
+    await request("/api/onboarder/installer/auth/bind", "POST", {
+      installerAuthSessionId: state.pendingInstallerAuthSessionId
+    });
+    setStatus("Installer authorization linked to your active EOW session.", "ok");
+  } catch (error) {
+    console.warn("installer auth bind failed", error);
+  } finally {
+    state.pendingInstallerAuthSessionId = "";
+  }
 }
 
 function renderAll() {
@@ -7599,7 +7626,10 @@ $("settings-project-filter-tag")?.addEventListener("input", (event) => {
 });
 
 $("github-auth-button")?.addEventListener("click", () => {
-  window.location.href = "/auth/github/start";
+  const installerParam = state.pendingInstallerAuthSessionId
+    ? `?installerAuthSessionId=${encodeURIComponent(state.pendingInstallerAuthSessionId)}`
+    : "";
+  window.location.href = `/auth/github/start${installerParam}`;
 });
 
 $("security-password-reset-form")?.addEventListener("submit", async (event) => {

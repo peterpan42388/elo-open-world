@@ -77,6 +77,7 @@ export class OpenWorldFramework {
       identityRegistry: this.identity,
       onboarderService: this.onboarder,
       onboarderCommerce: this.onboarderCommerce,
+      publicBaseUrl: this.universeConfig.publicBaseUrl,
       onboarder: snapshot.onboarder,
       onChange: persist
     });

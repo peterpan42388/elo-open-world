@@ -745,6 +745,39 @@ test("onboarder installer flow should enforce payment before plan and support in
   assert.equal(refreshed.online, true);
 });
 
+test("onboarder installer auth session should support browser authorization binding", async () => {
+  const root = await mkdtemp(join(tmpdir(), "open-world-onboarder-auth-"));
+  const world = await new OpenWorldFramework({
+    stateFile: join(root, "state.json"),
+    projectsRoot: join(root, "projects"),
+    billingProvider: new FakeBillingService()
+  }).init();
+
+  await world.identity.registerHuman({
+    humanId: "human.installer.auth",
+    email: "installer-auth@example.com",
+    githubLogin: "peterpan42388",
+    password: "test-password-installer-auth"
+  });
+
+  const authStart = world.onboarderInstaller.startAuthSession();
+  assert.match(authStart.installerAuthSessionId, /^iauth_/);
+  assert.match(authStart.authUrl, /installerAuthSessionId=/);
+  assert.equal(authStart.status, "pending");
+
+  const bound = world.onboarderInstaller.bindAuthSession({
+    humanId: "human.installer.auth",
+    installerAuthSessionId: authStart.installerAuthSessionId
+  });
+  assert.equal(bound.ok, true);
+
+  const status = world.onboarderInstaller.authStatus({
+    installerAuthSessionId: authStart.installerAuthSessionId
+  });
+  assert.equal(status.status, "authorized");
+  assert.equal(status.humanId, "human.installer.auth");
+});
+
 test("web plugin bridge-pack should expose foundation artifact bundle", async () => {
   const root = await mkdtemp(join(tmpdir(), "open-world-web-plugin-"));
   const world = await new OpenWorldFramework({

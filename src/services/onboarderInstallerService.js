@@ -57,19 +57,117 @@ echo "Run profile-specific runtime bootstrap next."
 }
 
 export class OnboarderInstallerService {
-  constructor({ identityRegistry, onboarderService, onboarderCommerce, onboarder = {}, onChange = async () => {} } = {}) {
+  constructor({ identityRegistry, onboarderService, onboarderCommerce, onboarder = {}, publicBaseUrl = "", onChange = async () => {} } = {}) {
     this.identityRegistry = identityRegistry;
     this.onboarderService = onboarderService;
     this.onboarderCommerce = onboarderCommerce;
+    this.publicBaseUrl = text("publicBaseUrl", publicBaseUrl || "https://world.metavie.co", 256);
     this.sessions = new Map((onboarder.installerSessions || []).map((session) => [session.installerSessionId, { ...session }]));
+    this.authSessions = new Map((onboarder.installerAuthSessions || []).map((session) => [session.installerAuthSessionId, { ...session }]));
     this.onChange = onChange;
   }
 
   snapshot() {
     return {
       onboarder: {
-        installerSessions: [...this.sessions.values()].map((session) => ({ ...session }))
+        installerSessions: [...this.sessions.values()].map((session) => ({ ...session })),
+        installerAuthSessions: [...this.authSessions.values()].map((session) => ({ ...session }))
       }
+    };
+  }
+
+  startAuthSession({ installerSessionId = "" } = {}) {
+    const safeInstallerSessionId = installerSessionId ? token("installerSessionId", installerSessionId, 256) : "";
+    if (safeInstallerSessionId && !this.sessions.has(safeInstallerSessionId)) {
+      throw new Error(`unknown installerSessionId: ${safeInstallerSessionId}`);
+    }
+    const expiresAt = now() + 1000 * 60 * 10;
+    const installerAuthSession = {
+      contract: "elo-agent-onboarder.installer-auth-session.v1",
+      installerAuthSessionId: uid("iauth"),
+      installerSessionId: safeInstallerSessionId || "",
+      status: "pending",
+      humanId: "",
+      createdAt: now(),
+      updatedAt: now(),
+      expiresAt,
+      authorizedAt: 0
+    };
+    this.authSessions.set(installerAuthSession.installerAuthSessionId, installerAuthSession);
+    Promise.resolve(this.onChange()).catch(() => {});
+    return {
+      contract: "elo-agent-onboarder.installer-auth-start.v1",
+      installerAuthSessionId: installerAuthSession.installerAuthSessionId,
+      installerSessionId: installerAuthSession.installerSessionId || "",
+      status: installerAuthSession.status,
+      expiresAt,
+      authUrl: `${this.publicBaseUrl}/#join?installerAuthSessionId=${encodeURIComponent(installerAuthSession.installerAuthSessionId)}`,
+      registerUrl: `${this.publicBaseUrl}/#join?installerAuthSessionId=${encodeURIComponent(installerAuthSession.installerAuthSessionId)}`
+    };
+  }
+
+  bindAuthSession({ humanId, installerAuthSessionId }) {
+    const safeHumanId = token("humanId", humanId);
+    this.identityRegistry.getHuman(safeHumanId);
+    const safeAuthSessionId = token("installerAuthSessionId", installerAuthSessionId, 256);
+    const authSession = this.authSessions.get(safeAuthSessionId);
+    if (!authSession) throw new Error(`unknown installerAuthSessionId: ${safeAuthSessionId}`);
+    if (authSession.expiresAt <= now()) {
+      authSession.status = "expired";
+      authSession.updatedAt = now();
+      throw new Error("installer auth session expired");
+    }
+    if (authSession.status === "authorized") {
+      if (authSession.humanId !== safeHumanId) throw new Error("installer auth session already bound to another human");
+      return {
+        ok: true,
+        installerAuthSessionId: authSession.installerAuthSessionId,
+        status: authSession.status
+      };
+    }
+    if (authSession.status !== "pending") throw new Error("installer auth session is not bindable");
+    authSession.humanId = safeHumanId;
+    authSession.status = "authorized";
+    authSession.authorizedAt = now();
+    authSession.updatedAt = now();
+    Promise.resolve(this.onChange()).catch(() => {});
+    return {
+      ok: true,
+      installerAuthSessionId: authSession.installerAuthSessionId,
+      status: authSession.status
+    };
+  }
+
+  authStatus({ installerAuthSessionId }) {
+    const safeAuthSessionId = token("installerAuthSessionId", installerAuthSessionId, 256);
+    const authSession = this.authSessions.get(safeAuthSessionId);
+    if (!authSession) throw new Error(`unknown installerAuthSessionId: ${safeAuthSessionId}`);
+    if (authSession.status === "pending" && authSession.expiresAt <= now()) {
+      authSession.status = "expired";
+      authSession.updatedAt = now();
+      Promise.resolve(this.onChange()).catch(() => {});
+    }
+    return {
+      contract: "elo-agent-onboarder.installer-auth-status.v1",
+      installerAuthSessionId: authSession.installerAuthSessionId,
+      installerSessionId: authSession.installerSessionId || "",
+      status: authSession.status,
+      expiresAt: authSession.expiresAt,
+      humanId: authSession.status === "authorized" ? authSession.humanId : ""
+    };
+  }
+
+  cancelAuthSession({ installerAuthSessionId }) {
+    const safeAuthSessionId = token("installerAuthSessionId", installerAuthSessionId, 256);
+    const authSession = this.authSessions.get(safeAuthSessionId);
+    if (!authSession) throw new Error(`unknown installerAuthSessionId: ${safeAuthSessionId}`);
+    authSession.status = "cancelled";
+    authSession.updatedAt = now();
+    Promise.resolve(this.onChange()).catch(() => {});
+    return {
+      ok: true,
+      installerAuthSessionId: authSession.installerAuthSessionId,
+      status: authSession.status
     };
   }
 

@@ -3,17 +3,20 @@ import json
 import os
 import platform
 import subprocess
+import sys
 import tempfile
 import webbrowser
 from dataclasses import dataclass, field
 from typing import Dict, Optional
 
 import requests
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
     QComboBox,
+    QFrame,
     QFormLayout,
     QHBoxLayout,
     QLabel,
@@ -63,6 +66,10 @@ PACKAGE_SKILLS = {
 class InstallerState:
     base_url: str = "https://world.metavie.co"
     human_id: str = ""
+    installer_auth_session_id: str = ""
+    installer_auth_status: str = "pending"
+    installer_auth_url: str = ""
+    installer_auth_expires_at: int = 0
     installer_session_id: str = ""
     package_id: str = "starter-openclaw"
     profile: str = "macos-homebrew"
@@ -92,6 +99,9 @@ class EOWInstaller(QWidget):
         super().__init__()
         self.state = InstallerState()
         self.setWindowTitle("ELO Agent Onboarder Installer")
+        icon_path = self.asset_path("icon.png")
+        if os.path.exists(icon_path):
+            self.setWindowIcon(QIcon(icon_path))
         self.resize(980, 680)
         self.stack = QStackedWidget()
         self.page_titles = []
@@ -113,6 +123,9 @@ class EOWInstaller(QWidget):
         root.addLayout(actions)
 
         self.build_pages()
+        self.auth_poll_timer = QTimer(self)
+        self.auth_poll_timer.setInterval(2500)
+        self.auth_poll_timer.timeout.connect(self.check_auth_status)
         self.refresh_nav()
 
     def build_pages(self):
@@ -166,11 +179,10 @@ class EOWInstaller(QWidget):
     def validate_current_page(self) -> bool:
         title = self.page_titles[self.current_index]
         if title == "Login":
-            if not self.human_id_input.text().strip():
-                self.error("Please enter your Session Human ID after EOW login.")
-                return False
-            self.state.human_id = self.human_id_input.text().strip()
             self.state.base_url = self.base_url_input.text().strip().rstrip("/")
+            if self.state.installer_auth_status != "authorized" or not self.state.human_id:
+                self.error("Please complete EOW authorization first.")
+                return False
             return self.start_installer_session()
         if title == "Agent":
             if not self.agent_name_input.text().strip():
@@ -201,13 +213,14 @@ class EOWInstaller(QWidget):
                 return False
         return True
 
-    def request(self, path: str, method: str = "POST", payload: Optional[Dict] = None):
-        if not self.state.human_id:
+    def request(self, path: str, method: str = "POST", payload: Optional[Dict] = None, require_auth: bool = True):
+        if require_auth and not self.state.human_id:
             raise RuntimeError("human_id is not set")
         headers = {
             "Content-Type": "application/json",
-            "X-ELO-Session-Human-Id": self.state.human_id,
         }
+        if self.state.human_id:
+            headers["X-ELO-Session-Human-Id"] = self.state.human_id
         url = f"{self.state.base_url}{path}"
         response = requests.request(method, url, headers=headers, json=payload or {}, timeout=60)
         if response.status_code >= 400:
@@ -219,6 +232,56 @@ class EOWInstaller(QWidget):
         if "application/json" in response.headers.get("Content-Type", ""):
             return response.json()
         return response.content
+
+    def start_auth_flow(self):
+        self.state.base_url = self.base_url_input.text().strip().rstrip("/")
+        try:
+            result = self.request("/api/onboarder/installer/auth/start", payload={}, require_auth=False)
+            self.state.installer_auth_session_id = result.get("installerAuthSessionId", "")
+            self.state.installer_auth_url = result.get("authUrl", "")
+            self.state.installer_auth_status = result.get("status", "pending")
+            self.state.installer_auth_expires_at = int(result.get("expiresAt", 0) or 0)
+            self.state.human_id = ""
+            if self.state.installer_auth_url:
+                webbrowser.open(self.state.installer_auth_url)
+            self.auth_poll_timer.start()
+            self.render_auth_status("Browser auth opened. Complete login and click 'Check Authorization'.")
+        except Exception as exc:
+            self.render_auth_status(f"Authorization start failed: {exc}")
+
+    def check_auth_status(self):
+        if not self.state.installer_auth_session_id:
+            self.render_auth_status("No auth session yet. Click 'Login to EOW'.")
+            return
+        try:
+            result = self.request(
+                f"/api/onboarder/installer/auth/status?installerAuthSessionId={self.state.installer_auth_session_id}",
+                method="GET",
+                require_auth=False
+            )
+            self.state.installer_auth_status = result.get("status", "pending")
+            self.state.installer_auth_expires_at = int(result.get("expiresAt", 0) or 0)
+            if self.state.installer_auth_status == "authorized":
+                self.state.human_id = result.get("humanId", "")
+                self.auth_poll_timer.stop()
+                self.render_auth_status(f"Authorized as {self.state.human_id}")
+            elif self.state.installer_auth_status == "expired":
+                self.auth_poll_timer.stop()
+                self.render_auth_status("Authorization expired. Click 'Login to EOW' again.")
+            elif self.state.installer_auth_status == "cancelled":
+                self.auth_poll_timer.stop()
+                self.render_auth_status("Authorization cancelled. Start a new login flow.")
+            else:
+                self.render_auth_status("Waiting for browser authorization...")
+        except Exception as exc:
+            self.render_auth_status(f"Authorization check failed: {exc}")
+
+    def render_auth_status(self, note: str = ""):
+        status_line = f"Status: {self.state.installer_auth_status}"
+        human_line = f"Authorized Human: {self.state.human_id or '-'}"
+        session_line = f"Auth Session: {self.state.installer_auth_session_id or '-'}"
+        note_line = f"Note: {note or 'Use Login/Register in browser, then return here.'}"
+        self.auth_status_box.setPlainText("\n".join([status_line, human_line, session_line, note_line]))
 
     def start_installer_session(self) -> bool:
         self.state.package_id = self.package_combo.currentData()
@@ -373,24 +436,43 @@ class EOWInstaller(QWidget):
     def info(self, message: str):
         QMessageBox.information(self, "Info", message)
 
+    @staticmethod
+    def asset_path(filename: str) -> str:
+        if getattr(sys, "frozen", False):
+            base = getattr(sys, "_MEIPASS", os.path.dirname(sys.executable))
+        else:
+            base = os.path.dirname(os.path.abspath(__file__))
+        return os.path.join(base, "assets", filename)
+
     def build_login_page(self):
         page = QWidget()
         layout = QVBoxLayout(page)
-        layout.addWidget(QLabel("Login to EOW first. Then paste your Session Human ID."))
+        hero = QFrame()
+        hero.setFrameShape(QFrame.StyledPanel)
+        hero_layout = QVBoxLayout(hero)
+        hero_layout.addWidget(QLabel("ELO Agent Onboarder"))
+        hero_layout.addWidget(QLabel("Authorize with EOW to continue. No manual Session ID is required."))
+        layout.addWidget(hero)
         form = QFormLayout()
         self.base_url_input = QLineEdit(self.state.base_url)
-        self.human_id_input = QLineEdit("")
         form.addRow("EOW Base URL", self.base_url_input)
-        form.addRow("Session Human ID", self.human_id_input)
         layout.addLayout(form)
         btns = QHBoxLayout()
-        login_btn = QPushButton("Open EOW Login")
-        reg_btn = QPushButton("Open EOW Register")
-        login_btn.clicked.connect(lambda: webbrowser.open(f"{self.base_url_input.text().strip().rstrip('/')}/#join"))
+        login_btn = QPushButton("Login to EOW")
+        reg_btn = QPushButton("Go to Register")
+        check_btn = QPushButton("Check Authorization")
+        login_btn.clicked.connect(self.start_auth_flow)
         reg_btn.clicked.connect(lambda: webbrowser.open(f"{self.base_url_input.text().strip().rstrip('/')}/#join"))
+        check_btn.clicked.connect(self.check_auth_status)
         btns.addWidget(login_btn)
         btns.addWidget(reg_btn)
+        btns.addWidget(check_btn)
         layout.addLayout(btns)
+        self.auth_status_box = QTextEdit()
+        self.auth_status_box.setReadOnly(True)
+        self.auth_status_box.setMinimumHeight(120)
+        layout.addWidget(self.auth_status_box)
+        self.render_auth_status("Click 'Login to EOW' to start authorization.")
         return page
 
     def build_env_page(self):
@@ -560,4 +642,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

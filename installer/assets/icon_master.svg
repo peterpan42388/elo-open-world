@@ -1,0 +1,25 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1024" y2="1024" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6F3FF5"/>
+      <stop offset="1" stop-color="#4720A8"/>
+    </linearGradient>
+  </defs>
+  <rect x="64" y="64" width="896" height="896" rx="220" fill="url(#bg)"/>
+  <g fill="#FF4A45">
+    <ellipse cx="512" cy="575" rx="182" ry="140"/>
+    <rect x="430" y="395" width="164" height="64" rx="28"/>
+    <circle cx="460" cy="512" r="16" fill="#2D145E"/>
+    <circle cx="564" cy="512" r="16" fill="#2D145E"/>
+    <path d="M332 530C276 500 248 450 246 402C274 412 301 435 325 472"/>
+    <path d="M692 530C748 500 776 450 778 402C750 412 723 435 699 472"/>
+    <path d="M400 690C358 742 324 806 318 874"/>
+    <path d="M624 690C666 742 700 806 706 874"/>
+  </g>
+  <g stroke="#FF4A45" stroke-width="30" stroke-linecap="round">
+    <path d="M332 530C276 500 248 450 246 402"/>
+    <path d="M692 530C748 500 776 450 778 402"/>
+    <path d="M400 690C358 742 324 806 318 874"/>
+    <path d="M624 690C666 742 700 806 706 874"/>
+  </g>
+</svg>

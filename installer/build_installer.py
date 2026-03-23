@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parent
 ENTRY = ROOT / "eow_onboarder_installer.py"
 DIST = ROOT / "dist"
 BUILD = ROOT / "build"
+ASSETS = ROOT / "assets"
 APP_NAME = "ELO-Agent-Onboarder-Installer"
 
 
@@ -48,8 +49,18 @@ def build_with_pyinstaller() -> Path:
         "--windowed",
         "--name",
         APP_NAME,
+        "--add-data",
+        f"{ASSETS}{';' if platform.system() == 'Windows' else ':'}assets",
         str(ENTRY),
     ]
+    if platform.system() == "Darwin":
+        icon = ASSETS / "icon.icns"
+        if icon.exists():
+            cmd.extend(["--icon", str(icon)])
+    elif platform.system() == "Windows":
+        icon = ASSETS / "icon.ico"
+        if icon.exists():
+            cmd.extend(["--icon", str(icon)])
     run(cmd)
     if platform.system() == "Darwin":
         artifact = ROOT / "dist" / f"{APP_NAME}.app"
