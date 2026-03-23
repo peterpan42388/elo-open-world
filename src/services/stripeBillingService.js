@@ -29,7 +29,17 @@ export class StripeBillingService {
     return priceId;
   }
 
-  async createCheckoutSession({ purchaseId, packageId, amountUsd, humanId, profile, registrationMode, workflowPreset = "" }) {
+  async createCheckoutSession({
+    purchaseId,
+    packageId,
+    amountUsd,
+    humanId,
+    profile,
+    registrationMode,
+    workflowPreset = "",
+    successUrl = "",
+    cancelUrl = ""
+  }) {
     const stripe = await this.#client();
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
@@ -37,8 +47,8 @@ export class StripeBillingService {
         price: this.priceIdForPackage(packageId),
         quantity: 1
       }],
-      success_url: `${this.publicBaseUrl}/?onboarderCheckout=success&purchaseId=${encodeURIComponent(purchaseId)}&checkoutSessionId={CHECKOUT_SESSION_ID}#settings`,
-      cancel_url: `${this.publicBaseUrl}/#settings`,
+      success_url: successUrl || `${this.publicBaseUrl}/?onboarderCheckout=success&purchaseId=${encodeURIComponent(purchaseId)}&checkoutSessionId={CHECKOUT_SESSION_ID}#settings`,
+      cancel_url: cancelUrl || `${this.publicBaseUrl}/#settings`,
       metadata: {
         purchaseId,
         packageId,
@@ -73,7 +83,17 @@ export class FakeBillingService {
     this.sessions = new Map();
   }
 
-  async createCheckoutSession({ purchaseId, packageId, amountUsd, humanId, profile, registrationMode, workflowPreset = "" }) {
+  async createCheckoutSession({
+    purchaseId,
+    packageId,
+    amountUsd,
+    humanId,
+    profile,
+    registrationMode,
+    workflowPreset = "",
+    successUrl = "",
+    cancelUrl = ""
+  }) {
     const sessionId = uid("cs_test");
     const url = `https://billing.example.test/checkout/${sessionId}`;
     this.sessions.set(sessionId, {

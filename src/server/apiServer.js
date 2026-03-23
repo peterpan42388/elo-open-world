@@ -853,6 +853,11 @@ const server = http.createServer(async (req, res) => {
       }));
     }
 
+    if (req.method === "GET" && path === "/api/onboarder/installer/models") {
+      requireActiveHumanId(req, ["onboarder.install"]);
+      return json(res, 200, framework.onboarderInstaller.modelCatalog());
+    }
+
     if (req.method === "POST" && path === "/api/onboarder/installer/auth/start") {
       const body = await readJson(req);
       return json(res, 200, framework.onboarderInstaller.startAuthSession({
@@ -903,7 +908,9 @@ const server = http.createServer(async (req, res) => {
       const humanId = requireActiveHumanId(req, ["onboarder.install"]);
       return json(res, 200, await framework.onboarderInstaller.createCheckoutSession({
         humanId,
-        installerSessionId: body.installerSessionId
+        installerSessionId: body.installerSessionId,
+        successUrl: body.successUrl || "",
+        cancelUrl: body.cancelUrl || ""
       }));
     }
 
@@ -923,6 +930,18 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, framework.onboarderInstaller.paymentStatus({
         humanId,
         installerSessionId: body.installerSessionId
+      }));
+    }
+
+    if (req.method === "POST" && path === "/api/onboarder/installer/chat/validate") {
+      const body = await readJson(req);
+      const humanId = requireActiveHumanId(req, ["onboarder.install"]);
+      return json(res, 200, await framework.onboarderInstaller.validateChatBinding({
+        humanId,
+        installerSessionId: body.installerSessionId || "",
+        chatBinding: body.chatBinding || {},
+        action: body.action || "validate",
+        message: body.message || ""
       }));
     }
 

@@ -97,6 +97,18 @@ After every execution cycle, update this file with:
 - any new blockers
 
 ## Last Completed
+- Completed consumer-grade installer remediation for `elo-agent-onboarder`:
+  - redesigned installer visual system with branded dark card layout, step indicator, and simplified copy for non-technical users
+  - hid technical OAuth/base URL fields behind advanced settings and kept login page action-focused (`登录到 EOW / 去注册 / 检查授权`)
+  - expanded model center to multi-brand catalog + recommendation panel with provider site jump and optional custom model mode
+  - upgraded chat binding to dynamic platform forms (Telegram / Feishu / Discord / DingTalk), with Telegram chat_id auto-detect and pre-install test-send support
+  - added payment auto-return support using loopback callback URLs and automatic payment status polling/confirmation while retaining manual check buttons
+  - rebuilt install stage UX with progress bar, stage timeline, install logs, completion summary, and post-install notification attempt
+- Added backend installer support contracts:
+  - `GET /api/onboarder/installer/models`
+  - `POST /api/onboarder/installer/chat/validate`
+  - installer checkout now accepts optional `successUrl/cancelUrl` passthrough for app callback return
+- Redesigned installer icon assets to a new “lobster + workstation” identity and regenerated `icon_master.svg`, `icon.png`, `icon.ico`, `icon.icns`.
 - Implemented installer product UX uplift: added branded icon asset pack (purple + red lobster), removed manual Session Human ID entry from installer, introduced browser-based installer auth session flow with auto-bind and polling, and wired EOW web auth pages to bind installer auth sessions after local/GitHub login.
 - Stabilized macOS installer packaging by moving build validation to Python 3.12 and adding ad-hoc codesign verification in the builder flow; replaced server-side macOS installer artifact with the newly signed `.app.zip` output.
 - Upgraded installer delivery toward end-user executable format by adding cross-platform build tooling (`installer/build_installer.py`) to produce macOS `.dmg/.app.zip` and Windows `.exe/.zip`, and updated `/api/onboarder/installer/download` to serve executable artifacts first when present instead of always returning source (`.py + .sh`) bundles.
@@ -174,23 +186,25 @@ After every execution cycle, update this file with:
 
 ## Current Focus
 - `World` is complete and frozen. Do not reopen structural work on this module unless a production bug or explicit redesign request appears.
-- Human auth split + OAuth2 PKCE support for local app authorization has been implemented and must now be validated in deployment:
-  - dedicated `/human-auth` page for human sign-in/register/GitHub sign-in
-  - OAuth endpoints `/oauth/authorize`, `/oauth/token`, `/oauth/revoke`
-  - native public client defaults (`eow://auth/callback`) with strict PKCE (`S256`)
-  - onboarder endpoints now support Bearer token auth (`onboarder.install`) with session fallback
-- Continue `elo-agent-onboarder` hardening with OAuth-native installer path and Stripe flow continuity.
+- Validate and ship the new installer remediation on real environments:
+  - rebuild macOS and Windows installer binaries with the new icon + UI
+  - deploy updated backend endpoints (`installer/models`, `installer/chat/validate`, checkout callback passthrough)
+  - run end-to-end OAuth login -> package/model/chat -> Stripe pay -> install -> completion smoke tests
+- Continue onboarding hardening around production reliability and user clarity, not additional feature sprawl.
 
 ## Next Recommended Action
-1. Deploy and smoke-test OAuth PKCE in production:
-   - `/human-auth` load + local login + GitHub login
-   - `/oauth/authorize` redirect flow with and without login
-   - `/oauth/token` code exchange + refresh + revoke
-2. Update installer to prefer OAuth PKCE (`eow://auth/callback`) as primary auth path, keep installerAuth as fallback.
-3. Finish onboarder commerce hardening:
-   - webhook duplicate/delayed confirm idempotency
-   - entitlement ownership checks across every download/delivery endpoint
-   - purchase state clarity and retry UX in installer/web settings
+1. Build and publish fresh installer artifacts:
+   - macOS `.app.zip` with new icon and updated UI flow
+   - Windows `.exe/.zip` with matching icon and version metadata
+2. Deploy server updates and smoke-test in production:
+   - `GET /api/onboarder/installer/models`
+   - `POST /api/onboarder/installer/chat/validate`
+   - installer checkout callback loopback return path
+3. Run full user-path regression:
+   - OAuth consent login path from app
+   - model selection with token refresh safety
+   - Stripe auto-return + manual check fallback
+   - install progress/completion + chat success notification
 
 ## Blockers
 - None for implementation. Remaining work is deployment verification and installer OAuth callback integration.

@@ -39,7 +39,15 @@ export class OnboarderCommerceService {
     };
   }
 
-  async createCheckoutSession({ humanId, packageId, profile, registrationMode = "register-to-eow", workflowPreset = "" }) {
+  async createCheckoutSession({
+    humanId,
+    packageId,
+    profile,
+    registrationMode = "register-to-eow",
+    workflowPreset = "",
+    successUrl = "",
+    cancelUrl = ""
+  }) {
     const safeHumanId = token("humanId", humanId);
     this.identityRegistry.getHuman(safeHumanId);
     const selection = normalizeOnboarderPackageSelection({ packageId, profile, registrationMode, workflowPreset });
@@ -65,7 +73,9 @@ export class OnboarderCommerceService {
       humanId: purchase.humanId,
       profile: purchase.profile,
       registrationMode: purchase.registrationMode,
-      workflowPreset: purchase.workflowPreset || ""
+      workflowPreset: purchase.workflowPreset || "",
+      successUrl,
+      cancelUrl
     });
     purchase.stripeCheckoutSessionId = session.sessionId;
     purchase.checkoutUrl = session.url;
