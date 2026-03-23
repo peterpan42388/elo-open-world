@@ -232,13 +232,36 @@ class EOWInstaller(QWidget):
                 return False
         return True
 
+    def refresh_oauth_access_token(self) -> bool:
+        if not self.state.oauth_refresh_token:
+            return False
+        try:
+            token = self.request(
+                "/oauth/token",
+                method="POST",
+                payload={
+                    "grant_type": "refresh_token",
+                    "refresh_token": self.state.oauth_refresh_token,
+                    "client_id": self.state.oauth_client_id
+                },
+                require_auth=False,
+                content_type="application/x-www-form-urlencoded",
+                retry_on_auth_error=False
+            )
+            self.state.oauth_access_token = token.get("access_token", "")
+            self.state.oauth_refresh_token = token.get("refresh_token", self.state.oauth_refresh_token)
+            return bool(self.state.oauth_access_token)
+        except Exception:
+            return False
+
     def request(
         self,
         path: str,
         method: str = "POST",
         payload: Optional[Dict] = None,
         require_auth: bool = True,
-        content_type: str = "application/json"
+        content_type: str = "application/json",
+        retry_on_auth_error: bool = True
     ):
         if require_auth and not (self.state.human_id or self.state.oauth_access_token):
             raise RuntimeError("human identity is not authorized")
@@ -261,6 +284,22 @@ class EOWInstaller(QWidget):
                 message = response.json().get("error", response.text)
             except Exception:
                 message = response.text
+            auth_error = str(message or "").lower()
+            if (
+                retry_on_auth_error
+                and require_auth
+                and self.state.oauth_access_token
+                and ("access token expired" in auth_error or "invalid access token" in auth_error)
+                and self.refresh_oauth_access_token()
+            ):
+                return self.request(
+                    path,
+                    method=method,
+                    payload=payload,
+                    require_auth=require_auth,
+                    content_type=content_type,
+                    retry_on_auth_error=False
+                )
             raise RuntimeError(f"{response.status_code}: {message}")
         if "application/json" in response.headers.get("Content-Type", ""):
             return response.json()
