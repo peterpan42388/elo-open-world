@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+from datetime import datetime, timezone
 import platform
 import shutil
 import subprocess
@@ -15,6 +16,28 @@ DIST = ROOT / "dist"
 BUILD = ROOT / "build"
 ASSETS = ROOT / "assets"
 APP_NAME = "ELO-Agent-Onboarder-Installer"
+
+
+def git_commit() -> str:
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            cwd=str(ROOT.parent),
+            check=True,
+            capture_output=True,
+            text=True
+        )
+        return result.stdout.strip() or "unknown"
+    except Exception:
+        return "unknown"
+
+
+def write_version_file(target_dir: Path) -> Path:
+    target_dir.mkdir(parents=True, exist_ok=True)
+    version = f"commit={git_commit()}\nbuilt_at={datetime.now(timezone.utc).isoformat()}\n"
+    version_path = target_dir / "version.txt"
+    version_path.write_text(version, encoding="utf-8")
+    return version_path
 
 
 def run(cmd: list[str], cwd: Path | None = None) -> None:
@@ -77,6 +100,7 @@ def build_macos() -> None:
     artifact = build_with_pyinstaller()
     target_dir = DIST / "macos"
     target_dir.mkdir(parents=True, exist_ok=True)
+    version_path = write_version_file(target_dir)
     app_bundle = artifact
     app_zip = target_dir / f"{APP_NAME}.app.zip"
     if app_zip.exists():
@@ -85,13 +109,14 @@ def build_macos() -> None:
     run(["codesign", "--force", "--deep", "--sign", "-", str(app_bundle)])
     run(["codesign", "--verify", "--deep", "--strict", "--verbose=2", str(app_bundle)])
     run(["ditto", "-c", "-k", "--keepParent", str(app_bundle), str(app_zip)])
-    print(f"[build] macOS artifacts ready:\n- {app_zip}")
+    print(f"[build] macOS artifacts ready:\n- {app_zip}\n- {version_path}")
 
 
 def build_windows() -> None:
     artifact = build_with_pyinstaller()
     target_dir = DIST / "windows"
     target_dir.mkdir(parents=True, exist_ok=True)
+    version_path = write_version_file(target_dir)
     exe_path = target_dir / f"{APP_NAME}.exe"
     zip_path = target_dir / f"{APP_NAME}.zip"
     if exe_path.exists():
@@ -105,7 +130,7 @@ def build_windows() -> None:
         "-Command",
         f"Compress-Archive -Path '{exe_path}' -DestinationPath '{zip_path}' -Force",
     ])
-    print(f"[build] Windows artifacts ready:\n- {exe_path}\n- {zip_path}")
+    print(f"[build] Windows artifacts ready:\n- {exe_path}\n- {zip_path}\n- {version_path}")
 
 
 def main() -> int:

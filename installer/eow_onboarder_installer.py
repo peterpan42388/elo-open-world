@@ -372,22 +372,6 @@ class EOWInstaller(QWidget):
     def start_auth_flow(self):
         self.start_oauth_flow()
 
-    def start_legacy_auth_flow(self):
-        self.state.base_url = self.base_url_input.text().strip().rstrip("/")
-        try:
-            result = self.request("/api/onboarder/installer/auth/start", payload={}, require_auth=False)
-            self.state.installer_auth_session_id = result.get("installerAuthSessionId", "")
-            self.state.installer_auth_url = result.get("authUrl", "")
-            self.state.installer_auth_status = result.get("status", "pending")
-            self.state.installer_auth_expires_at = int(result.get("expiresAt", 0) or 0)
-            self.state.human_id = ""
-            if self.state.installer_auth_url:
-                webbrowser.open(self.state.installer_auth_url)
-            self.auth_poll_timer.start()
-            self.render_auth_status("Browser auth opened. Complete login and click 'Check Authorization'.")
-        except Exception as exc:
-            self.render_auth_status(f"Authorization start failed: {exc}")
-
     def check_auth_status(self):
         if self.oauth_callback_error:
             self.auth_poll_timer.stop()
@@ -405,31 +389,7 @@ class EOWInstaller(QWidget):
                 self.state.installer_auth_status = "failed"
                 self.render_auth_status(f"OAuth token exchange failed: {exc}")
                 return
-        if not self.state.installer_auth_session_id:
-            self.render_auth_status("No legacy auth session. Use OAuth login, or click fallback login.")
-            return
-        try:
-            result = self.request(
-                f"/api/onboarder/installer/auth/status?installerAuthSessionId={self.state.installer_auth_session_id}",
-                method="GET",
-                require_auth=False
-            )
-            self.state.installer_auth_status = result.get("status", "pending")
-            self.state.installer_auth_expires_at = int(result.get("expiresAt", 0) or 0)
-            if self.state.installer_auth_status == "authorized":
-                self.state.human_id = result.get("humanId", "")
-                self.auth_poll_timer.stop()
-                self.render_auth_status(f"Authorized as {self.state.human_id}")
-            elif self.state.installer_auth_status == "expired":
-                self.auth_poll_timer.stop()
-                self.render_auth_status("Authorization expired. Click 'Login to EOW' again.")
-            elif self.state.installer_auth_status == "cancelled":
-                self.auth_poll_timer.stop()
-                self.render_auth_status("Authorization cancelled. Start a new login flow.")
-            else:
-                self.render_auth_status("Waiting for browser authorization...")
-        except Exception as exc:
-            self.render_auth_status(f"Authorization check failed: {exc}")
+        self.render_auth_status("Waiting for OAuth browser callback...")
 
     def render_auth_status(self, note: str = ""):
         status_line = f"Status: {self.state.installer_auth_status}"
@@ -620,16 +580,13 @@ class EOWInstaller(QWidget):
         form.addRow("OAuth Redirect URI", self.oauth_redirect_input)
         layout.addLayout(form)
         btns = QHBoxLayout()
-        login_btn = QPushButton("Login to EOW (OAuth)")
-        fallback_btn = QPushButton("Fallback Login")
+        login_btn = QPushButton("Login to EOW")
         reg_btn = QPushButton("Go to Register")
         check_btn = QPushButton("Check Authorization")
         login_btn.clicked.connect(self.start_auth_flow)
-        fallback_btn.clicked.connect(self.start_legacy_auth_flow)
         reg_btn.clicked.connect(lambda: webbrowser.open(f"{self.base_url_input.text().strip().rstrip('/')}/human-auth"))
         check_btn.clicked.connect(self.check_auth_status)
         btns.addWidget(login_btn)
-        btns.addWidget(fallback_btn)
         btns.addWidget(reg_btn)
         btns.addWidget(check_btn)
         layout.addLayout(btns)

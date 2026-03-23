@@ -57,7 +57,8 @@ python eow_onboarder_installer.py
 ## Notes
 
 - The installer now uses OAuth2 Authorization Code + PKCE as primary auth flow and auto-detects authorized human identity.
-- Legacy installer auth-session binding remains available as a fallback button.
+- Installer login UI is OAuth-only (no legacy fallback button).
+- Build output now includes `dist/<platform>/version.txt` for release traceability.
 - Stripe payment is required before install execution.
 - Install script is written to a temporary file and deleted after execution.
 - If executable artifacts do not exist, the API currently falls back to source bundle delivery (`.py + launcher`) for internal use.

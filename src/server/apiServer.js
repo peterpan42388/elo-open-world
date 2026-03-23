@@ -32,12 +32,13 @@ function html(res, status, content, headers = {}) {
   res.end(content);
 }
 
-function binary(res, status, data, contentType, filename) {
+function binary(res, status, data, contentType, filename, extraHeaders = {}) {
   res.writeHead(status, {
     "Content-Type": contentType,
     "Content-Disposition": `attachment; filename=\"${filename}\"`,
     "Cache-Control": "no-store",
-    "Content-Length": data.length
+    "Content-Length": data.length,
+    ...extraHeaders
   });
   res.end(data);
 }
@@ -995,7 +996,17 @@ const server = http.createServer(async (req, res) => {
       for (const target of executableTargets) {
         const file = await readIfExists(target.path);
         if (file) {
-          return binary(res, 200, file, target.contentType, target.filename);
+          const versionPath = join(INSTALLER_DIST_ROOT, os === "windows" ? "windows" : "macos", "version.txt");
+          const versionRaw = await readIfExists(versionPath);
+          const version = versionRaw ? String(versionRaw).trim().replace(/\s+/g, " ").slice(0, 256) : "";
+          return binary(
+            res,
+            200,
+            file,
+            target.contentType,
+            target.filename,
+            version ? { "X-EOW-Installer-Version": version } : {}
+          );
         }
       }
       const launcherName = os === "windows" ? "start-installer.bat" : "start-installer.sh";
