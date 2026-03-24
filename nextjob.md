@@ -97,6 +97,26 @@ After every execution cycle, update this file with:
 - any new blockers
 
 ## Last Completed
+- Implemented Phase-A/Phase-B appconfig consolidation and Phase-C bridge groundwork:
+  - added authenticated alias endpoint `GET /elo-agent-onboarder/appconfig` as installer primary config source
+  - upgraded `onboarderInstallerService` to merge runtime static config (`runtime/onboarder-installer-appconfig.json`) with catalog/models/chat metadata and expose platform status (`ready/testing/planned`)
+  - switched installer config loading order to `appconfig -> legacy fallback`, and enforced status-aware chat platform behavior (`planned` blocked, `testing` hinted)
+  - added Telegram bridge worker mode (`--telegram-bridge`) with long-poll receive/reply loop, health file updates, and log output
+  - wired install completion page with bridge status refresh, restart, and log-open actions
+  - rebuilt latest macOS installer artifact: `installer/dist/macos/ELO-Agent-Onboarder-Installer.app.zip`
+- Added installer dynamic-config architecture to reduce repackaging churn:
+  - introduced `GET /api/onboarder/installer/config` to return a single versioned payload with package catalog, package include descriptions, profile pros/cons notes, chat platform metadata, and model catalog
+  - wired installer UI to load and apply server config after OAuth authorization, including package/profile selectors and chat platform labels/hints/guides
+  - kept local fallback behavior so installer remains functional if config endpoint is unavailable
+  - added installer-side version visibility (`installer_version.json`) and exposed config version in-app for testing traceability
+  - added regression test coverage for installer config contract
+- Continued installer UI/multilingual execution batch:
+  - replaced installer icon chain with the new provided logo (`icon.png` + regenerated `icon.icns` and `icon.ico`)
+  - strengthened multilingual support with startup language picker + language menu restart flow and expanded localized labels for core onboarding fields
+  - completed Step 3 layout pass with wider package/environment selectors and localized dual detail panels (package includes + profile pros/cons)
+  - completed Step 5 layout pass with larger controls, wider left form area, localized field labels, and localized model recommendation/detail text
+  - completed Step 6 layout pass with localized chat binding labels, enlarged split layout, right-side setup guide panel, and platform-specific multilingual hints for Telegram/Feishu/Discord/DingTalk
+  - rebuilt macOS installer artifact after these updates (`installer/dist/macos/ELO-Agent-Onboarder-Installer.app.zip`)
 - Completed consumer-grade installer remediation for `elo-agent-onboarder`:
   - redesigned installer visual system with branded dark card layout, step indicator, and simplified copy for non-technical users
   - hid technical OAuth/base URL fields behind advanced settings and kept login page action-focused (`登录到 EOW / 去注册 / 检查授权`)
@@ -186,25 +206,27 @@ After every execution cycle, update this file with:
 
 ## Current Focus
 - `World` is complete and frozen. Do not reopen structural work on this module unless a production bug or explicit redesign request appears.
-- Validate and ship the new installer remediation on real environments:
-  - rebuild macOS and Windows installer binaries with the new icon + UI
-  - deploy updated backend endpoints (`installer/models`, `installer/chat/validate`, checkout callback passthrough)
-  - run end-to-end OAuth login -> package/model/chat -> Stripe pay -> install -> completion smoke tests
-- Continue onboarding hardening around production reliability and user clarity, not additional feature sprawl.
+- Execute AppConfig-driven installer phase:
+  - serve `GET /elo-agent-onboarder/appconfig` as the primary config source
+  - keep dynamic package/model/chat metadata in server-side config
+  - make installer consume remote config first and expose `Installer Version + Config Version`
+- Close Telegram loop from notification-only to full two-way messaging:
+  - launch local Telegram bridge after install
+  - persist bridge health/log status
+  - allow restart and log inspection from completion page
+- Ship updated macOS installer artifact and run full end-to-end smoke test.
 
 ## Next Recommended Action
-1. Build and publish fresh installer artifacts:
-   - macOS `.app.zip` with new icon and updated UI flow
-   - Windows `.exe/.zip` with matching icon and version metadata
-2. Deploy server updates and smoke-test in production:
-   - `GET /api/onboarder/installer/models`
-   - `POST /api/onboarder/installer/chat/validate`
-   - installer checkout callback loopback return path
-3. Run full user-path regression:
-   - OAuth consent login path from app
-   - model selection with token refresh safety
-   - Stripe auto-return + manual check fallback
-   - install progress/completion + chat success notification
+1. Deploy current server branch to production and verify:
+   - `GET /elo-agent-onboarder/appconfig` requires auth and returns `configVersion`
+   - installer still reads fallback `/api/onboarder/installer/config` when needed
+2. Publish rebuilt macOS installer:
+   - `/installer/dist/macos/ELO-Agent-Onboarder-Installer.app.zip`
+   - confirm `X-EOW-Installer-Version` matches latest build version
+3. Run end-to-end acceptance:
+   - OAuth login -> config load -> Stripe pay -> install
+   - Telegram receives install notification and responds to user message
+   - completion page shows bridge running + log path
 
 ## Blockers
-- None for implementation. Remaining work is deployment verification and installer OAuth callback integration.
+- None for local implementation. Remaining blocker is production deployment + live Telegram bridge verification.

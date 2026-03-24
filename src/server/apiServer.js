@@ -858,6 +858,16 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, framework.onboarderInstaller.modelCatalog());
     }
 
+    if (req.method === "GET" && path === "/api/onboarder/installer/config") {
+      requireActiveHumanId(req, ["onboarder.install"]);
+      return json(res, 200, framework.onboarderInstaller.installerConfig());
+    }
+
+    if (req.method === "GET" && path === "/elo-agent-onboarder/appconfig") {
+      requireActiveHumanId(req, ["onboarder.install"]);
+      return json(res, 200, framework.onboarderInstaller.installerConfig());
+    }
+
     if (req.method === "POST" && path === "/api/onboarder/installer/auth/start") {
       const body = await readJson(req);
       return json(res, 200, framework.onboarderInstaller.startAuthSession({
@@ -889,6 +899,9 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === "POST" && path === "/api/onboarder/installer/session/update") {
       const body = await readJson(req);
+      if (typeof body.modelApiKey === "string" && body.modelApiKey.trim()) {
+        throw new Error("Model API Key must stay on local installer and is not accepted by server.");
+      }
       const humanId = requireActiveHumanId(req, ["onboarder.install"]);
       return json(res, 200, framework.onboarderInstaller.updateSession({
         humanId,
@@ -897,7 +910,7 @@ const server = http.createServer(async (req, res) => {
         agentPersonality: body.agentPersonality,
         modelProvider: body.modelProvider,
         modelName: body.modelName,
-        modelApiKey: body.modelApiKey,
+        modelBaseUrl: body.modelBaseUrl,
         chatBinding: body.chatBinding,
         workflowPreset: body.workflowPreset
       }));

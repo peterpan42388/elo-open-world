@@ -673,7 +673,7 @@ test("onboarder installer flow should enforce payment before plan and support in
     agentPersonality: "Helpful and reliable",
     modelProvider: "OpenAI",
     modelName: "gpt-5",
-    modelApiKey: "sk-test-installer-1234",
+    modelBaseUrl: "https://api.example.com/v1",
     chatBinding: {
       platform: "telegram",
       telegramBotToken: "123456:ABCDEF",
@@ -681,8 +681,8 @@ test("onboarder installer flow should enforce payment before plan and support in
     }
   });
   assert.equal(updated.agentName, "Installer Hero");
-  assert.match(updated.modelApiKeyRef, /^ref:/);
-  assert.equal(updated.modelApiKeyRef.includes("sk-test-installer-1234"), false);
+  assert.equal(updated.modelBaseUrl, "https://api.example.com/v1");
+  assert.equal(typeof updated.modelApiKeyRef, "undefined");
 
   await assert.rejects(
     () => Promise.resolve(world.onboarderInstaller.plan({
@@ -743,6 +743,25 @@ test("onboarder installer flow should enforce payment before plan and support in
 
   const refreshed = world.identity.getAgent(registered.agentId);
   assert.equal(refreshed.online, true);
+});
+
+test("onboarder installer config should expose dynamic catalog and versioned config payload", async () => {
+  const root = await mkdtemp(join(tmpdir(), "open-world-onboarder-installer-config-"));
+  const world = await new OpenWorldFramework({
+    stateFile: join(root, "state.json"),
+    projectsRoot: join(root, "projects"),
+    billingProvider: new FakeBillingService()
+  }).init();
+
+  const config = world.onboarderInstaller.installerConfig();
+  assert.equal(config.contract, "elo-agent-onboarder.installer-config.v1");
+  assert.ok(config.configVersion);
+  assert.equal(config.packageCatalog.contract, "elo-agent-onboarder.package-catalog.v1");
+  assert.ok(Array.isArray(config.packageCatalog.packages));
+  assert.ok(config.packageCatalog.packages.some((item) => item.packageId === "starter-openclaw"));
+  assert.ok(config.modelCatalog.contract, "elo-agent-onboarder.model-catalog.v1");
+  assert.ok(Array.isArray(config.chatPlatforms));
+  assert.ok(config.chatPlatforms.some((item) => item.platform === "telegram"));
 });
 
 test("onboarder installer auth session should support browser authorization binding", async () => {

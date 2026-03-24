@@ -1,4 +1,7 @@
 import crypto from "node:crypto";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { now, text, token, uid } from "../lib/validation.js";
 import { normalizeOnboarderPackageSelection } from "./openClawPackageCatalog.js";
 
@@ -14,6 +17,8 @@ function maskSecret(secret) {
   const digest = crypto.createHash("sha256").update(safe).digest("hex");
   return `ref:${tail}:${digest.slice(0, 12)}`;
 }
+
+const ROOT = fileURLToPath(new URL("../../", import.meta.url));
 
 const INSTALLER_MODEL_CATALOG = {
   contract: "elo-agent-onboarder.model-catalog.v1",
@@ -145,6 +150,267 @@ const INSTALLER_MODEL_CATALOG = {
   ]
 };
 
+const INSTALLER_PACKAGE_CONTENTS_I18N = {
+  en: {
+    "starter-openclaw": [
+      "Official OpenClaw base runtime",
+      "Mainstream model API setup guidance",
+      "Basic health checks and diagnostics"
+    ],
+    "work-openclaw": [
+      "PPT automation skills",
+      "Excel / spreadsheet skills",
+      "Document writing and organization",
+      "Image-model setup guidance"
+    ],
+    "vision-openclaw": [
+      "Video generation and editing workflow",
+      "Cross-platform auto-publish workflow",
+      "Video-model API setup guidance",
+      "Content pipeline templates"
+    ],
+    "builder-openclaw": [
+      "EOW project protocol framework",
+      "Engineering collaboration templates",
+      "Task checkpoint and traceability defaults",
+      "Developer-agent collaboration defaults"
+    ]
+  },
+  zh: {
+    "starter-openclaw": [
+      "OpenClaw 官方基础运行环境",
+      "主流模型 API 配置引导",
+      "基础健康检查与诊断工具"
+    ],
+    "work-openclaw": [
+      "PPT 自动化技能",
+      "Excel/表格处理技能",
+      "文档写作与整理技能",
+      "图片处理模型配置引导"
+    ],
+    "vision-openclaw": [
+      "视频生成与剪辑工作流",
+      "跨平台自动发布工作流",
+      "视频模型 API 配置引导",
+      "内容产线模板"
+    ],
+    "builder-openclaw": [
+      "EOW 项目协议框架",
+      "工程协作与交付流程模板",
+      "任务检查点与回溯能力",
+      "开发型 Agent 协作默认配置"
+    ]
+  },
+  es: {
+    "starter-openclaw": [
+      "Runtime base oficial de OpenClaw",
+      "Guía de configuración de API para modelos comunes",
+      "Diagnóstico y chequeo básico de salud"
+    ],
+    "work-openclaw": [
+      "Automatización de PPT",
+      "Habilidades de Excel / hojas de cálculo",
+      "Redacción y organización de documentos",
+      "Guía para modelos de imagen"
+    ],
+    "vision-openclaw": [
+      "Flujo de generación y edición de video",
+      "Publicación automática multiplataforma",
+      "Guía de API para modelos de video",
+      "Plantillas de producción de contenido"
+    ],
+    "builder-openclaw": [
+      "Marco de protocolo de proyectos EOW",
+      "Plantillas de colaboración de ingeniería",
+      "Puntos de control y trazabilidad",
+      "Configuración para agentes de desarrollo"
+    ]
+  },
+  ja: {
+    "starter-openclaw": [
+      "OpenClaw 公式ベースランタイム",
+      "主要モデル API 設定ガイド",
+      "基本ヘルスチェックと診断"
+    ],
+    "work-openclaw": [
+      "PPT 自動化スキル",
+      "Excel / 表計算スキル",
+      "ドキュメント作成・整理スキル",
+      "画像モデル設定ガイド"
+    ],
+    "vision-openclaw": [
+      "動画生成・編集ワークフロー",
+      "マルチプラットフォーム自動配信",
+      "動画モデル API 設定ガイド",
+      "コンテンツ制作テンプレート"
+    ],
+    "builder-openclaw": [
+      "EOW プロジェクトプロトコル",
+      "エンジニア協業テンプレート",
+      "タスク追跡とチェックポイント",
+      "開発向け Agent 協業設定"
+    ]
+  }
+};
+
+const INSTALLER_PROFILE_NOTES_I18N = {
+  en: {
+    "macos-homebrew": {
+      pros: ["Easy for personal devices", "Fast start with Homebrew ecosystem"],
+      cons: ["Less suitable for always-on production"]
+    },
+    "linux-systemd": {
+      pros: ["Stable long-running service", "Good for self-hosted home server"],
+      cons: ["Requires Linux service operations knowledge"]
+    },
+    "server-docker-compose": {
+      pros: ["Best for deployment and reproducibility", "Easy rollback and scaling"],
+      cons: ["Needs Docker server resources"]
+    }
+  },
+  zh: {
+    "macos-homebrew": {
+      pros: ["个人设备安装更简单", "可直接利用 Homebrew 生态快速启动"],
+      cons: ["不适合长期稳定在线生产场景"]
+    },
+    "linux-systemd": {
+      pros: ["适合长期稳定运行", "适合家庭服务器/自托管场景"],
+      cons: ["需要一定 Linux 服务运维能力"]
+    },
+    "server-docker-compose": {
+      pros: ["最适合部署与环境复现", "便于回滚、迁移与扩展"],
+      cons: ["需要服务器与 Docker 资源"]
+    }
+  },
+  es: {
+    "macos-homebrew": {
+      pros: ["Fácil para equipos personales", "Arranque rápido con Homebrew"],
+      cons: ["Menos adecuado para producción 24/7"]
+    },
+    "linux-systemd": {
+      pros: ["Servicio estable de larga duración", "Ideal para servidor casero autogestionado"],
+      cons: ["Requiere conocimientos de operación Linux"]
+    },
+    "server-docker-compose": {
+      pros: ["Ideal para despliegue y reproducibilidad", "Más fácil de escalar y revertir"],
+      cons: ["Requiere recursos de servidor y Docker"]
+    }
+  },
+  ja: {
+    "macos-homebrew": {
+      pros: ["個人端末に導入しやすい", "Homebrew で素早く開始できる"],
+      cons: ["常時稼働の本番用途にはやや不向き"]
+    },
+    "linux-systemd": {
+      pros: ["長時間安定稼働に向く", "自宅サーバー運用に適している"],
+      cons: ["Linux サービス運用の知識が必要"]
+    },
+    "server-docker-compose": {
+      pros: ["デプロイと再現性に最適", "ロールバックや拡張が容易"],
+      cons: ["Docker を動かすサーバー資源が必要"]
+    }
+  }
+};
+
+const INSTALLER_CHAT_PLATFORMS = [
+  {
+    platform: "telegram",
+    displayNameI18n: {
+      en: "Telegram",
+      zh: "Telegram",
+      es: "Telegram",
+      ja: "Telegram"
+    },
+    hintI18n: {
+      en: "Telegram needs Bot Token. chat_id can be auto-detected.",
+      zh: "Telegram 需要 Bot Token，chat_id 可自动检测。",
+      es: "Telegram requiere Bot Token; el chat_id puede detectarse automáticamente.",
+      ja: "Telegram は Bot Token が必要です。chat_id は自動取得できます。"
+    },
+    guideI18n: {
+      en: "1. Create a Bot in Telegram and get Bot Token.\n2. Send any message to your Bot.\n3. Click 'Auto-detect chat_id'.\n4. Click 'Test Chat Configuration'.",
+      zh: "1. 在 Telegram 创建 Bot 并获取 Bot Token。\n2. 与 Bot 发送任意消息。\n3. 点击“自动检测 chat_id”。\n4. 点击“测试聊天配置”验证可达。",
+      es: "1. Crea un Bot en Telegram y obtén el Bot Token.\n2. Envía un mensaje al Bot.\n3. Pulsa 'Detectar chat_id automáticamente'.\n4. Pulsa 'Probar configuración de chat'.",
+      ja: "1. Telegram で Bot を作成し Bot Token を取得します。\n2. Bot にメッセージを送信します。\n3. 「chat_id を自動取得」をクリックします。\n4. 「チャット設定をテスト」をクリックします。"
+    },
+    requires: ["telegramBotToken"],
+    optional: ["telegramChatId"],
+    status: "ready"
+  },
+  {
+    platform: "feishu",
+    displayNameI18n: {
+      en: "Feishu(飞书)",
+      zh: "Feishu(飞书)",
+      es: "Feishu(飞书)",
+      ja: "Feishu(飞书)"
+    },
+    hintI18n: {
+      en: "Feishu(飞书) requires bot Webhook. Fill Secret if signature is enabled.",
+      zh: "Feishu(飞书) 需要机器人 Webhook；如启用签名校验，请填写 Secret。",
+      es: "Feishu(飞书) requiere Webhook; completa Secret si habilitaste firma.",
+      ja: "Feishu(飞书) は Webhook が必要です。署名を有効化している場合は Secret を入力してください。"
+    },
+    guideI18n: {
+      en: "1. Add custom bot in Feishu group.\n2. Copy Webhook URL.\n3. If signature is enabled, fill Secret.\n4. Click 'Test Chat Configuration'.",
+      zh: "1. 在飞书群添加自定义机器人。\n2. 复制 Webhook URL。\n3. 如开启签名校验，填写 Secret。\n4. 点击“测试聊天配置”验证可达。",
+      es: "1. Agrega un bot personalizado en grupo de Feishu.\n2. Copia la URL Webhook.\n3. Si activaste firma, completa Secret.\n4. Pulsa 'Probar configuración de chat'.",
+      ja: "1. Feishu グループにカスタムボットを追加します。\n2. Webhook URL をコピーします。\n3. 署名有効時は Secret を入力します。\n4. 「チャット設定をテスト」をクリックします。"
+    },
+    requires: ["feishuWebhookUrl"],
+    optional: ["feishuSecret"],
+    status: "testing"
+  },
+  {
+    platform: "discord",
+    displayNameI18n: {
+      en: "Discord",
+      zh: "Discord",
+      es: "Discord",
+      ja: "Discord"
+    },
+    hintI18n: {
+      en: "Discord uses Webhook URL and is easiest to configure.",
+      zh: "Discord 推荐使用 Webhook URL，配置最简单。",
+      es: "Discord usa Webhook URL y es la opción más simple.",
+      ja: "Discord は Webhook URL 方式で簡単に設定できます。"
+    },
+    guideI18n: {
+      en: "1. Create a Webhook in Discord channel.\n2. Copy Webhook URL.\n3. Click 'Test Chat Configuration'.",
+      zh: "1. 在 Discord 频道创建 Webhook。\n2. 复制 Webhook URL。\n3. 点击“测试聊天配置”验证可达。",
+      es: "1. Crea un Webhook en tu canal de Discord.\n2. Copia la URL Webhook.\n3. Pulsa 'Probar configuración de chat'.",
+      ja: "1. Discord チャンネルで Webhook を作成します。\n2. Webhook URL をコピーします。\n3. 「チャット設定をテスト」をクリックします。"
+    },
+    requires: ["discordWebhookUrl"],
+    optional: [],
+    status: "testing"
+  },
+  {
+    platform: "dingtalk",
+    displayNameI18n: {
+      en: "DingTalk(钉钉)",
+      zh: "DingTalk(钉钉)",
+      es: "DingTalk(钉钉)",
+      ja: "DingTalk(钉钉)"
+    },
+    hintI18n: {
+      en: "DingTalk(钉钉) requires bot Webhook. Fill Secret if signature is enabled.",
+      zh: "DingTalk(钉钉) 需要机器人 Webhook；如开启加签，请填写 Secret。",
+      es: "DingTalk(钉钉) requiere Webhook; completa Secret si habilitaste firma.",
+      ja: "DingTalk(钉钉) は Webhook が必要です。署名を有効化している場合は Secret を入力してください。"
+    },
+    guideI18n: {
+      en: "1. Add bot in DingTalk group and copy Webhook URL.\n2. If signature is enabled, fill Secret.\n3. Click 'Test Chat Configuration'.",
+      zh: "1. 在钉钉群添加机器人并获取 Webhook。\n2. 若开启“加签”，填写 Secret。\n3. 点击“测试聊天配置”验证可达。",
+      es: "1. Agrega bot en grupo de DingTalk y copia Webhook URL.\n2. Si activaste firma, completa Secret.\n3. Pulsa 'Probar configuración de chat'.",
+      ja: "1. DingTalk グループにボットを追加し Webhook を取得します。\n2. 署名有効時は Secret を入力します。\n3. 「チャット設定をテスト」をクリックします。"
+    },
+    requires: ["dingtalkWebhookUrl"],
+    optional: ["dingtalkSecret"],
+    status: "planned"
+  }
+];
+
 function toScriptContent({ session, worldUrl, plan }) {
   const personality = (session.agentPersonality || "Curious, helpful, and reliable.").replace(/\r\n/g, "\n");
   const openclawConfig = {
@@ -155,7 +421,7 @@ function toScriptContent({ session, worldUrl, plan }) {
     model: {
       provider: session.modelProvider || "",
       name: session.modelName || "",
-      apiKeyRef: session.modelApiKeyRef || ""
+      baseUrl: session.modelBaseUrl || ""
     },
     chatBinding: session.chatBinding || {},
     world: {
@@ -187,13 +453,26 @@ echo "Run profile-specific runtime bootstrap next."
 }
 
 export class OnboarderInstallerService {
-  constructor({ identityRegistry, onboarderService, onboarderCommerce, onboarder = {}, publicBaseUrl = "", onChange = async () => {} } = {}) {
+  constructor({
+    identityRegistry,
+    onboarderService,
+    onboarderCommerce,
+    onboarder = {},
+    publicBaseUrl = "",
+    onChange = async () => {},
+    appConfigPath = ""
+  } = {}) {
     this.identityRegistry = identityRegistry;
     this.onboarderService = onboarderService;
     this.onboarderCommerce = onboarderCommerce;
     this.publicBaseUrl = text("publicBaseUrl", publicBaseUrl || "https://world.metavie.co", 256);
     this.sessions = new Map((onboarder.installerSessions || []).map((session) => [session.installerSessionId, { ...session }]));
     this.authSessions = new Map((onboarder.installerAuthSessions || []).map((session) => [session.installerAuthSessionId, { ...session }]));
+    this.appConfigPath = text(
+      "appConfigPath",
+      appConfigPath || process.env.ONBOARDER_INSTALLER_APP_CONFIG_PATH || join(ROOT, "runtime", "onboarder-installer-appconfig.json"),
+      1024
+    );
     this.onChange = onChange;
   }
 
@@ -211,6 +490,86 @@ export class OnboarderInstallerService {
       ...INSTALLER_MODEL_CATALOG,
       generatedAt: now()
     };
+  }
+
+  installerConfig() {
+    const externalConfig = this.#readExternalInstallerConfig();
+    const catalog = this.onboarderCommerce.catalog();
+    const mergedModelCatalog = this.#mergeModelCatalog(externalConfig.modelCatalog || {});
+    const mergedChatPlatforms = this.#mergeChatPlatforms(externalConfig.chatPlatforms || []);
+    return {
+      contract: "elo-agent-onboarder.installer-config.v1",
+      configVersion: text(
+        "configVersion",
+        externalConfig.configVersion || process.env.ONBOARDER_INSTALLER_CONFIG_VERSION || "2026.03.24",
+        64
+      ),
+      generatedAt: now(),
+      supportedLanguages: ["en", "zh", "es", "ja"],
+      packageCatalog: catalog,
+      packageContentsI18n: this.#mergeMapI18n(INSTALLER_PACKAGE_CONTENTS_I18N, externalConfig.packageContentsI18n || {}),
+      profileNotesI18n: this.#mergeMapI18n(INSTALLER_PROFILE_NOTES_I18N, externalConfig.profileNotesI18n || {}),
+      chatPlatforms: mergedChatPlatforms,
+      modelCatalog: mergedModelCatalog
+    };
+  }
+
+  #mergeMapI18n(base, override) {
+    if (!override || typeof override !== "object") return base;
+    const merged = structuredClone(base);
+    for (const [lang, langValue] of Object.entries(override)) {
+      if (!langValue || typeof langValue !== "object") continue;
+      if (!merged[lang]) merged[lang] = {};
+      for (const [key, value] of Object.entries(langValue)) {
+        merged[lang][key] = value;
+      }
+    }
+    return merged;
+  }
+
+  #mergeChatPlatforms(overrideList = []) {
+    const mergedByPlatform = new Map(INSTALLER_CHAT_PLATFORMS.map((item) => [item.platform, structuredClone(item)]));
+    if (Array.isArray(overrideList)) {
+      for (const item of overrideList) {
+        if (!item || typeof item !== "object") continue;
+        const platform = text("chatPlatforms.platform", item.platform || "", 32).toLowerCase();
+        if (!platform || !mergedByPlatform.has(platform)) continue;
+        const base = mergedByPlatform.get(platform);
+        const next = {
+          ...base,
+          ...item,
+          platform: base.platform
+        };
+        next.status = ["ready", "testing", "planned"].includes(String(item.status || "").toLowerCase())
+          ? String(item.status).toLowerCase()
+          : base.status;
+        mergedByPlatform.set(platform, next);
+      }
+    }
+    return [...mergedByPlatform.values()];
+  }
+
+  #mergeModelCatalog(overrideCatalog = {}) {
+    const base = structuredClone(this.modelCatalog());
+    if (!overrideCatalog || typeof overrideCatalog !== "object") return base;
+    if (Array.isArray(overrideCatalog.providers) && overrideCatalog.providers.length) {
+      base.providers = overrideCatalog.providers;
+    }
+    if (Array.isArray(overrideCatalog.recommendations) && overrideCatalog.recommendations.length) {
+      base.recommendations = overrideCatalog.recommendations;
+    }
+    return base;
+  }
+
+  #readExternalInstallerConfig() {
+    try {
+      const raw = readFileSync(this.appConfigPath, "utf8");
+      const payload = JSON.parse(raw);
+      if (!payload || typeof payload !== "object") return {};
+      return payload;
+    } catch {
+      return {};
+    }
   }
 
   startAuthSession({ installerSessionId = "" } = {}) {
@@ -329,7 +688,7 @@ export class OnboarderInstallerService {
       agentPersonality: "",
       modelProvider: "",
       modelName: "",
-      modelApiKeyRef: "",
+      modelBaseUrl: "",
       chatBinding: {},
       installReport: null,
       agentId: "",
@@ -348,7 +707,7 @@ export class OnboarderInstallerService {
     agentPersonality = "",
     modelProvider = "",
     modelName = "",
-    modelApiKey = "",
+    modelBaseUrl = "",
     chatBinding = {},
     workflowPreset = ""
   }) {
@@ -357,8 +716,8 @@ export class OnboarderInstallerService {
     if (agentPersonality) session.agentPersonality = text("agentPersonality", agentPersonality, 4000);
     if (modelProvider) session.modelProvider = text("modelProvider", modelProvider, 64);
     if (modelName) session.modelName = text("modelName", modelName, 128);
+    if (modelBaseUrl || modelBaseUrl === "") session.modelBaseUrl = text("modelBaseUrl", modelBaseUrl || "", 512);
     if (workflowPreset) session.workflowPreset = text("workflowPreset", workflowPreset, 64);
-    if (modelApiKey) session.modelApiKeyRef = maskSecret(text("modelApiKey", modelApiKey, 512));
     if (chatBinding && typeof chatBinding === "object") {
       session.chatBinding = {
         platform: text("chatBinding.platform", chatBinding.platform || "", 32),

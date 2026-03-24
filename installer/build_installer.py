@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 from datetime import datetime, timezone
+import json
 import platform
 import shutil
 import subprocess
@@ -40,6 +41,18 @@ def write_version_file(target_dir: Path) -> Path:
     return version_path
 
 
+def write_installer_asset_version() -> Path:
+    ASSETS.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "version": git_commit(),
+        "commit": git_commit(),
+        "builtAt": datetime.now(timezone.utc).isoformat()
+    }
+    target = ASSETS / "installer_version.json"
+    target.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return target
+
+
 def run(cmd: list[str], cwd: Path | None = None) -> None:
     print(f"[build] {' '.join(cmd)}")
     subprocess.run(cmd, cwd=str(cwd or ROOT), check=True)
@@ -63,6 +76,7 @@ def ensure_pyinstaller() -> None:
 
 def build_with_pyinstaller() -> Path:
     ensure_pyinstaller()
+    write_installer_asset_version()
     cmd = [
         sys.executable,
         "-m",
