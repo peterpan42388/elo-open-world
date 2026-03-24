@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import platform
+import re
 import secrets
 import subprocess
 import sys
@@ -20,7 +21,7 @@ from typing import Dict, List, Optional
 
 import requests
 from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QAction, QActionGroup, QIcon
+from PySide6.QtGui import QAction, QActionGroup, QIcon, QPainter, QPainterPath, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -29,6 +30,7 @@ from PySide6.QtWidgets import (
     QDialogButtonBox,
     QFormLayout,
     QFrame,
+    QGridLayout,
     QGroupBox,
     QHBoxLayout,
     QLabel,
@@ -1405,6 +1407,9 @@ class EOWInstaller(QWidget):
                 color: #e9eefc;
                 font-size: 14px;
             }
+            QLabel {
+                background: transparent;
+            }
             QFrame#heroPanel {
                 border: 1px solid rgba(255, 255, 255, 0.12);
                 border-radius: 14px;
@@ -1416,13 +1421,16 @@ class EOWInstaller(QWidget):
             QLabel#heroTitle {
                 font-size: 24px;
                 font-weight: 700;
+                background: transparent;
             }
             QLabel#heroSubtitle {
                 color: #cfd8ff;
+                background: transparent;
             }
             QLabel#heroVersion {
                 color: #9fb3f6;
                 font-size: 12px;
+                background: transparent;
             }
             QLabel#stepLabel {
                 border: 1px solid rgba(124, 93, 255, 0.55);
@@ -1502,7 +1510,8 @@ class EOWInstaller(QWidget):
         icon_label.setStyleSheet("background: transparent;")
         icon_path = self.asset_path("icon.png")
         if os.path.exists(icon_path):
-            icon_label.setPixmap(QIcon(icon_path).pixmap(56, 56))
+            icon_label.setPixmap(self.rounded_logo_pixmap(icon_path, size=56, radius=14))
+        icon_label.setFixedSize(56, 56)
         layout.addWidget(icon_label, 0, Qt.AlignTop)
 
         text_col = QVBoxLayout()
@@ -1519,6 +1528,22 @@ class EOWInstaller(QWidget):
         layout.addLayout(text_col, 1)
         self.update_version_label()
         return panel
+
+    def rounded_logo_pixmap(self, icon_path: str, size: int = 56, radius: int = 14) -> QPixmap:
+        src = QPixmap(icon_path)
+        if src.isNull():
+            return QIcon(icon_path).pixmap(size, size)
+        scaled = src.scaled(size, size, Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
+        target = QPixmap(size, size)
+        target.fill(Qt.transparent)
+        painter = QPainter(target)
+        painter.setRenderHint(QPainter.Antialiasing, True)
+        path = QPainterPath()
+        path.addRoundedRect(0, 0, size, size, radius, radius)
+        painter.setClipPath(path)
+        painter.drawPixmap(0, 0, scaled)
+        painter.end()
+        return target
 
     def build_pages(self):
         self.add_page("login", self.build_login_page())
@@ -2715,10 +2740,139 @@ class EOWInstaller(QWidget):
         except Exception as exc:
             self.error(f"无法打开日志：{exc}")
 
-    def open_openclaw_gateway(self):
+    @staticmethod
+    def nested_get(payload: Dict, path: List[str], default: str = "") -> str:
+        current = payload
+        for key in path:
+            if not isinstance(current, dict) or key not in current:
+                return default
+            current = current.get(key)
+        return str(current).strip() if current is not None else default
+
+    def run_local_command(self, args: List[str], timeout: int = 8) -> str:
+        try:
+            proc = subprocess.run(args, capture_output=True, text=True, timeout=timeout)
+            output = (proc.stdout or "").strip()
+            if output:
+                return output
+            return (proc.stderr or "").strip()
+        except Exception:
+            return ""
+
+    def read_gateway_token_from_openclaw_cli(self) -> str:
+        text_out = self.run_local_command(["openclaw", "config", "get", "gateway.auth.token"], timeout=8)
+        if not text_out:
+            return ""
+        for line in text_out.splitlines():
+            candidate = line.strip().strip('"').strip("'")
+            if candidate and " " not in candidate and len(candidate) >= 8 and "gateway.auth.token" not in candidate:
+                return candidate
+        return ""
+
+    def read_gateway_token_from_config_files(self, install_root: str) -> str:
+        candidate_paths = [
+            os.path.join(install_root, "config", "openclaw.json"),
+            os.path.join(install_root, "config", "openclaw-runtime.json"),
+            os.path.expanduser("~/.openclaw/config.json"),
+            os.path.expanduser("~/.config/openclaw/config.json"),
+        ]
+        for path in candidate_paths:
+            if not path or not os.path.exists(path):
+                continue
+            try:
+                with open(path, "r", encoding="utf-8") as fh:
+                    payload = json.load(fh)
+                for key_path in (
+                    ["gateway", "auth", "token"],
+                    ["gatewayAuthToken"],
+                    ["gateway", "token"],
+                ):
+                    token = self.nested_get(payload, key_path, "")
+                    if token and len(token) >= 8:
+                        return token
+            except Exception:
+                continue
+        return ""
+
+    def resolve_gateway_token(self, install_root: str) -> str:
+        token = self.read_gateway_token_from_openclaw_cli()
+        if token:
+            return token
+        return self.read_gateway_token_from_config_files(install_root)
+
+    def resolve_dashboard_url(self) -> str:
+        cli_output = self.run_local_command(["openclaw", "dashboard", "--no-open"], timeout=8)
+        if cli_output:
+            match = re.search(r"https?://[^\s]+", cli_output)
+            if match:
+                return match.group(0)
+
         runtime = self.state.execution_plan.get("runtime", {}) if isinstance(self.state.execution_plan, dict) else {}
         endpoint = runtime.get("endpoint") if isinstance(runtime, dict) else ""
-        webbrowser.open(endpoint or "http://127.0.0.1:18789")
+        endpoint = str(endpoint or "").strip() or "http://127.0.0.1:18789"
+        parsed = urllib.parse.urlparse(endpoint)
+        scheme = parsed.scheme or "http"
+        netloc = parsed.netloc or parsed.path
+        if not netloc:
+            return "http://127.0.0.1:18789/chat?session=main"
+        return f"{scheme}://{netloc}/chat?session=main"
+
+    def inject_gateway_token(self, url: str, token: str) -> str:
+        if not token:
+            return url
+        parsed = urllib.parse.urlparse(url)
+        query = urllib.parse.parse_qs(parsed.query)
+        query["gatewayToken"] = [token]
+        query["gateway_token"] = [token]
+        query["token"] = [token]
+        new_query = urllib.parse.urlencode(query, doseq=True)
+        return urllib.parse.urlunparse((parsed.scheme, parsed.netloc, parsed.path, parsed.params, new_query, parsed.fragment))
+
+    def set_remote_gateway_token_best_effort(self, token: str):
+        if not token:
+            return
+        try:
+            subprocess.run(
+                ["openclaw", "config", "set", "gateway.remote.token", token],
+                capture_output=True,
+                text=True,
+                timeout=8
+            )
+        except Exception:
+            pass
+
+    def show_gateway_token_hint(self, dashboard_url: str):
+        command = "openclaw config get gateway.auth.token"
+        box = QMessageBox(self)
+        box.setWindowTitle("Gateway Token Required")
+        box.setIcon(QMessageBox.Warning)
+        box.setText("未检测到本机 gateway token，聊天网关可能会提示 unauthorized。")
+        box.setInformativeText(
+            "已尝试打开网关页面。你可以先复制命令读取 token，再粘贴到 Control UI 设置中。\n\n"
+            f"{command}\n\n"
+            f"Dashboard: {dashboard_url}"
+        )
+        copy_btn = box.addButton("复制命令", QMessageBox.ActionRole)
+        reopen_btn = box.addButton("重新打开网关", QMessageBox.ActionRole)
+        box.addButton(QMessageBox.Close)
+        box.exec()
+        clicked = box.clickedButton()
+        if clicked == copy_btn:
+            QApplication.clipboard().setText(command)
+            QMessageBox.information(self, "Copied", "命令已复制到剪贴板。")
+        elif clicked == reopen_btn:
+            webbrowser.open(dashboard_url)
+
+    def open_openclaw_gateway(self):
+        install_root = self.state.install_root or self.resolve_install_root()
+        dashboard_url = self.resolve_dashboard_url()
+        token = self.resolve_gateway_token(install_root)
+        if token:
+            self.set_remote_gateway_token_best_effort(token)
+            webbrowser.open(self.inject_gateway_token(dashboard_url, token))
+            return
+        webbrowser.open(dashboard_url)
+        self.show_gateway_token_hint(dashboard_url)
 
     def stage_update(self, label: str, percent: int, detail: str = ""):
         self.install_status_label.setText(label)
@@ -3042,13 +3196,22 @@ class EOWInstaller(QWidget):
         layout = QVBoxLayout(page)
 
         form_box = QGroupBox("Agent 信息")
-        form = QFormLayout(form_box)
+        form = QGridLayout(form_box)
+        form.setHorizontalSpacing(12)
+        form.setVerticalSpacing(10)
+        form.setColumnStretch(1, 1)
         self.agent_name_input = QLineEdit()
+        self.agent_name_input.setMinimumHeight(44)
         self.agent_personality_input = QTextEdit()
+        self.agent_personality_input.setMinimumHeight(220)
         self.agent_personality_input.setPlaceholderText("例如：耐心、执行力强、善于整理信息。安装时会写入 SOUL.md")
 
-        form.addRow("Agent 名称", self.agent_name_input)
-        form.addRow("Agent 性格", self.agent_personality_input)
+        name_label = QLabel("Agent 名称")
+        personality_label = QLabel("Agent 性格")
+        form.addWidget(name_label, 0, 0, alignment=Qt.AlignLeft | Qt.AlignVCenter)
+        form.addWidget(self.agent_name_input, 0, 1)
+        form.addWidget(personality_label, 1, 0, alignment=Qt.AlignLeft | Qt.AlignTop)
+        form.addWidget(self.agent_personality_input, 1, 1)
         layout.addWidget(form_box)
         return page
 
@@ -3117,8 +3280,13 @@ class EOWInstaller(QWidget):
         page = QWidget()
         layout = QVBoxLayout(page)
 
-        top_box = QGroupBox(self.t("chat_title"))
-        top_form = QFormLayout(top_box)
+        content_row = QHBoxLayout()
+        content_row.setSpacing(12)
+
+        left_box = QGroupBox(self.t("chat_title"))
+        left_layout = QVBoxLayout(left_box)
+
+        top_form = QFormLayout()
         self.chat_platform_combo = QComboBox()
         self.chat_platform_combo.addItem("Telegram", "telegram")
         self.chat_platform_combo.addItem("Feishu(飞书)", "feishu")
@@ -3127,12 +3295,11 @@ class EOWInstaller(QWidget):
         self.chat_platform_combo.currentTextChanged.connect(lambda _: self.on_chat_platform_changed())
         self.chat_help_label = QLabel(self.t("chat_default_hint"))
         self.chat_help_label.setWordWrap(True)
+        self.chat_help_label.setMinimumHeight(44)
         top_form.addRow(self.t("chat_platform"), self.chat_platform_combo)
         top_form.addRow(self.t("chat_tip"), self.chat_help_label)
+        left_layout.addLayout(top_form)
 
-        layout.addWidget(top_box)
-
-        content_row = QHBoxLayout()
         self.chat_stack = QStackedWidget()
 
         telegram_widget = QWidget()
@@ -3170,25 +3337,29 @@ class EOWInstaller(QWidget):
         self.chat_stack.addWidget(feishu_widget)
         self.chat_stack.addWidget(discord_widget)
         self.chat_stack.addWidget(dingtalk_widget)
-        self.chat_stack.setMinimumHeight(240)
-        content_row.addWidget(self.chat_stack, 3)
+        self.chat_stack.setMinimumHeight(280)
+        left_layout.addWidget(self.chat_stack, 1)
+
+        test_btn = QPushButton(self.t("chat_test_button"))
+        test_btn.setMinimumHeight(46)
+        test_btn.clicked.connect(self.test_chat_binding)
+        left_layout.addWidget(test_btn)
+
+        self.chat_validation_output = QTextEdit()
+        self.chat_validation_output.setReadOnly(True)
+        self.chat_validation_output.setMinimumHeight(130)
+        left_layout.addWidget(self.chat_validation_output)
 
         guide_box = QGroupBox(self.t("chat_guide_title"))
         guide_layout = QVBoxLayout(guide_box)
         self.chat_guide_output = QTextEdit()
         self.chat_guide_output.setReadOnly(True)
-        self.chat_guide_output.setMinimumHeight(240)
+        self.chat_guide_output.setMinimumHeight(380)
         guide_layout.addWidget(self.chat_guide_output)
+
+        content_row.addWidget(left_box, 3)
         content_row.addWidget(guide_box, 2)
         layout.addLayout(content_row)
-
-        test_btn = QPushButton(self.t("chat_test_button"))
-        test_btn.clicked.connect(self.test_chat_binding)
-        layout.addWidget(test_btn)
-
-        self.chat_validation_output = QTextEdit()
-        self.chat_validation_output.setReadOnly(True)
-        layout.addWidget(self.chat_validation_output)
 
         self.on_chat_platform_changed()
         return page

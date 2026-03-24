@@ -97,6 +97,16 @@ After every execution cycle, update this file with:
 - any new blockers
 
 ## Last Completed
+- Finalized installer stabilization pass and freeze prep:
+  - fixed hero visual quality issues (rounded logo rendering, transparent hero labels, no dark label block bleed)
+  - rebuilt Step4 (`Agent`) into left-aligned label + full-width personality editor layout
+  - rebuilt Step6 (`Chat`) into stable left-right split with non-overlapping test button and larger guide panel
+  - added local gateway-token resolution chain for OpenClaw dashboard open action:
+    - `openclaw config get gateway.auth.token` first
+    - local config-file fallback second
+    - auto-open tokenized dashboard URL when available
+    - missing-token one-click copy guidance when unavailable
+  - marked installer as feature-frozen after this UI + connectivity closure batch (bugfix-only forward)
 - Implemented Phase-A/Phase-B appconfig consolidation and Phase-C bridge groundwork:
   - added authenticated alias endpoint `GET /elo-agent-onboarder/appconfig` as installer primary config source
   - upgraded `onboarderInstallerService` to merge runtime static config (`runtime/onboarder-installer-appconfig.json`) with catalog/models/chat metadata and expose platform status (`ready/testing/planned`)
@@ -205,28 +215,22 @@ After every execution cycle, update this file with:
 - Reworked the `Project Workspace` snapshot around ownership, participation, recruiting, latest activity, and operating inputs so the page reads less like a directory card and more like the active project control surface
 
 ## Current Focus
-- `World` is complete and frozen. Do not reopen structural work on this module unless a production bug or explicit redesign request appears.
-- Execute AppConfig-driven installer phase:
-  - serve `GET /elo-agent-onboarder/appconfig` as the primary config source
-  - keep dynamic package/model/chat metadata in server-side config
-  - make installer consume remote config first and expose `Installer Version + Config Version`
-- Close Telegram loop from notification-only to full two-way messaging:
-  - launch local Telegram bridge after install
-  - persist bridge health/log status
-  - allow restart and log inspection from completion page
-- Ship updated macOS installer artifact and run full end-to-end smoke test.
+- `World` remains frozen.
+- `Installer` is now in freeze mode:
+  - no new features
+  - only bugfix, compatibility, and packaging reliability changes
+- Current immediate focus is release verification only:
+  - macOS/Windows package sanity checks
+  - OAuth/payment/install/chat regression checks
+  - gateway token UX regression checks
 
 ## Next Recommended Action
-1. Deploy current server branch to production and verify:
-   - `GET /elo-agent-onboarder/appconfig` requires auth and returns `configVersion`
-   - installer still reads fallback `/api/onboarder/installer/config` when needed
-2. Publish rebuilt macOS installer:
-   - `/installer/dist/macos/ELO-Agent-Onboarder-Installer.app.zip`
-   - confirm `X-EOW-Installer-Version` matches latest build version
-3. Run end-to-end acceptance:
-   - OAuth login -> config load -> Stripe pay -> install
-   - Telegram receives install notification and responds to user message
-   - completion page shows bridge running + log path
+1. Publish fresh frozen-build installers (macOS + Windows) with matching version metadata.
+2. Run freeze acceptance checklist:
+   - UI: hero + Step4 + Step6 layout integrity
+   - Flow: OAuth -> config -> Stripe -> install
+   - Connectivity: `开启你的智能时代` opens usable OpenClaw dashboard path
+3. If freeze checklist passes, stop feature work and accept only issue-driven bugfix patches.
 
 ## Blockers
-- None for local implementation. Remaining blocker is production deployment + live Telegram bridge verification.
+- None for local implementation.
