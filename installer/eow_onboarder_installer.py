@@ -45,6 +45,7 @@ from PySide6.QtWidgets import (
     QToolButton,
     QVBoxLayout,
     QWidget,
+    QSizePolicy,
 )
 
 
@@ -2800,6 +2801,38 @@ class EOWInstaller(QWidget):
             return token
         return self.read_gateway_token_from_config_files(install_root)
 
+    def write_gateway_token_to_local_config(self, install_root: str, token: str) -> str:
+        if not token:
+            return ""
+        config_dir = os.path.join(install_root, "config")
+        os.makedirs(config_dir, exist_ok=True)
+        config_path = os.path.join(config_dir, "openclaw.json")
+        config = {}
+        if os.path.exists(config_path):
+            try:
+                with open(config_path, "r", encoding="utf-8") as fh:
+                    config = json.load(fh)
+            except Exception:
+                config = {}
+        if not isinstance(config, dict):
+            config = {}
+
+        gateway = config.get("gateway")
+        if not isinstance(gateway, dict):
+            gateway = {}
+        auth = gateway.get("auth")
+        if not isinstance(auth, dict):
+            auth = {}
+        auth["token"] = token
+        gateway["auth"] = auth
+        config["gateway"] = gateway
+        config["gatewayToken"] = token
+
+        with open(config_path, "w", encoding="utf-8") as fh:
+            json.dump(config, fh, indent=2, ensure_ascii=False)
+            fh.write("\n")
+        return config_path
+
     def resolve_dashboard_url(self) -> str:
         cli_output = self.run_local_command(["openclaw", "dashboard", "--no-open"], timeout=8)
         if cli_output:
@@ -2841,38 +2874,21 @@ class EOWInstaller(QWidget):
         except Exception:
             pass
 
-    def show_gateway_token_hint(self, dashboard_url: str):
-        command = "openclaw config get gateway.auth.token"
-        box = QMessageBox(self)
-        box.setWindowTitle("Gateway Token Required")
-        box.setIcon(QMessageBox.Warning)
-        box.setText("未检测到本机 gateway token，聊天网关可能会提示 unauthorized。")
-        box.setInformativeText(
-            "已尝试打开网关页面。你可以先复制命令读取 token，再粘贴到 Control UI 设置中。\n\n"
-            f"{command}\n\n"
-            f"Dashboard: {dashboard_url}"
-        )
-        copy_btn = box.addButton("复制命令", QMessageBox.ActionRole)
-        reopen_btn = box.addButton("重新打开网关", QMessageBox.ActionRole)
-        box.addButton(QMessageBox.Close)
-        box.exec()
-        clicked = box.clickedButton()
-        if clicked == copy_btn:
-            QApplication.clipboard().setText(command)
-            QMessageBox.information(self, "Copied", "命令已复制到剪贴板。")
-        elif clicked == reopen_btn:
-            webbrowser.open(dashboard_url)
-
     def open_openclaw_gateway(self):
         install_root = self.state.install_root or self.resolve_install_root()
         dashboard_url = self.resolve_dashboard_url()
         token = self.resolve_gateway_token(install_root)
         if token:
+            self.write_gateway_token_to_local_config(install_root, token)
             self.set_remote_gateway_token_best_effort(token)
             webbrowser.open(self.inject_gateway_token(dashboard_url, token))
             return
         webbrowser.open(dashboard_url)
-        self.show_gateway_token_hint(dashboard_url)
+        QMessageBox.information(
+            self,
+            "Gateway Initializing",
+            "网关授权正在自动初始化，请等待几秒后再次点击“开启你的智能时代”。"
+        )
 
     def stage_update(self, label: str, percent: int, detail: str = ""):
         self.install_status_label.setText(label)
@@ -2949,6 +2965,12 @@ class EOWInstaller(QWidget):
             self.stage_update("写入本地配置", 76, "在本地写入 openclaw.json（不上传 API Key）")
             config_path = self.write_local_openclaw_config(install_root)
             self.write_local_guides(install_root)
+            self.stage_update("网关授权配置", 84, "自动获取并写入 gateway token")
+            gateway_token = self.resolve_gateway_token(install_root)
+            if gateway_token:
+                self.write_gateway_token_to_local_config(install_root, gateway_token)
+            else:
+                self.install_stage_list.addItem("[warn] 未获取到 gateway token，将在打开网关时自动重试。")
 
             self.stage_update("聊天通道通知", 90, "发送安装成功消息")
             binding = self.collect_chat_binding()
@@ -3285,8 +3307,11 @@ class EOWInstaller(QWidget):
 
         left_box = QGroupBox(self.t("chat_title"))
         left_layout = QVBoxLayout(left_box)
-
-        top_form = QFormLayout()
+        top_grid = QGridLayout()
+        top_grid.setColumnStretch(0, 1)
+        top_grid.setColumnStretch(1, 1)
+        top_grid.setHorizontalSpacing(12)
+        top_grid.setVerticalSpacing(8)
         self.chat_platform_combo = QComboBox()
         self.chat_platform_combo.addItem("Telegram", "telegram")
         self.chat_platform_combo.addItem("Feishu(飞书)", "feishu")
@@ -3295,22 +3320,41 @@ class EOWInstaller(QWidget):
         self.chat_platform_combo.currentTextChanged.connect(lambda _: self.on_chat_platform_changed())
         self.chat_help_label = QLabel(self.t("chat_default_hint"))
         self.chat_help_label.setWordWrap(True)
-        self.chat_help_label.setMinimumHeight(44)
-        top_form.addRow(self.t("chat_platform"), self.chat_platform_combo)
-        top_form.addRow(self.t("chat_tip"), self.chat_help_label)
-        left_layout.addLayout(top_form)
+        self.chat_help_label.setMinimumHeight(60)
+        platform_col = QVBoxLayout()
+        platform_col.addWidget(QLabel(self.t("chat_platform")))
+        platform_col.addWidget(self.chat_platform_combo)
+        hint_col = QVBoxLayout()
+        hint_col.addWidget(QLabel(self.t("chat_tip")))
+        hint_col.addWidget(self.chat_help_label)
+        top_grid.addLayout(platform_col, 0, 0)
+        top_grid.addLayout(hint_col, 0, 1)
+        left_layout.addLayout(top_grid)
 
         self.chat_stack = QStackedWidget()
+        self.chat_stack.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.MinimumExpanding)
 
         telegram_widget = QWidget()
-        telegram_form = QFormLayout(telegram_widget)
+        telegram_grid = QGridLayout(telegram_widget)
+        telegram_grid.setColumnStretch(0, 1)
+        telegram_grid.setColumnStretch(1, 1)
+        telegram_grid.setHorizontalSpacing(12)
+        telegram_grid.setVerticalSpacing(8)
         self.telegram_bot_token_input = QLineEdit()
         self.telegram_chat_id_input = QLineEdit()
         self.telegram_detect_btn = QPushButton(self.t("chat_detect_chat_id"))
+        self.telegram_detect_btn.setMinimumHeight(44)
         self.telegram_detect_btn.clicked.connect(self.auto_detect_telegram_chat_id)
-        telegram_form.addRow(self.t("chat_bot_token"), self.telegram_bot_token_input)
-        telegram_form.addRow(self.t("chat_chat_id"), self.telegram_chat_id_input)
-        telegram_form.addRow("", self.telegram_detect_btn)
+        bot_col = QVBoxLayout()
+        bot_col.addWidget(QLabel(self.t("chat_bot_token")))
+        bot_col.addWidget(self.telegram_bot_token_input)
+        chat_col = QVBoxLayout()
+        chat_col.addWidget(QLabel(self.t("chat_chat_id")))
+        chat_col.addWidget(self.telegram_chat_id_input)
+        telegram_grid.addLayout(bot_col, 0, 0)
+        telegram_grid.addLayout(chat_col, 0, 1)
+        telegram_grid.addWidget(self.telegram_detect_btn, 1, 0, 1, 2, alignment=Qt.AlignLeft)
+        telegram_widget.setMinimumHeight(172)
 
         feishu_widget = QWidget()
         feishu_form = QFormLayout(feishu_widget)
@@ -3319,11 +3363,13 @@ class EOWInstaller(QWidget):
         self.feishu_secret_input.setEchoMode(QLineEdit.Password)
         feishu_form.addRow(self.t("chat_webhook"), self.feishu_webhook_input)
         feishu_form.addRow(self.t("chat_secret_optional"), self.feishu_secret_input)
+        feishu_widget.setMinimumHeight(172)
 
         discord_widget = QWidget()
         discord_form = QFormLayout(discord_widget)
         self.discord_webhook_input = QLineEdit()
         discord_form.addRow(self.t("chat_webhook"), self.discord_webhook_input)
+        discord_widget.setMinimumHeight(172)
 
         dingtalk_widget = QWidget()
         dingtalk_form = QFormLayout(dingtalk_widget)
@@ -3332,18 +3378,20 @@ class EOWInstaller(QWidget):
         self.dingtalk_secret_input.setEchoMode(QLineEdit.Password)
         dingtalk_form.addRow(self.t("chat_webhook"), self.dingtalk_webhook_input)
         dingtalk_form.addRow(self.t("chat_secret_optional"), self.dingtalk_secret_input)
+        dingtalk_widget.setMinimumHeight(172)
 
         self.chat_stack.addWidget(telegram_widget)
         self.chat_stack.addWidget(feishu_widget)
         self.chat_stack.addWidget(discord_widget)
         self.chat_stack.addWidget(dingtalk_widget)
-        self.chat_stack.setMinimumHeight(280)
-        left_layout.addWidget(self.chat_stack, 1)
+        self.chat_stack.setMinimumHeight(190)
+        left_layout.addWidget(self.chat_stack)
 
         test_btn = QPushButton(self.t("chat_test_button"))
         test_btn.setMinimumHeight(46)
         test_btn.clicked.connect(self.test_chat_binding)
-        left_layout.addWidget(test_btn)
+        left_layout.addSpacing(6)
+        left_layout.addWidget(test_btn, 0, Qt.AlignLeft)
 
         self.chat_validation_output = QTextEdit()
         self.chat_validation_output.setReadOnly(True)

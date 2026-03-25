@@ -97,6 +97,15 @@ After every execution cycle, update this file with:
 - any new blockers
 
 ## Last Completed
+- Completed final pre-freeze installer closure patch:
+  - restructured Step6 Telegram binding layout to fixed 3-line structure (`平台/提示`, `Bot Token/Chat ID`, `自动检测 chat_id`) and isolated `测试聊天配置` in a non-overlapping action row
+  - stabilized Step6 split pane sizing so platform switching no longer causes form/button overlap
+  - added Step9 gateway auto-authorization stage in install flow:
+    - auto-runs local gateway-token resolution
+    - writes token into `config/openclaw.json` as `gateway.auth.token` (+ compatibility mirror)
+    - opens tokenized dashboard URL without exposing command-line prompts to end users
+  - replaced previous CLI-style token hint with plain user-facing retry guidance
+  - installer enters freeze state after this closure (bugfix/compatibility only)
 - Finalized installer stabilization pass and freeze prep:
   - fixed hero visual quality issues (rounded logo rendering, transparent hero labels, no dark label block bleed)
   - rebuilt Step4 (`Agent`) into left-aligned label + full-width personality editor layout
