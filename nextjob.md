@@ -97,6 +97,16 @@ After every execution cycle, update this file with:
 - any new blockers
 
 ## Last Completed
+- Implemented onboarder launch-entry restructuring baseline:
+  - added dedicated `/onboarder` public entry (non-hash route mapped to SPA shell)
+  - added Home + topbar public CTA to Onboarder, and switched Quick Start step 2 from Settings to installer flow
+  - added public offer APIs:
+    - `GET /api/onboarder/public-offer`
+    - `GET /api/onboarder/billing-readiness`
+  - switched installer download to public access (no sign-in required) so non-logged users can start with GUI installer
+  - upgraded Stripe package price resolution to new-key-first with legacy-key fallback and added runtime billing readiness introspection
+  - changed default checkout return URLs from `#settings` to `/onboarder?...`
+  - marked Settings onboarder commerce panel as operator/internal path with billing-readiness gating message
 - Fixed private GitHub release artifact retrieval reliability for `elo-agent-dashboard` distribution:
   - updated dashboard deploy service to prefer GitHub API asset URL (`asset.url`) and fallback to `browser_download_url`
   - improved binary fetch header handling across API and redirect URLs

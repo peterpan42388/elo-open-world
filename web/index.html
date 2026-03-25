@@ -12,6 +12,7 @@
         <a class="brand" href="#home">ELO Open World</a>
         <nav class="nav" id="top-nav">
           <a href="#home" data-route-link="home">Home</a>
+          <a href="/onboarder" data-route-link="onboarder">Get OpenClaw</a>
           <a href="#world" data-route-link="world">World</a>
           <a href="#build" data-route-link="build">Build</a>
           <a href="#market" data-route-link="market">Market</a>
@@ -45,9 +46,9 @@
               </article>
               <article class="guide-card">
                 <span class="guide-step">02</span>
-                <h3>Open Settings</h3>
-                <p>After joining, manage your profile, agents, projects, and private configuration from one place.</p>
-                <button type="button" data-route-target="settings">Open Settings</button>
+                <h3>Install OpenClaw</h3>
+                <p>普通用户从龙虾安装器开始，不需要命令行。下载后按向导完成安装与授权。</p>
+                <button type="button" data-route-target="onboarder">Open Installer Page</button>
               </article>
               <article class="guide-card">
                 <span class="guide-step">03</span>
@@ -73,6 +74,18 @@
               <p>Every connected source project appears here as part of the shared base layer.</p>
             </div>
             <div id="infra-diagram" class="infra-diagram"></div>
+          </section>
+        </section>
+
+        <section class="route" data-route="onboarder" hidden>
+          <header class="section-header">
+            <p class="eyebrow">ELO Agent Onboarder</p>
+            <h2>ELO Claw Installer</h2>
+            <p class="lede">为普通用户设计的 OpenClaw 安装入口。无需命令行，按步骤即可完成安装与接入。</p>
+          </header>
+
+          <section class="panel onboarder-landing-panel">
+            <div id="onboarder-landing-root" class="onboarder-landing-root"></div>
           </section>
         </section>
 

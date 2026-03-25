@@ -2330,6 +2330,101 @@ pre,
   margin-top: 18px;
 }
 
+.onboarder-landing-panel {
+  margin-top: 12px;
+}
+
+.onboarder-landing-root,
+.onboarder-hero-copy,
+.onboarder-step-grid,
+.onboarder-package-grid,
+.onboarder-faq-grid {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.onboarder-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(300px, 0.7fr);
+  gap: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  padding: 18px;
+  background:
+    radial-gradient(circle at 15% 16%, rgba(87, 215, 193, 0.1), transparent 28%),
+    linear-gradient(180deg, rgba(17, 26, 35, 0.96) 0%, rgba(12, 19, 28, 0.92) 100%);
+}
+
+.onboarder-hero-copy h3,
+.onboarder-hero-copy p {
+  margin: 0;
+}
+
+.onboarder-hero-copy p {
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.onboarder-hero-meta {
+  display: grid;
+  gap: 10px;
+}
+
+.onboarder-step-grid,
+.onboarder-faq-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.onboarder-banner {
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  padding: 12px 14px;
+  background: rgba(12, 19, 28, 0.86);
+}
+
+.onboarder-banner.success {
+  border-color: rgba(114, 224, 160, 0.24);
+  background: rgba(114, 224, 160, 0.08);
+  color: var(--ok);
+}
+
+.onboarder-banner.warn {
+  border-color: rgba(246, 200, 95, 0.24);
+  background: rgba(246, 200, 95, 0.08);
+  color: var(--warn);
+}
+
+.onboarder-package-grid {
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+.onboarder-package-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: 14px;
+  background: rgba(12, 19, 28, 0.9);
+  display: grid;
+  gap: 10px;
+}
+
+.onboarder-package-card p {
+  margin: 0;
+  color: var(--text-soft);
+  line-height: 1.45;
+}
+
+.onboarder-package-card.disabled {
+  opacity: 0.72;
+  border-style: dashed;
+}
+
+@media (max-width: 980px) {
+  .onboarder-hero {
+    grid-template-columns: 1fr;
+  }
+}
+
 .multi-link-card a {
   color: var(--accent);
   text-decoration: none;

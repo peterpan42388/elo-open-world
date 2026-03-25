@@ -403,8 +403,13 @@ const server = http.createServer(async (req, res) => {
     const url = new URL(req.url || "/", "http://127.0.0.1");
     const path = url.pathname;
 
+    if ((req.method === "GET" || req.method === "HEAD") && path === "/onboarder/") {
+      return redirect(res, "/onboarder");
+    }
+
     if ((req.method === "GET" || req.method === "HEAD") && (
       path === "/" ||
+      path === "/onboarder" ||
       path === "/human-auth" ||
       path === "/oauth/consent" ||
       path === "/index.html" ||
@@ -417,6 +422,8 @@ const server = http.createServer(async (req, res) => {
         ? "/human-auth.html"
         : path === "/oauth/consent"
           ? "/oauth-consent.html"
+          : path === "/onboarder"
+            ? "/index.html"
           : path;
       return await serveStatic(staticPath, res);
     }
@@ -819,6 +826,40 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, framework.onboarder.catalog());
     }
 
+    if (req.method === "GET" && path === "/api/onboarder/public-offer") {
+      const catalog = framework.onboarder.catalog();
+      const readiness = framework.onboarderCommerce.billingProvider.billingReadiness?.() || {
+        provider: "unknown",
+        configured: false,
+        packages: {}
+      };
+      return json(res, 200, {
+        contract: "elo-agent-onboarder.public-offer.v1",
+        generatedAt: Date.now(),
+        languages: ["zh", "en"],
+        funnel: "download-first",
+        packages: catalog.packages || [],
+        billingReadiness: readiness,
+        download: {
+          macos: "/api/onboarder/installer/download?os=macos",
+          windows: "/api/onboarder/installer/download?os=windows"
+        },
+        trustNotes: [
+          "API keys are local-only and not uploaded to EOW.",
+          "Installer uses guided UI flow for non-technical users.",
+          "Payment is one-time via Stripe and completed in installer."
+        ]
+      });
+    }
+
+    if (req.method === "GET" && path === "/api/onboarder/billing-readiness") {
+      return json(res, 200, framework.onboarderCommerce.billingProvider.billingReadiness?.() || {
+        provider: "unknown",
+        configured: false,
+        packages: {}
+      });
+    }
+
     if (req.method === "POST" && path === "/api/onboarder/checkout-session") {
       const body = await readJson(req);
       const humanId = requireActiveHumanId(req, ["onboarder.install"]);
@@ -1034,12 +1075,6 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === "GET" && path === "/api/onboarder/installer/download") {
-      const sessionFromHeader = resolveSessionHumanId(req);
-      const sessionFromQuery = String(url.searchParams.get("sessionHumanId") || "").trim();
-      const effectiveSession = sessionFromHeader || sessionFromQuery;
-      if (!effectiveSession) {
-        throw new Error("Sign in to ELO Open World first.");
-      }
       const os = String(url.searchParams.get("os") || "macos").toLowerCase();
       const executableTargets = os === "windows"
         ? [

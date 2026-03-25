@@ -8,7 +8,7 @@ const WORLD_VISUAL_MODE_KEY = "elo-open-world.world-visual-mode";
 const WORLD_HIERARCHY_PRESET_KEY = "elo-open-world.world-hierarchy-preset";
 const WORLD_DECLUTTER_MODE_KEY = "elo-open-world.world-declutter-mode";
 const ONBOARDER_CHECKOUT_PARAMS = ["onboarderCheckout", "purchaseId", "checkoutSessionId"];
-const ROUTES = new Set(["home", "join", "settings", "new-project", "project", "world", "build", "market", "docs"]);
+const ROUTES = new Set(["home", "onboarder", "join", "settings", "new-project", "project", "world", "build", "market", "docs"]);
 const ONBOARDER_PRESET = {
   repoName: "elo-agent-onboarder",
   kind: "app",
@@ -113,6 +113,8 @@ const state = {
   latestFoundationArtifacts: {},
   onboarderCatalog: null,
   onboarderPurchases: { purchases: [], entitlements: [] },
+  onboarderPublicOffer: null,
+  onboarderBillingReadiness: null,
   pendingOnboarderCheckout: null,
   pendingInstallerAuthSessionId: "",
   activeProjectId: ""
@@ -239,13 +241,156 @@ function setStatus(message, kind = "ok") {
   line.dataset.kind = kind;
 }
 
+const ONBOARDER_PACKAGE_LEVELS = {
+  "starter-openclaw": "L1",
+  "work-openclaw": "L2",
+  "vision-openclaw": "L3",
+  "builder-openclaw": "L4"
+};
+
+const ONBOARDER_PACKAGE_AUDIENCE = {
+  "starter-openclaw": "个人用户 / Personal users",
+  "work-openclaw": "办公与内容团队 / Office & content teams",
+  "vision-openclaw": "视频与增长团队 / Video & growth teams",
+  "builder-openclaw": "工程与项目团队 / Engineering teams"
+};
+
+function onboarderBillingStatusForPackage(packageId) {
+  const readiness = state.onboarderBillingReadiness || {};
+  const packages = readiness.packages || {};
+  return packages[packageId] || { configured: false, keyUsed: "", source: "missing" };
+}
+
+function startInstallerDownload(targetOs = "macos") {
+  const safeOs = String(targetOs || "macos").toLowerCase() === "windows" ? "windows" : "macos";
+  const sessionHumanId = (state.sessionHumanId || "").trim();
+  const query = sessionHumanId ? `&sessionHumanId=${encodeURIComponent(sessionHumanId)}` : "";
+  const downloadUrl = `/api/onboarder/installer/download?os=${encodeURIComponent(safeOs)}${query}`;
+  const link = document.createElement("a");
+  link.href = downloadUrl;
+  link.rel = "noopener";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setStatus(`Installer download started for ${safeOs}.`, "ok");
+}
+
+function renderOnboarderLanding() {
+  const root = $("onboarder-landing-root");
+  if (!root) return;
+  const offer = state.onboarderPublicOffer;
+  const packages = offer?.packages || [];
+  const billing = state.onboarderBillingReadiness || {};
+  const globalReady = Boolean(billing.configured);
+  const checkoutState = state.pendingOnboarderCheckout?.status || "";
+  root.innerHTML = `
+    <section class="onboarder-hero">
+      <div class="onboarder-hero-copy">
+        <span class="guide-step">No CLI Needed</span>
+        <h3>Install OpenClaw with ELO Claw Installer</h3>
+        <p>普通用户也能完成安装。下载 GUI 安装器，按步骤配置并授权即可。 / Built for non-technical users with guided installation.</p>
+        <div class="action-row">
+          <button type="button" class="topbar-button secondary onboarder-landing-download" data-installer-os="macos">Download macOS Installer</button>
+          <button type="button" class="topbar-button ghost onboarder-landing-download" data-installer-os="windows">Download Windows Installer</button>
+          <button type="button" class="topbar-button ghost" data-route-target="join">${state.sessionHumanId ? "Manage Identity" : "Sign In / Register"}</button>
+        </div>
+        <p class="note">Payment is completed inside installer. API Keys stay local and are never uploaded to EOW.</p>
+      </div>
+      <div class="onboarder-hero-meta">
+        <div class="detail-item">
+          <span>流程 / Flow</span>
+          <strong>Download -> Login -> Configure -> Pay -> Install</strong>
+        </div>
+        <div class="detail-item">
+          <span>支付 / Billing</span>
+          <strong>${globalReady ? "Ready for production packages" : "Partially configured"}</strong>
+        </div>
+        <div class="detail-item">
+          <span>本地安全 / Local Security</span>
+          <strong>API Key local-only write</strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="onboarder-step-grid">
+      <article class="guide-card"><span class="guide-step">01</span><h3>Download Installer</h3><p>选择系统并下载 GUI 安装器，普通用户无需命令行。</p></article>
+      <article class="guide-card"><span class="guide-step">02</span><h3>Guided Setup</h3><p>登录授权后按步骤完成 Agent 信息、模型与聊天绑定配置。</p></article>
+      <article class="guide-card"><span class="guide-step">03</span><h3>Pay & Install</h3><p>在安装器内完成一次性支付，自动安装并可直接接入 EOW。</p></article>
+    </section>
+
+    ${checkoutState ? `
+      <section class="onboarder-banner ${checkoutState === "success" ? "success" : "warn"}">
+        ${checkoutState === "success"
+          ? "Checkout detected. Purchase confirmation is running in your signed-in session."
+          : "Checkout was cancelled. You can continue with installer download first."}
+      </section>
+    ` : ""}
+
+    <section class="onboarder-package-grid">
+      ${packages.length ? packages.map((pkg) => {
+        const bill = onboarderBillingStatusForPackage(pkg.packageId);
+        const enabled = bill.configured;
+        return `
+          <article class="onboarder-package-card ${enabled ? "" : "disabled"}">
+            <div class="summary-row">
+              <strong>${pkg.displayName}</strong>
+              <span>${ONBOARDER_PACKAGE_LEVELS[pkg.packageId] || "L?"}</span>
+            </div>
+            <p>${pkg.description}</p>
+            <div class="detail-grid compact">
+              <div class="detail-item"><span>Price</span><strong>$${pkg.displayPriceUsd}</strong></div>
+              <div class="detail-item"><span>Audience</span><strong>${ONBOARDER_PACKAGE_AUDIENCE[pkg.packageId] || "General"}</strong></div>
+              <div class="detail-item"><span>Billing</span><strong>${enabled ? "Ready" : "Not ready"}</strong></div>
+            </div>
+            <div class="tag-row">
+              ${(pkg.includedCapabilities || []).slice(0, 5).map((cap) => `<span class="subtle-tag">${cap}</span>`).join("")}
+            </div>
+            <p class="note">${enabled ? "可在安装器中支付并安装。" : "支付配置未就绪，仅支持下载安装器。"} / ${bill.keyUsed ? `key: ${bill.keyUsed}` : "missing price key"}</p>
+          </article>
+        `;
+      }).join("") : '<div class="empty">Package offer data is not available yet.</div>'}
+    </section>
+
+    <section class="onboarder-faq-grid">
+      <article class="guide-card"><h3>不懂技术能用吗？</h3><p>可以。安装器是图形化流程，按步骤填写即可。</p></article>
+      <article class="guide-card"><h3>API Key 会上传吗？</h3><p>不会。Key 只在本地写入配置文件，不上传服务器。</p></article>
+      <article class="guide-card"><h3>安装后做什么？</h3><p>打开本地 dashboard 配置高级 Keys，查看调用次数与费用估算。</p></article>
+    </section>
+  `;
+  root.querySelectorAll(".onboarder-landing-download").forEach((node) => {
+    node.addEventListener("click", () => {
+      try {
+        startInstallerDownload(node.dataset.installerOs || "macos");
+      } catch (error) {
+        setStatus(error.message, "error");
+      }
+    });
+  });
+  root.querySelectorAll("[data-route-target]").forEach((node) => {
+    node.addEventListener("click", () => goToRoute(node.dataset.routeTarget));
+  });
+}
+
 function currentRoute() {
   const route = window.location.hash.replace("#", "").trim();
-  return ROUTES.has(route) ? route : "home";
+  if (ROUTES.has(route)) return route;
+  const path = (window.location.pathname || "").replace(/\/+$/, "") || "/";
+  if (path === "/onboarder") return "onboarder";
+  return "home";
 }
 
 function goToRoute(route) {
-  window.location.hash = ROUTES.has(route) ? route : "home";
+  const safeRoute = ROUTES.has(route) ? route : "home";
+  if (safeRoute === "onboarder") {
+    window.location.href = "/onboarder";
+    return;
+  }
+  const hash = safeRoute === "home" ? "#home" : `#${safeRoute}`;
+  if ((window.location.pathname || "") !== "/") {
+    window.location.href = `/${hash}`;
+    return;
+  }
+  window.location.hash = hash;
 }
 
 function currentHuman() {
@@ -857,6 +1002,8 @@ function renderProjectFoundationRunList(project, limit = 5) {
 function renderOnboarderCommerceOperator(project, agents) {
   const catalog = state.onboarderCatalog;
   const purchases = state.onboarderPurchases || { purchases: [], entitlements: [] };
+  const readiness = state.onboarderBillingReadiness || {};
+  const billingReady = Boolean(readiness.configured);
   const artifact = state.latestFoundationArtifacts?.[project.projectId];
   const outputText = artifact?.result ? JSON.stringify(artifact.result, null, 2) : "No paid deliverable generated yet.";
   if (!state.sessionHumanId) {
@@ -896,10 +1043,11 @@ function renderOnboarderCommerceOperator(project, agents) {
   return `
     <div class="foundation-operator copy-stack">
       <div class="summary-row">
-        <strong>Paid OpenClaw Packages</strong>
-        <span>Stripe one-time payment, fiat only</span>
+        <strong>Paid OpenClaw Packages (Operator/Internal)</strong>
+        <span>Primary user entry moved to /onboarder</span>
       </div>
-      <p class="note">Choose a curated OpenClaw package, one environment, and whether installation should register into EOW after setup. You can purchase without an existing agent. For register-enabled delivery, bind or create an agent before downloading artifacts.</p>
+      <p class="note">This panel is kept for operator workflows. Public users should start from the dedicated Onboarder landing page at <code>/onboarder</code>.</p>
+      ${billingReady ? "" : '<p class="note">Billing readiness is incomplete. Purchase buttons are disabled until all Stripe price keys are configured.</p>'}
       <div class="copy-stack">
         <div class="summary-row">
           <strong>Installer (Recommended)</strong>
@@ -951,7 +1099,7 @@ function renderOnboarderCommerceOperator(project, agents) {
           </label>
         </div>
         <div class="action-row">
-          <button type="button" class="topbar-button secondary onboarder-checkout-button" data-project-id="${project.projectId}">Purchase With Stripe</button>
+          <button type="button" class="topbar-button secondary onboarder-checkout-button" data-project-id="${project.projectId}" ${billingReady ? "" : "disabled"}>Purchase With Stripe</button>
           <button type="button" class="topbar-button ghost onboarder-refresh-purchases" data-project-id="${project.projectId}">Refresh Purchases</button>
         </div>
       </form>
@@ -2009,10 +2157,14 @@ function renderTopbarActions() {
   if (!root) return;
   const human = currentHuman();
   if (!human) {
-    root.innerHTML = '<button type="button" class="topbar-button" data-route-target="join">Join</button>';
+    root.innerHTML = `
+      <button type="button" class="topbar-button secondary" data-route-target="onboarder">Get OpenClaw</button>
+      <button type="button" class="topbar-button" data-route-target="join">Join</button>
+    `;
   } else {
     root.innerHTML = `
       <div class="session-chip">${human.displayName || human.humanId}</div>
+      <button type="button" class="topbar-button secondary" data-route-target="onboarder">Get OpenClaw</button>
       <button type="button" class="topbar-button secondary" data-route-target="new-project">New Project</button>
       <button type="button" class="topbar-button secondary" data-route-target="settings">Settings</button>
       <button type="button" class="topbar-button ghost" id="signout-button">Sign Out</button>
@@ -2052,6 +2204,11 @@ function renderHomeGuides() {
   if (!root) return;
   root.innerHTML = `
     <div class="guide-grid top-guides">
+      <a class="guide-card guide-link" href="/onboarder">
+        <span class="guide-step">INSTALLER</span>
+        <h3>Install Your OpenClaw</h3>
+        <p>Download ELO Claw Installer and complete setup with a guided GUI flow.</p>
+      </a>
       <a class="guide-card guide-link" href="/guides/what-is.html" target="_blank" rel="noreferrer">
         <span class="guide-step">WORLD</span>
         <h3>What We Are</h3>
@@ -2103,6 +2260,7 @@ function renderSummary(summary) {
   renderProjects(summary.projects || []);
   renderMarketProjects(summary.projects || []);
   renderSettingsData();
+  renderOnboarderLanding();
 }
 
 function renderInfrastructure(summary) {
@@ -5034,17 +5192,7 @@ function renderSettingsData() {
       foundationsRoot.querySelectorAll('.onboarder-download-installer').forEach((node) => {
         node.addEventListener('click', async () => {
           try {
-            const targetOs = (node.dataset.installerOs || "macos").toLowerCase();
-            const sessionHumanId = (state.sessionHumanId || "").trim();
-            if (!sessionHumanId) throw new Error('Please sign in first, then retry installer download.');
-            const downloadUrl = `/api/onboarder/installer/download?os=${encodeURIComponent(targetOs)}&sessionHumanId=${encodeURIComponent(sessionHumanId)}`;
-            const link = document.createElement('a');
-            link.href = downloadUrl;
-            link.rel = 'noopener';
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            setStatus(`Installer download started for ${targetOs}.`, 'ok');
+            startInstallerDownload(node.dataset.installerOs || "macos");
           } catch (error) {
             setStatus(error.message, 'error');
           }
@@ -7208,6 +7356,18 @@ async function loadAuthConfig() {
 
 async function refresh() {
   state.summary = await request("/api/world/summary");
+  try {
+    state.onboarderPublicOffer = await request("/api/onboarder/public-offer");
+  } catch (error) {
+    state.onboarderPublicOffer = null;
+    console.warn("Failed to load onboarder public offer", error);
+  }
+  try {
+    state.onboarderBillingReadiness = await request("/api/onboarder/billing-readiness");
+  } catch (error) {
+    state.onboarderBillingReadiness = null;
+    console.warn("Failed to load onboarder billing readiness", error);
+  }
   if (state.sessionHumanId) {
     try {
       state.onboarderCatalog = await request("/api/onboarder/catalog");
@@ -7234,7 +7394,6 @@ async function refresh() {
   } else {
     state.onboarderCatalog = null;
     state.onboarderPurchases = { purchases: [], entitlements: [] };
-    state.pendingOnboarderCheckout = null;
   }
   if (state.starterRequirementId) {
     state.latestStarterRequirement = (state.summary.requirements || []).find((item) => item.requirementId === state.starterRequirementId) || state.latestStarterRequirement;

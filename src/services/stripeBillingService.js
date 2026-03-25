@@ -4,6 +4,13 @@ function stripeConfigured() {
   return Boolean(process.env.STRIPE_SECRET_KEY);
 }
 
+const PRICE_ENV_KEY_MAP = {
+  "starter-openclaw": ["STRIPE_PRICE_STARTER_OPENCLAW", "STRIPE_PRICE_BASE_OPENCLAW"],
+  "work-openclaw": ["STRIPE_PRICE_WORK_OPENCLAW", "STRIPE_PRICE_CONFIGURED_OPENCLAW"],
+  "vision-openclaw": ["STRIPE_PRICE_VISION_OPENCLAW", "STRIPE_PRICE_WORKFLOW_PACK"],
+  "builder-openclaw": ["STRIPE_PRICE_BUILDER_OPENCLAW"]
+};
+
 export class StripeBillingService {
   constructor({ stripeClient = null, publicBaseUrl = process.env.PUBLIC_BASE_URL || "https://world.metavie.co" } = {}) {
     this.publicBaseUrl = publicBaseUrl;
@@ -18,15 +25,41 @@ export class StripeBillingService {
   }
 
   priceIdForPackage(packageId) {
-    const mapping = {
-      "starter-openclaw": process.env.STRIPE_PRICE_STARTER_OPENCLAW || "",
-      "work-openclaw": process.env.STRIPE_PRICE_WORK_OPENCLAW || "",
-      "vision-openclaw": process.env.STRIPE_PRICE_VISION_OPENCLAW || "",
-      "builder-openclaw": process.env.STRIPE_PRICE_BUILDER_OPENCLAW || ""
+    const keys = PRICE_ENV_KEY_MAP[packageId] || [];
+    for (const key of keys) {
+      const value = String(process.env[key] || "").trim();
+      if (value) return value;
+    }
+    if (!keys.length) throw new Error(`Unsupported package for Stripe pricing: ${packageId}`);
+    throw new Error(`Stripe price is not configured for package ${packageId}`);
+  }
+
+  billingReadiness() {
+    const packages = {};
+    let configuredCount = 0;
+    for (const [packageId, keys] of Object.entries(PRICE_ENV_KEY_MAP)) {
+      let keyUsed = "";
+      for (const key of keys) {
+        if (String(process.env[key] || "").trim()) {
+          keyUsed = key;
+          break;
+        }
+      }
+      const configured = Boolean(keyUsed);
+      if (configured) configuredCount += 1;
+      packages[packageId] = {
+        configured,
+        keyUsed,
+        source: configured ? "env" : "missing"
+      };
+    }
+    return {
+      provider: "stripe",
+      stripeSecretConfigured: stripeConfigured(),
+      configured: stripeConfigured() && configuredCount === Object.keys(PRICE_ENV_KEY_MAP).length,
+      requiredPackages: Object.keys(PRICE_ENV_KEY_MAP),
+      packages
     };
-    const priceId = mapping[packageId] || "";
-    if (!priceId) throw new Error(`Stripe price is not configured for package ${packageId}`);
-    return priceId;
   }
 
   async createCheckoutSession({
@@ -47,8 +80,8 @@ export class StripeBillingService {
         price: this.priceIdForPackage(packageId),
         quantity: 1
       }],
-      success_url: successUrl || `${this.publicBaseUrl}/?onboarderCheckout=success&purchaseId=${encodeURIComponent(purchaseId)}&checkoutSessionId={CHECKOUT_SESSION_ID}#settings`,
-      cancel_url: cancelUrl || `${this.publicBaseUrl}/#settings`,
+      success_url: successUrl || `${this.publicBaseUrl}/onboarder?onboarderCheckout=success&purchaseId=${encodeURIComponent(purchaseId)}&checkoutSessionId={CHECKOUT_SESSION_ID}`,
+      cancel_url: cancelUrl || `${this.publicBaseUrl}/onboarder?onboarderCheckout=cancel`,
       metadata: {
         purchaseId,
         packageId,
@@ -122,5 +155,21 @@ export class FakeBillingService {
 
   async verifyWebhook(rawBody) {
     return JSON.parse(rawBody);
+  }
+
+  billingReadiness() {
+    return {
+      provider: "fake",
+      stripeSecretConfigured: true,
+      configured: true,
+      requiredPackages: Object.keys(PRICE_ENV_KEY_MAP),
+      packages: Object.fromEntries(
+        Object.keys(PRICE_ENV_KEY_MAP).map((packageId) => [packageId, {
+          configured: true,
+          keyUsed: "fake",
+          source: "fake"
+        }])
+      )
+    };
   }
 }
