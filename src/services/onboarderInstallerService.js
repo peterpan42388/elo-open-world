@@ -155,100 +155,116 @@ const INSTALLER_PACKAGE_CONTENTS_I18N = {
     "starter-openclaw": [
       "Official OpenClaw base runtime",
       "Mainstream model API setup guidance",
-      "Basic health checks and diagnostics"
+      "Basic health checks and diagnostics",
+      "Local dashboard + local API key manager"
     ],
     "work-openclaw": [
       "PPT automation skills",
       "Excel / spreadsheet skills",
       "Document writing and organization",
-      "Image-model setup guidance"
+      "Image-model setup guidance",
+      "Dashboard image-key checklist and local usage meter"
     ],
     "vision-openclaw": [
       "Video generation and editing workflow",
       "Cross-platform auto-publish workflow",
       "Video-model API setup guidance",
-      "Content pipeline templates"
+      "Content pipeline templates",
+      "Dashboard multi-key setup guidance (text/image/video)"
     ],
     "builder-openclaw": [
       "EOW project protocol framework",
       "Engineering collaboration templates",
       "Task checkpoint and traceability defaults",
-      "Developer-agent collaboration defaults"
+      "Developer-agent collaboration defaults",
+      "Advanced dashboard controls for engineering workflows"
     ]
   },
   zh: {
     "starter-openclaw": [
       "OpenClaw 官方基础运行环境",
       "主流模型 API 配置引导",
-      "基础健康检查与诊断工具"
+      "基础健康检查与诊断工具",
+      "本地 Dashboard 与本地 API Key 管理器"
     ],
     "work-openclaw": [
       "PPT 自动化技能",
       "Excel/表格处理技能",
       "文档写作与整理技能",
-      "图片处理模型配置引导"
+      "图片处理模型配置引导",
+      "Dashboard 图片 Key 清单与本地用量计费仪表盘"
     ],
     "vision-openclaw": [
       "视频生成与剪辑工作流",
       "跨平台自动发布工作流",
       "视频模型 API 配置引导",
-      "内容产线模板"
+      "内容产线模板",
+      "Dashboard 多 Key（文本/图片/视频）配置引导"
     ],
     "builder-openclaw": [
       "EOW 项目协议框架",
       "工程协作与交付流程模板",
       "任务检查点与回溯能力",
-      "开发型 Agent 协作默认配置"
+      "开发型 Agent 协作默认配置",
+      "面向工程工作流的高级 Dashboard 控制能力"
     ]
   },
   es: {
     "starter-openclaw": [
       "Runtime base oficial de OpenClaw",
       "Guía de configuración de API para modelos comunes",
-      "Diagnóstico y chequeo básico de salud"
+      "Diagnóstico y chequeo básico de salud",
+      "Dashboard local + gestor local de API keys"
     ],
     "work-openclaw": [
       "Automatización de PPT",
       "Habilidades de Excel / hojas de cálculo",
       "Redacción y organización de documentos",
-      "Guía para modelos de imagen"
+      "Guía para modelos de imagen",
+      "Checklist de keys de imagen y medidor local de uso/costo"
     ],
     "vision-openclaw": [
       "Flujo de generación y edición de video",
       "Publicación automática multiplataforma",
       "Guía de API para modelos de video",
-      "Plantillas de producción de contenido"
+      "Plantillas de producción de contenido",
+      "Guía de configuración multi-key (texto/imagen/video)"
     ],
     "builder-openclaw": [
       "Marco de protocolo de proyectos EOW",
       "Plantillas de colaboración de ingeniería",
       "Puntos de control y trazabilidad",
-      "Configuración para agentes de desarrollo"
+      "Configuración para agentes de desarrollo",
+      "Controles avanzados de dashboard para flujos de ingeniería"
     ]
   },
   ja: {
     "starter-openclaw": [
       "OpenClaw 公式ベースランタイム",
       "主要モデル API 設定ガイド",
-      "基本ヘルスチェックと診断"
+      "基本ヘルスチェックと診断",
+      "ローカル Dashboard とローカル API Key 管理"
     ],
     "work-openclaw": [
       "PPT 自動化スキル",
       "Excel / 表計算スキル",
       "ドキュメント作成・整理スキル",
-      "画像モデル設定ガイド"
+      "画像モデル設定ガイド",
+      "Dashboard の画像 Key チェックリストとローカル使用量メーター"
     ],
     "vision-openclaw": [
       "動画生成・編集ワークフロー",
       "マルチプラットフォーム自動配信",
       "動画モデル API 設定ガイド",
-      "コンテンツ制作テンプレート"
+      "コンテンツ制作テンプレート",
+      "Dashboard の複数 Key（テキスト/画像/動画）設定ガイド"
     ],
     "builder-openclaw": [
       "EOW プロジェクトプロトコル",
       "エンジニア協業テンプレート",
       "タスク追跡とチェックポイント",
-      "開発向け Agent 協業設定"
+      "開発向け Agent 協業設定",
+      "エンジニアリング向け Dashboard 高度コントロール"
     ]
   }
 };

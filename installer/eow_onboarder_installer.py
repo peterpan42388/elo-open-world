@@ -15,6 +15,7 @@ import threading
 import time
 import urllib.parse
 import webbrowser
+import zipfile
 from dataclasses import dataclass, field
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from typing import Dict, List, Optional
@@ -1080,6 +1081,9 @@ class InstallerState:
     execution_plan: Dict = field(default_factory=dict)
     install_success: bool = False
     install_root: str = ""
+    dashboard_root: str = ""
+    dashboard_url: str = "http://127.0.0.1:19777"
+    dashboard_shortcut_path: str = ""
 
 
 class EOWInstaller(QWidget):
@@ -2900,6 +2904,122 @@ class EOWInstaller(QWidget):
         self.install_stage_list.scrollToBottom()
         QApplication.processEvents()
 
+    def package_capability_lines(self) -> List[str]:
+        package_id = self.state.package_id or "starter-openclaw"
+        lines = self.localized_package_skills(package_id)
+        if lines:
+            return lines
+        return ["基础运行与协作规范"]
+
+    def missing_key_checklist(self) -> List[str]:
+        package_id = self.state.package_id or "starter-openclaw"
+        missing = []
+        if package_id in {"work-openclaw", "vision-openclaw", "builder-openclaw"}:
+            missing.append("image API key（图片模型）")
+        if package_id in {"vision-openclaw", "builder-openclaw"}:
+            missing.append("video API key（视频模型）")
+        return missing
+
+    def build_install_success_chat_message(self) -> str:
+        lines = [
+            f"OpenClaw 安装成功。Agent={self.state.agent_name}，Model={self.state.model_name}",
+            "",
+            f"当前套餐：{self.state.package_id}",
+            "我当前可以帮助你："
+        ]
+        lines.extend([f"- {item}" for item in self.package_capability_lines()])
+        missing = self.missing_key_checklist()
+        if missing:
+            lines.append("")
+            lines.append("你还可以在本地 Dashboard 配置以下高级能力 Key：")
+            lines.extend([f"- {item}" for item in missing])
+            lines.append(f"本地地址：{self.state.dashboard_url}")
+        lines.append("")
+        lines.append("是否开始学习套餐内技能？回复“开始学习技能”即可。")
+        return "\n".join(lines)
+
+    def write_dashboard_shortcut(self, install_root: str, dashboard_root: str, dashboard_url: str) -> str:
+        logs_dir = os.path.join(dashboard_root, "data")
+        os.makedirs(logs_dir, exist_ok=True)
+        if sys.platform.startswith("win"):
+            shortcut_path = os.path.join(install_root, "Open-ELO-Dashboard.cmd")
+            content = (
+                "@echo off\r\n"
+                f"cd /d \"{dashboard_root}\"\r\n"
+                "start \"\" /B node src\\server.js > data\\dashboard.log 2>&1\r\n"
+                f"start \"\" \"{dashboard_url}\"\r\n"
+            )
+            with open(shortcut_path, "w", encoding="utf-8") as fh:
+                fh.write(content)
+            return shortcut_path
+
+        shortcut_path = os.path.join(install_root, "Open-ELO-Dashboard.command")
+        content = (
+            "#!/usr/bin/env sh\n"
+            "set -eu\n"
+            f"cd \"{dashboard_root}\"\n"
+            "nohup node src/server.js > data/dashboard.log 2>&1 &\n"
+            f"open \"{dashboard_url}\" >/dev/null 2>&1 || xdg-open \"{dashboard_url}\" >/dev/null 2>&1 || true\n"
+        )
+        with open(shortcut_path, "w", encoding="utf-8") as fh:
+            fh.write(content)
+        os.chmod(shortcut_path, 0o755)
+        return shortcut_path
+
+    def deploy_local_dashboard(self, install_root: str) -> Dict:
+        config = self.request(
+            "/api/onboarder/dashboard/config",
+            method="GET",
+            payload={"agentId": self.state.agent_name},
+        )
+        dashboard_url = str(config.get("dashboardUrl") or "http://127.0.0.1:19777").strip() or "http://127.0.0.1:19777"
+        ticket_payload = self.request(
+            "/api/onboarder/dashboard/deploy-ticket",
+            payload={
+                "agentId": self.state.agent_name,
+                "channel": str(config.get("defaultChannel") or "stable"),
+            },
+        )
+        deploy_ticket = str(ticket_payload.get("deployTicket") or "").strip()
+        if not deploy_ticket:
+            raise RuntimeError("服务器未返回 dashboard deploy ticket")
+        artifact_bytes = self.request(
+            "/api/onboarder/dashboard/artifact",
+            method="GET",
+            payload={"ticket": deploy_ticket},
+        )
+        if isinstance(artifact_bytes, dict):
+            raise RuntimeError(f"dashboard artifact 响应异常: {json.dumps(artifact_bytes, ensure_ascii=False)}")
+        if not artifact_bytes:
+            raise RuntimeError("dashboard artifact 下载为空")
+        if isinstance(artifact_bytes, str):
+            artifact_bytes = artifact_bytes.encode("utf-8")
+
+        dashboard_root = os.path.join(install_root, "dashboard")
+        os.makedirs(dashboard_root, exist_ok=True)
+        with tempfile.NamedTemporaryFile(prefix="elo-dashboard-", suffix=".zip", delete=False) as tmp:
+            tmp.write(artifact_bytes)
+            zip_path = tmp.name
+        try:
+            with zipfile.ZipFile(zip_path, "r") as zf:
+                zf.extractall(dashboard_root)
+        finally:
+            try:
+                os.remove(zip_path)
+            except OSError:
+                pass
+
+        shortcut_path = self.write_dashboard_shortcut(install_root, dashboard_root, dashboard_url)
+        self.state.dashboard_root = dashboard_root
+        self.state.dashboard_url = dashboard_url
+        self.state.dashboard_shortcut_path = shortcut_path
+        return {
+            "dashboardRoot": dashboard_root,
+            "dashboardUrl": dashboard_url,
+            "shortcutPath": shortcut_path,
+            "version": str(config.get("version") or ""),
+        }
+
     def run_install(self):
         if self.state.install_success and self.install_start_button.text() == "开启你的智能时代":
             self.open_openclaw_gateway()
@@ -2965,14 +3085,20 @@ class EOWInstaller(QWidget):
             self.stage_update("写入本地配置", 76, "在本地写入 openclaw.json（不上传 API Key）")
             config_path = self.write_local_openclaw_config(install_root)
             self.write_local_guides(install_root)
-            self.stage_update("网关授权配置", 84, "自动获取并写入 gateway token")
+            self.stage_update("网关授权配置", 82, "自动获取并写入 gateway token")
             gateway_token = self.resolve_gateway_token(install_root)
             if gateway_token:
                 self.write_gateway_token_to_local_config(install_root, gateway_token)
             else:
                 self.install_stage_list.addItem("[warn] 未获取到 gateway token，将在打开网关时自动重试。")
 
-            self.stage_update("聊天通道通知", 90, "发送安装成功消息")
+            self.stage_update("部署本地 Dashboard", 88, "通过 EOW 拉取签名构建并完成本地部署")
+            dashboard_info = self.deploy_local_dashboard(install_root)
+            self.install_stage_list.addItem(
+                f"[info] Dashboard 已部署：{dashboard_info.get('dashboardRoot', '')} | 快捷入口：{dashboard_info.get('shortcutPath', '')}"
+            )
+
+            self.stage_update("聊天通道通知", 92, "发送安装成功消息")
             binding = self.collect_chat_binding()
             try:
                 self.request(
@@ -2981,17 +3107,14 @@ class EOWInstaller(QWidget):
                         "installerSessionId": self.state.installer_session_id,
                         "chatBinding": binding,
                         "action": "notify",
-                        "message": (
-                            f"OpenClaw 安装成功。Agent={self.state.agent_name}，Model={self.state.model_name}\n"
-                            "是否开始学习套餐内技能？回复“开始学习技能”即可。"
-                        ),
+                        "message": self.build_install_success_chat_message(),
                     },
                 )
             except Exception as notify_exc:
                 self.install_stage_list.addItem(f"[warn] 聊天通知发送失败: {notify_exc}")
 
             if binding.get("platform") == "telegram":
-                self.stage_update("启动 Telegram 消息桥接", 95, "开启双向收发消息服务")
+                self.stage_update("启动 Telegram 消息桥接", 96, "开启双向收发消息服务")
                 bridge_ok, bridge_detail = self.start_telegram_bridge(install_root, binding)
                 if not bridge_ok:
                     raise RuntimeError(f"Telegram 消息桥接启动失败：{bridge_detail}")
@@ -3004,6 +3127,11 @@ class EOWInstaller(QWidget):
                         "ok": True,
                         "platform": platform.platform(),
                         "env": env_report,
+                        "dashboard": {
+                            "root": self.state.dashboard_root,
+                            "url": self.state.dashboard_url,
+                            "shortcut": self.state.dashboard_shortcut_path,
+                        },
                     },
                 },
             )
@@ -3066,6 +3194,9 @@ class EOWInstaller(QWidget):
             "chatPlatform": self.state.chat_platform,
             "telegramBridgeLog": self.telegram_bridge_log_path or "",
             "telegramBridgeHealth": self.telegram_bridge_health_path or "",
+            "dashboardRoot": self.state.dashboard_root or "",
+            "dashboardUrl": self.state.dashboard_url or "",
+            "dashboardShortcut": self.state.dashboard_shortcut_path or "",
         }
         headline = "安装成功，Agent 已准备就绪。" if self.state.install_success else "安装尚未完成，请返回安装步骤。"
         self.complete_headline.setText(headline)

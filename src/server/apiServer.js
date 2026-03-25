@@ -868,6 +868,42 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, framework.onboarderInstaller.installerConfig());
     }
 
+    if (req.method === "GET" && path === "/api/onboarder/dashboard/config") {
+      const humanId = requireActiveHumanId(req, ["onboarder.install"]);
+      return json(res, 200, framework.dashboardDeploy.config({
+        humanId,
+        agentId: String(url.searchParams.get("agentId") || "")
+      }));
+    }
+
+    if (req.method === "POST" && path === "/api/onboarder/dashboard/deploy-ticket") {
+      const body = await readJson(req);
+      const humanId = requireActiveHumanId(req, ["onboarder.install"]);
+      return json(res, 200, framework.dashboardDeploy.createDeployTicket({
+        humanId,
+        agentId: body.agentId || "",
+        channel: body.channel || "stable"
+      }));
+    }
+
+    if (req.method === "GET" && path === "/api/onboarder/dashboard/artifact") {
+      const humanId = requireActiveHumanId(req, ["onboarder.install"]);
+      const ticket = String(url.searchParams.get("ticket") || "");
+      const artifact = await framework.dashboardDeploy.artifactByTicket({ humanId, ticket });
+      return binary(
+        res,
+        200,
+        artifact.buffer,
+        artifact.contentType,
+        artifact.fileName,
+        artifact.headers
+      );
+    }
+
+    if (req.method === "GET" && path === "/api/onboarder/dashboard/guide") {
+      return json(res, 200, framework.dashboardDeploy.guide());
+    }
+
     if (req.method === "POST" && path === "/api/onboarder/installer/auth/start") {
       const body = await readJson(req);
       return json(res, 200, framework.onboarderInstaller.startAuthSession({

@@ -52,42 +52,42 @@ export const ONBOARDER_PACKAGES = {
   "starter-openclaw": {
     packageId: "starter-openclaw",
     displayName: "Starter OpenClaw",
-    description: "Basic official OpenClaw install with model configuration guidance.",
+    description: "Basic official OpenClaw install with text-model setup, local key manager, and local usage dashboard.",
     displayPriceUsd: 8,
     availableProfiles: Object.keys(FOUNDATION_INSTALL_PROFILES),
     supportsRegistrationModes: ["register-to-eow", "local-only"],
     workflowPresetRequired: false,
-    includedCapabilities: ["runtime-contract", "bootstrap-runner", "diagnostics", "stub-runtime", "model-guides"]
+    includedCapabilities: ["runtime-contract", "bootstrap-runner", "diagnostics", "stub-runtime", "model-guides", "dashboard-core", "local-key-manager", "usage-meter"]
   },
   "work-openclaw": {
     packageId: "work-openclaw",
     displayName: "Work OpenClaw",
-    description: "Starter package plus office productivity skills and image-model setup guidance.",
+    description: "Starter package plus office productivity skills and image-model setup guidance with dashboard key hints.",
     displayPriceUsd: 16,
     availableProfiles: Object.keys(FOUNDATION_INSTALL_PROFILES),
     supportsRegistrationModes: ["register-to-eow", "local-only"],
     workflowPresetRequired: false,
-    includedCapabilities: ["runtime-contract", "bootstrap-runner", "diagnostics", "stub-runtime", "model-guides", "office-skills", "image-model-guides", "capability-manifest", "package-manifest"]
+    includedCapabilities: ["runtime-contract", "bootstrap-runner", "diagnostics", "stub-runtime", "model-guides", "dashboard-core", "local-key-manager", "usage-meter", "office-skills", "image-model-guides", "dashboard-image-key-guidance", "capability-manifest", "package-manifest"]
   },
   "vision-openclaw": {
     packageId: "vision-openclaw",
     displayName: "Vision OpenClaw",
-    description: "Work package plus video creation workflow and cross-platform publishing automation guides.",
+    description: "Work package plus video creation workflow and cross-platform publishing automation guides with multi-key setup guidance.",
     displayPriceUsd: 29,
     availableProfiles: Object.keys(FOUNDATION_INSTALL_PROFILES),
     supportsRegistrationModes: ["register-to-eow", "local-only"],
     workflowPresetRequired: false,
-    includedCapabilities: ["runtime-contract", "bootstrap-runner", "diagnostics", "stub-runtime", "model-guides", "office-skills", "image-model-guides", "video-workflows", "publish-workflows", "video-model-guides", "capability-manifest", "package-manifest", "workflow-manifest"]
+    includedCapabilities: ["runtime-contract", "bootstrap-runner", "diagnostics", "stub-runtime", "model-guides", "dashboard-core", "local-key-manager", "usage-meter", "office-skills", "image-model-guides", "video-workflows", "publish-workflows", "video-model-guides", "dashboard-video-key-guidance", "capability-manifest", "package-manifest", "workflow-manifest"]
   },
   "builder-openclaw": {
     packageId: "builder-openclaw",
     displayName: "Builder OpenClaw",
-    description: "Vision package plus EOW project protocol framework for coding and delivery operations.",
+    description: "Vision package plus EOW project protocol framework for coding and delivery operations with advanced dashboard controls.",
     displayPriceUsd: 79,
     availableProfiles: Object.keys(FOUNDATION_INSTALL_PROFILES),
     supportsRegistrationModes: ["register-to-eow", "local-only"],
     workflowPresetRequired: false,
-    includedCapabilities: ["runtime-contract", "bootstrap-runner", "diagnostics", "stub-runtime", "model-guides", "office-skills", "image-model-guides", "video-workflows", "publish-workflows", "video-model-guides", "project-protocol-framework", "capability-manifest", "package-manifest", "workflow-manifest"]
+    includedCapabilities: ["runtime-contract", "bootstrap-runner", "diagnostics", "stub-runtime", "model-guides", "dashboard-core", "local-key-manager", "usage-meter", "office-skills", "image-model-guides", "video-workflows", "publish-workflows", "video-model-guides", "project-protocol-framework", "dashboard-collaboration-controls", "capability-manifest", "package-manifest", "workflow-manifest"]
   }
 };
 

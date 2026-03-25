@@ -14,6 +14,7 @@ import { OnboarderCommerceService } from "../services/onboarderCommerceService.j
 import { StripeBillingService } from "../services/stripeBillingService.js";
 import { OnboarderInstallerService } from "../services/onboarderInstallerService.js";
 import { OAuthService } from "../services/oauthService.js";
+import { DashboardDeployService } from "../services/dashboardDeployService.js";
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
 
@@ -39,6 +40,7 @@ export class OpenWorldFramework {
     this.onboarder = null;
     this.onboarderCommerce = null;
     this.onboarderInstaller = null;
+    this.dashboardDeploy = null;
     this.webPluginFoundation = null;
     this.identity = null;
     this.plugins = null;
@@ -82,6 +84,9 @@ export class OpenWorldFramework {
       publicBaseUrl: this.universeConfig.publicBaseUrl,
       onboarder: snapshot.onboarder,
       onChange: persist
+    });
+    this.dashboardDeploy = new DashboardDeployService({
+      publicBaseUrl: this.universeConfig.publicBaseUrl
     });
     this.webPluginFoundation = new WebPluginFoundationService();
     this.oauth = new OAuthService({

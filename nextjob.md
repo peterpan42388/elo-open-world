@@ -97,6 +97,21 @@ After every execution cycle, update this file with:
 - any new blockers
 
 ## Last Completed
+- Completed `elo-agent-dashboard` independent rollout baseline and signed-pull deployment integration:
+  - created independent private repo `github.com/peterpan42388/elo-agent-dashboard` with local-only web dashboard baseline (`api-keys.local.v1`, `usage-event.v1`, `pricing-table.v1`) and release builder (`elo-agent-dashboard-bundle.zip` + manifest)
+  - published `stable` private release assets for server-side artifact relay
+  - added EOW dashboard deploy service + authenticated APIs:
+    - `GET /api/onboarder/dashboard/config`
+    - `POST /api/onboarder/dashboard/deploy-ticket`
+    - `GET /api/onboarder/dashboard/artifact`
+    - `GET /api/onboarder/dashboard/guide`
+  - wired installer install flow with new `Deploy Dashboard` stage:
+    - requests one-time deploy ticket
+    - downloads signed artifact through EOW
+    - extracts to local `elo-{agent}/dashboard`
+    - creates local dashboard shortcut launcher
+  - enhanced install-success chat notification with package capability summary and missing advanced key checklist that points users to local dashboard config
+  - upgraded package capability descriptors to include dashboard/local-key/usage-meter semantics across starter/work/vision/builder
 - Completed final pre-freeze installer closure patch:
   - restructured Step6 Telegram binding layout to fixed 3-line structure (`平台/提示`, `Bot Token/Chat ID`, `自动检测 chat_id`) and isolated `测试聊天配置` in a non-overlapping action row
   - stabilized Step6 split pane sizing so platform switching no longer causes form/button overlap
