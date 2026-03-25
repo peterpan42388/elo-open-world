@@ -180,17 +180,17 @@ export class DashboardDeployService {
     const assets = Array.isArray(release.assets) ? release.assets : [];
     const artifactAsset = assets.find((asset) => String(asset.name || "") === this.releaseAssetName)
       || assets.find((asset) => String(asset.name || "").endsWith(".zip"));
-    if (!artifactAsset?.browser_download_url) return null;
+    if (!artifactAsset) return null;
 
-    const buffer = await this.#githubGetBinary(artifactAsset.browser_download_url);
+    const buffer = await this.#downloadGitHubAssetBinary(artifactAsset);
     const sha256 = sha256Hex(buffer);
     const manifestAsset = assets.find((asset) => String(asset.name || "").endsWith(".manifest.json"));
     let signature = "";
     let version = text("release.tag_name", String(release.tag_name || tag), 128) || tag;
 
-    if (manifestAsset?.browser_download_url) {
+    if (manifestAsset) {
       try {
-        const manifestRaw = await this.#githubGetText(manifestAsset.browser_download_url);
+        const manifestRaw = await this.#downloadGitHubAssetText(manifestAsset);
         const manifest = JSON.parse(manifestRaw);
         version = text("manifest.version", String(manifest.version || version), 128) || version;
         signature = text("manifest.signature", String(manifest.signature || ""), 1024);
@@ -225,9 +225,12 @@ export class DashboardDeployService {
   }
 
   async #githubGetBinary(url) {
+    const acceptHeader = String(url || "").includes("api.github.com/")
+      ? "application/octet-stream"
+      : "*/*";
     const res = await fetch(url, {
       headers: {
-        Accept: "application/octet-stream",
+        Accept: acceptHeader,
         Authorization: `Bearer ${this.githubToken}`,
         "User-Agent": "elo-open-world"
       },
@@ -243,6 +246,28 @@ export class DashboardDeployService {
 
   async #githubGetText(url) {
     const buffer = await this.#githubGetBinary(url);
+    return buffer.toString("utf8");
+  }
+
+  async #downloadGitHubAssetBinary(asset) {
+    const urls = [
+      text("asset.url", String(asset?.url || ""), 2048),
+      text("asset.browser_download_url", String(asset?.browser_download_url || ""), 2048)
+    ].filter(Boolean);
+    let lastError = null;
+    for (const url of urls) {
+      try {
+        return await this.#githubGetBinary(url);
+      } catch (error) {
+        lastError = error;
+      }
+    }
+    if (lastError) throw lastError;
+    throw new Error("github artifact fetch failed: release asset does not include a downloadable URL");
+  }
+
+  async #downloadGitHubAssetText(asset) {
+    const buffer = await this.#downloadGitHubAssetBinary(asset);
     return buffer.toString("utf8");
   }
 
