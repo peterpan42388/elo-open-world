@@ -97,6 +97,14 @@ After every execution cycle, update this file with:
 - any new blockers
 
 ## Last Completed
+- Fixed private GitHub release artifact retrieval reliability for `elo-agent-dashboard` distribution:
+  - updated dashboard deploy service to prefer GitHub API asset URL (`asset.url`) and fallback to `browser_download_url`
+  - improved binary fetch header handling across API and redirect URLs
+  - deployed commit `08dbbab` to production container and verified health
+  - smoke-verified signed-pull chain on production:
+    - `GET /api/onboarder/dashboard/config` => 200
+    - `POST /api/onboarder/dashboard/deploy-ticket` => 200
+    - `GET /api/onboarder/dashboard/artifact?ticket=...` => 200 (zip bytes returned with version/sha headers)
 - Completed `elo-agent-dashboard` independent rollout baseline and signed-pull deployment integration:
   - created independent private repo `github.com/peterpan42388/elo-agent-dashboard` with local-only web dashboard baseline (`api-keys.local.v1`, `usage-event.v1`, `pricing-table.v1`) and release builder (`elo-agent-dashboard-bundle.zip` + manifest)
   - published `stable` private release assets for server-side artifact relay
