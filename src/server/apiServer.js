@@ -418,6 +418,7 @@ const server = http.createServer(async (req, res) => {
       path === "/index.html" ||
       path === "/app.css" ||
       path === "/app.js" ||
+      path.startsWith("/assets/") ||
       path.startsWith("/guides/") ||
       path.startsWith("/lib/")
     )) {
