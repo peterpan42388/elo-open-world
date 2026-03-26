@@ -68,6 +68,7 @@ body {
   justify-content: space-between;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .brand {
@@ -95,6 +96,27 @@ body {
   color: var(--text);
   border-color: rgba(177, 93, 255, 0.35);
   background: rgba(177, 93, 255, 0.14);
+}
+
+.lang-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lang-switch label {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.lang-switch select {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 10px;
+  padding: 8px 10px;
+  min-width: 128px;
+  font: inherit;
 }
 
 .onb-main {
@@ -412,6 +434,12 @@ body {
 @media (max-width: 760px) {
   .onb-topbar {
     position: static;
+    justify-content: center;
+  }
+
+  .lang-switch {
+    width: 100%;
+    justify-content: center;
   }
 
   .hero {

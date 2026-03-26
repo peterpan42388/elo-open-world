@@ -4,11 +4,335 @@ import { getProjectRecruitingSignal } from "./lib/directorySignals.js";
 const $ = (id) => document.getElementById(id);
 const SESSION_KEY = "elo-open-world.session";
 const SETTINGS_DEFAULT_SECTION = "profile";
+const SETTINGS_SECTIONS = new Set(["profile", "security", "privacy", "protocols", "agents", "projects", "currency"]);
+const APP_LOCALE_KEY = "elo-open-world.locale";
+const APP_SUPPORTED_LOCALES = ["en", "zh", "es", "ja"];
 const WORLD_VISUAL_MODE_KEY = "elo-open-world.world-visual-mode";
 const WORLD_HIERARCHY_PRESET_KEY = "elo-open-world.world-hierarchy-preset";
 const WORLD_DECLUTTER_MODE_KEY = "elo-open-world.world-declutter-mode";
 const ONBOARDER_CHECKOUT_PARAMS = ["onboarderCheckout", "purchaseId", "checkoutSessionId"];
 const ROUTES = new Set(["home", "onboarder", "join", "settings", "new-project", "project", "world", "build", "market", "docs"]);
+const APP_I18N = {
+  en: {
+    langLabel: "Language",
+    navHome: "Home",
+    navOnboarder: "Get OpenClaw",
+    navWorld: "World",
+    navBuild: "Build",
+    navMarket: "Market",
+    navDocs: "Docs",
+    actionJoin: "Join",
+    actionSettings: "Settings",
+    actionSignOut: "Sign Out",
+    actionGetOpenClaw: "Get OpenClaw",
+    actionNewProject: "New Project",
+    homeEyebrow: "ELO Open World",
+    homeTitle: "Shared world framework for people, agents, projects, and future market plugins.",
+    homeLede: "Use the guided entry flow first. The home page explains the system. It is not the place to operate private controls.",
+    quickstartTitle: "Quick Start",
+    quickstartLede: "New users should follow the sequence below.",
+    quick1Title: "Join The World",
+    quick1Body: "Create your human identity with email admission. Link GitHub only if you want to create projects.",
+    quick1Cta: "Sign In",
+    quick2Title: "Install OpenClaw",
+    quick2Body: "Start from ELO Claw Installer. No command line is required for ordinary users.",
+    quick2Cta: "Open Installer Page",
+    quick3Title: "Explore The World",
+    quick3Body: "Open the project graph and browse world activity.",
+    quick3Cta: "Open World",
+    quick4Title: "Create, Browse, Operate",
+    quick4Body: "Use New Project for creation, Build for directory search, and Market for running services.",
+    quick4CtaPrimary: "New Project",
+    quick4CtaSecondary: "Open Build",
+    infraTitle: "Infrastructure Structure",
+    infraLede: "Every connected source project appears here as part of the shared base layer.",
+    settingsEyebrow: "Private Workspace",
+    settingsTitle: "Settings",
+    settingsLede: "Private user controls. If you are not signed in, this page will guide you back to Join.",
+    joinEyebrow: "Join Flow",
+    joinTitle: "Join",
+    joinLede: "Create a human identity or sign in to an existing one. After success, the UI switches to your private settings workspace.",
+    newProjectEyebrow: "Focused Creation Flow",
+    newProjectTitle: "New Project",
+    newProjectLede: "Turn one idea into one source repository here. Build stays the directory, Settings stays private, and Project Workspace takes over after creation.",
+    projectEyebrow: "Project Workspace",
+    projectTitle: "Project Workspace",
+    projectLede: "The single project page for stage, progress, participation, and direct work with your development agent.",
+    worldEyebrow: "Project Graph",
+    worldTitle: "World",
+    worldLede: "The world is visualized through source projects. Registration forms are intentionally removed from this page.",
+    buildEyebrow: "Project Directory",
+    buildTitle: "Build",
+    buildLede: "Browse all projects, search by filters, inspect descriptions, and open project pages. This route is the directory, not the collaboration surface.",
+    marketEyebrow: "Operational Market",
+    marketTitle: "Market",
+    marketLede: "Only projects marked as operating appear here. This page is the first real market view, backed by operating-stage projects.",
+    docsEyebrow: "Documentation",
+    docsTitle: "Docs",
+    docsLede: "Read protocols, operating guides, and integration references.",
+    settingsNavProfile: "Personal Info",
+    settingsNavSecurity: "Security & Password",
+    settingsNavPrivacy: "Privacy Terms",
+    settingsNavProtocols: "Public Protocols",
+    settingsNavAgents: "My Agents",
+    settingsNavProjects: "My Projects",
+    settingsNavCurrency: "My Virtual Currency"
+  },
+  zh: {
+    langLabel: "语言",
+    navHome: "首页",
+    navOnboarder: "安装 OpenClaw",
+    navWorld: "世界图谱",
+    navBuild: "项目目录",
+    navMarket: "市场",
+    navDocs: "文档",
+    actionJoin: "加入",
+    actionSettings: "设置",
+    actionSignOut: "退出登录",
+    actionGetOpenClaw: "安装 OpenClaw",
+    actionNewProject: "新建项目",
+    homeEyebrow: "ELO Open World",
+    homeTitle: "面向人类与 Agent 协作的开放世界基础框架。",
+    homeLede: "先走引导流程。首页用于解释系统，不承载私有控制操作。",
+    quickstartTitle: "快速开始",
+    quickstartLede: "新用户建议按下面顺序完成。",
+    quick1Title: "加入世界",
+    quick1Body: "先创建人类身份。若要创建项目，再绑定 GitHub。",
+    quick1Cta: "登录",
+    quick2Title: "安装 OpenClaw",
+    quick2Body: "普通用户从龙虾安装器开始，无需命令行。",
+    quick2Cta: "打开安装页面",
+    quick3Title: "探索世界",
+    quick3Body: "打开项目图谱，浏览世界协作结构。",
+    quick3Cta: "打开 World",
+    quick4Title: "创建、浏览、运营",
+    quick4Body: "New Project 负责创建，Build 负责目录，Market 负责运行服务。",
+    quick4CtaPrimary: "新建项目",
+    quick4CtaSecondary: "打开 Build",
+    infraTitle: "基础设施结构",
+    infraLede: "所有接入的源项目都会在这里形成共享基础层。",
+    settingsEyebrow: "私有工作区",
+    settingsTitle: "设置",
+    settingsLede: "这里是你的私有控制台。未登录时会引导你先完成登录。",
+    joinEyebrow: "加入流程",
+    joinTitle: "加入",
+    joinLede: "创建人类身份或登录已有身份。成功后进入你的私有设置工作区。",
+    newProjectEyebrow: "专注创建流",
+    newProjectTitle: "新建项目",
+    newProjectLede: "在这里把想法转成仓库项目。Build 是目录，Settings 是私有入口，创建后进入项目工作区。",
+    projectEyebrow: "项目工作区",
+    projectTitle: "项目工作区",
+    projectLede: "在单一页面完成阶段、进度、成员协作与 Agent 执行。",
+    worldEyebrow: "项目图谱",
+    worldTitle: "World",
+    worldLede: "世界页面专注展示项目图谱，不再混入注册表单。",
+    buildEyebrow: "项目目录",
+    buildTitle: "Build",
+    buildLede: "浏览和检索全部项目，进入详情或申请参与。这里是目录，不是编辑面板。",
+    marketEyebrow: "运行中市场",
+    marketTitle: "Market",
+    marketLede: "仅展示 operating 状态项目。这里是运行服务的第一市场入口。",
+    docsEyebrow: "文档中心",
+    docsTitle: "Docs",
+    docsLede: "查看协议、部署指南与集成文档。",
+    settingsNavProfile: "个人信息",
+    settingsNavSecurity: "安全与密码",
+    settingsNavPrivacy: "隐私条款",
+    settingsNavProtocols: "公开协议",
+    settingsNavAgents: "我的 Agent",
+    settingsNavProjects: "我的项目",
+    settingsNavCurrency: "我的虚拟货币"
+  },
+  es: {
+    langLabel: "Idioma",
+    navHome: "Inicio",
+    navOnboarder: "Instalar OpenClaw",
+    navWorld: "World",
+    navBuild: "Build",
+    navMarket: "Market",
+    navDocs: "Docs",
+    actionJoin: "Unirse",
+    actionSettings: "Ajustes",
+    actionSignOut: "Cerrar sesión",
+    actionGetOpenClaw: "Instalar OpenClaw",
+    actionNewProject: "Nuevo proyecto",
+    homeEyebrow: "ELO Open World",
+    homeTitle: "Marco de mundo abierto para personas, agentes y proyectos colaborativos.",
+    homeLede: "Sigue primero el flujo guiado. Esta página explica el sistema, no es un panel privado.",
+    quickstartTitle: "Inicio rápido",
+    quickstartLede: "Los nuevos usuarios deben seguir esta secuencia.",
+    quick1Title: "Únete al mundo",
+    quick1Body: "Crea tu identidad humana. Vincula GitHub solo si crearás proyectos.",
+    quick1Cta: "Iniciar sesión",
+    quick2Title: "Instalar OpenClaw",
+    quick2Body: "Comienza con ELO Claw Installer. No necesitas línea de comandos.",
+    quick2Cta: "Abrir instalador",
+    quick3Title: "Explorar World",
+    quick3Body: "Abre el grafo de proyectos para ver la actividad del ecosistema.",
+    quick3Cta: "Abrir World",
+    quick4Title: "Crear, buscar y operar",
+    quick4Body: "New Project crea, Build indexa y Market muestra servicios operativos.",
+    quick4CtaPrimary: "Nuevo proyecto",
+    quick4CtaSecondary: "Abrir Build",
+    infraTitle: "Estructura de infraestructura",
+    infraLede: "Cada proyecto conectado aparece como parte de la base compartida.",
+    settingsEyebrow: "Espacio privado",
+    settingsTitle: "Ajustes",
+    settingsLede: "Controles privados de usuario. Si no inicias sesión, serás redirigido al flujo de acceso.",
+    joinEyebrow: "Flujo de acceso",
+    joinTitle: "Join",
+    joinLede: "Crea una identidad humana o inicia sesión. Luego entra a tu espacio privado.",
+    newProjectEyebrow: "Flujo de creación",
+    newProjectTitle: "Nuevo proyecto",
+    newProjectLede: "Convierte una idea en un repositorio aquí. Build es directorio y Project es colaboración.",
+    projectEyebrow: "Espacio de proyecto",
+    projectTitle: "Project Workspace",
+    projectLede: "Una sola página para etapa, progreso y colaboración directa con agentes.",
+    worldEyebrow: "Grafo de proyectos",
+    worldTitle: "World",
+    worldLede: "World se centra en el grafo de proyectos; sin formularios de registro mezclados.",
+    buildEyebrow: "Directorio de proyectos",
+    buildTitle: "Build",
+    buildLede: "Explora y busca proyectos. Build es un directorio público, no un panel de edición.",
+    marketEyebrow: "Mercado operativo",
+    marketTitle: "Market",
+    marketLede: "Aquí solo aparecen proyectos en estado operativo.",
+    docsEyebrow: "Documentación",
+    docsTitle: "Docs",
+    docsLede: "Consulta protocolos, guías operativas y referencias de integración.",
+    settingsNavProfile: "Información personal",
+    settingsNavSecurity: "Seguridad y contraseña",
+    settingsNavPrivacy: "Términos de privacidad",
+    settingsNavProtocols: "Protocolos públicos",
+    settingsNavAgents: "Mis agentes",
+    settingsNavProjects: "Mis proyectos",
+    settingsNavCurrency: "Mi moneda virtual"
+  },
+  ja: {
+    langLabel: "言語",
+    navHome: "ホーム",
+    navOnboarder: "OpenClaw を導入",
+    navWorld: "World",
+    navBuild: "Build",
+    navMarket: "Market",
+    navDocs: "Docs",
+    actionJoin: "参加",
+    actionSettings: "設定",
+    actionSignOut: "サインアウト",
+    actionGetOpenClaw: "OpenClaw を導入",
+    actionNewProject: "新規プロジェクト",
+    homeEyebrow: "ELO Open World",
+    homeTitle: "人と Agent が共創するためのオープンワールド基盤。",
+    homeLede: "まずはガイド導線を進めてください。ここは説明ページで、管理画面ではありません。",
+    quickstartTitle: "クイックスタート",
+    quickstartLede: "新規ユーザーは次の順序で進めることを推奨します。",
+    quick1Title: "世界に参加する",
+    quick1Body: "まず人間 ID を作成。プロジェクト作成時のみ GitHub を連携します。",
+    quick1Cta: "サインイン",
+    quick2Title: "OpenClaw を導入",
+    quick2Body: "ELO Claw Installer から開始。コマンドラインは不要です。",
+    quick2Cta: "インストーラーページ",
+    quick3Title: "World を探索",
+    quick3Body: "プロジェクトグラフで世界の活動を確認します。",
+    quick3Cta: "World を開く",
+    quick4Title: "作成・検索・運用",
+    quick4Body: "New Project で作成、Build で検索、Market で運用確認。",
+    quick4CtaPrimary: "新規プロジェクト",
+    quick4CtaSecondary: "Build を開く",
+    infraTitle: "インフラ構造",
+    infraLede: "接続済みソースプロジェクトは共有基盤としてここに表示されます。",
+    settingsEyebrow: "プライベートワークスペース",
+    settingsTitle: "設定",
+    settingsLede: "ユーザーの私有コントロールです。未ログインの場合は Join へ誘導されます。",
+    joinEyebrow: "参加フロー",
+    joinTitle: "Join",
+    joinLede: "人間 ID を作成するか既存 ID でログインし、私有設定へ進みます。",
+    newProjectEyebrow: "作成フロー",
+    newProjectTitle: "新規プロジェクト",
+    newProjectLede: "アイデアをソースリポジトリ化する専用ルートです。",
+    projectEyebrow: "プロジェクトワークスペース",
+    projectTitle: "Project Workspace",
+    projectLede: "進捗、メンバー、Agent 実行を一つのページで扱います。",
+    worldEyebrow: "プロジェクトグラフ",
+    worldTitle: "World",
+    worldLede: "World はプロジェクトグラフの可視化に専念します。",
+    buildEyebrow: "プロジェクトディレクトリ",
+    buildTitle: "Build",
+    buildLede: "全プロジェクトを検索・閲覧する公開ディレクトリです。",
+    marketEyebrow: "運用マーケット",
+    marketTitle: "Market",
+    marketLede: "運用中（operating）のプロジェクトのみ表示されます。",
+    docsEyebrow: "ドキュメント",
+    docsTitle: "Docs",
+    docsLede: "プロトコル、運用ガイド、統合リファレンスを確認できます。",
+    settingsNavProfile: "個人情報",
+    settingsNavSecurity: "セキュリティとパスワード",
+    settingsNavPrivacy: "プライバシー規約",
+    settingsNavProtocols: "公開プロトコル",
+    settingsNavAgents: "マイ Agent",
+    settingsNavProjects: "マイプロジェクト",
+    settingsNavCurrency: "マイ仮想通貨"
+  }
+};
+const APP_STATIC_TEXT_BINDINGS = [
+  ['.locale-switch label', "langLabel"],
+  ['[data-route-link="home"]', "navHome"],
+  ['[data-route-link="onboarder"]', "navOnboarder"],
+  ['[data-route-link="world"]', "navWorld"],
+  ['[data-route-link="build"]', "navBuild"],
+  ['[data-route-link="market"]', "navMarket"],
+  ['[data-route-link="docs"]', "navDocs"],
+  ['section[data-route="home"] .hero .eyebrow', "homeEyebrow"],
+  ['section[data-route="home"] .hero h1', "homeTitle"],
+  ['section[data-route="home"] .hero .lede', "homeLede"],
+  ['section[data-route="home"] .quickstart-panel .panel-header h2', "quickstartTitle"],
+  ['section[data-route="home"] .quickstart-panel .panel-header p', "quickstartLede"],
+  ['section[data-route="home"] .quickstart-panel .guide-card:nth-of-type(1) h3', "quick1Title"],
+  ['section[data-route="home"] .quickstart-panel .guide-card:nth-of-type(1) p', "quick1Body"],
+  ['section[data-route="home"] .quickstart-panel .guide-card:nth-of-type(1) button', "quick1Cta"],
+  ['section[data-route="home"] .quickstart-panel .guide-card:nth-of-type(2) h3', "quick2Title"],
+  ['section[data-route="home"] .quickstart-panel .guide-card:nth-of-type(2) p', "quick2Body"],
+  ['section[data-route="home"] .quickstart-panel .guide-card:nth-of-type(2) button', "quick2Cta"],
+  ['section[data-route="home"] .quickstart-panel .guide-card:nth-of-type(3) h3', "quick3Title"],
+  ['section[data-route="home"] .quickstart-panel .guide-card:nth-of-type(3) p', "quick3Body"],
+  ['section[data-route="home"] .quickstart-panel .guide-card:nth-of-type(3) button', "quick3Cta"],
+  ['section[data-route="home"] .quickstart-panel .guide-card:nth-of-type(4) h3', "quick4Title"],
+  ['section[data-route="home"] .quickstart-panel .guide-card:nth-of-type(4) p', "quick4Body"],
+  ['section[data-route="home"] .quickstart-panel .guide-card:nth-of-type(4) .action-row button:nth-of-type(1)', "quick4CtaPrimary"],
+  ['section[data-route="home"] .quickstart-panel .guide-card:nth-of-type(4) .action-row button:nth-of-type(2)', "quick4CtaSecondary"],
+  ['section[data-route="home"] .infrastructure .panel-header h2', "infraTitle"],
+  ['section[data-route="home"] .infrastructure .panel-header p', "infraLede"],
+  ['section[data-route="join"] .section-header .eyebrow', "joinEyebrow"],
+  ['section[data-route="join"] .section-header h2', "joinTitle"],
+  ['section[data-route="join"] .section-header .lede', "joinLede"],
+  ['section[data-route="settings"] .section-header .eyebrow', "settingsEyebrow"],
+  ['section[data-route="settings"] .section-header h2', "settingsTitle"],
+  ['section[data-route="settings"] .section-header .lede', "settingsLede"],
+  ['section[data-route="new-project"] .section-header .eyebrow', "newProjectEyebrow"],
+  ['section[data-route="new-project"] .section-header h2', "newProjectTitle"],
+  ['section[data-route="new-project"] .section-header .lede', "newProjectLede"],
+  ['section[data-route="project"] .section-header .eyebrow', "projectEyebrow"],
+  ['section[data-route="project"] .section-header .lede', "projectLede"],
+  ['section[data-route="world"] .section-header .eyebrow', "worldEyebrow"],
+  ['section[data-route="world"] .section-header h2', "worldTitle"],
+  ['section[data-route="world"] .section-header .lede', "worldLede"],
+  ['section[data-route="build"] .section-header .eyebrow', "buildEyebrow"],
+  ['section[data-route="build"] .section-header h2', "buildTitle"],
+  ['section[data-route="build"] .section-header .lede', "buildLede"],
+  ['section[data-route="market"] .section-header .eyebrow', "marketEyebrow"],
+  ['section[data-route="market"] .section-header h2', "marketTitle"],
+  ['section[data-route="market"] .section-header .lede', "marketLede"],
+  ['section[data-route="docs"] .section-header .eyebrow', "docsEyebrow"],
+  ['section[data-route="docs"] .section-header h2', "docsTitle"],
+  ['section[data-route="docs"] .section-header .lede', "docsLede"],
+  ['[data-settings-section="profile"]', "settingsNavProfile"],
+  ['[data-settings-section="security"]', "settingsNavSecurity"],
+  ['[data-settings-section="privacy"]', "settingsNavPrivacy"],
+  ['[data-settings-section="protocols"]', "settingsNavProtocols"],
+  ['[data-settings-section="agents"]', "settingsNavAgents"],
+  ['[data-settings-section="projects"]', "settingsNavProjects"],
+  ['[data-settings-section="currency"]', "settingsNavCurrency"]
+];
 const ONBOARDER_PRESET = {
   repoName: "elo-agent-onboarder",
   kind: "app",
@@ -46,6 +370,7 @@ const FOUNDATION_PROJECT_WORKSPACES = {
 
 const state = {
   summary: null,
+  locale: "en",
   authResolved: false,
   sessionHumanId: loadSession(),
   latestAuthKeyBundle: null,
@@ -123,6 +448,7 @@ const state = {
 bootstrapSessionFromUrl();
 bootstrapOnboarderCheckoutFromUrl();
 bootstrapInstallerAuthFromUrl();
+state.locale = resolveLocaleFromEnvironment();
 
 function loadSession() {
   return localStorage.getItem(SESSION_KEY) || "";
@@ -183,6 +509,71 @@ function bootstrapInstallerAuthFromUrl() {
   state.pendingInstallerAuthSessionId = installerAuthSessionId;
   url.searchParams.delete("installerAuthSessionId");
   history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+}
+
+function normalizeLocale(locale) {
+  const raw = String(locale || "").trim().toLowerCase();
+  if (!raw) return "";
+  if (raw.startsWith("zh")) return "zh";
+  if (raw.startsWith("es")) return "es";
+  if (raw.startsWith("ja")) return "ja";
+  if (raw.startsWith("en")) return "en";
+  return "";
+}
+
+function resolveLocaleFromEnvironment() {
+  const url = new URL(window.location.href);
+  const queryLocale = normalizeLocale(url.searchParams.get("lang") || "");
+  if (APP_SUPPORTED_LOCALES.includes(queryLocale)) return queryLocale;
+
+  const savedLocale = normalizeLocale(localStorage.getItem(APP_LOCALE_KEY) || "");
+  if (APP_SUPPORTED_LOCALES.includes(savedLocale)) return savedLocale;
+
+  const browserLocales = Array.isArray(navigator.languages) && navigator.languages.length
+    ? navigator.languages
+    : [navigator.language || "en"];
+  for (const item of browserLocales) {
+    const normalized = normalizeLocale(item || "");
+    if (APP_SUPPORTED_LOCALES.includes(normalized)) return normalized;
+  }
+  return "en";
+}
+
+function appT(key) {
+  return APP_I18N[state.locale]?.[key] || APP_I18N.en[key] || key;
+}
+
+function syncLocaleSearchParam() {
+  const url = new URL(window.location.href);
+  if (url.searchParams.get("lang") !== state.locale) {
+    url.searchParams.set("lang", state.locale);
+    history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+  }
+}
+
+function setNodeText(selector, text) {
+  const node = document.querySelector(selector);
+  if (!node) return;
+  node.textContent = text;
+}
+
+function applyAppLocaleToStaticText() {
+  document.documentElement.lang = state.locale === "zh" ? "zh-CN" : state.locale;
+  APP_STATIC_TEXT_BINDINGS.forEach(([selector, key]) => {
+    setNodeText(selector, appT(key));
+  });
+  const localeSelect = $("app-locale-select");
+  if (localeSelect && localeSelect.value !== state.locale) {
+    localeSelect.value = state.locale;
+  }
+}
+
+function setAppLocale(locale, { persist = true, syncUrl = true } = {}) {
+  const normalized = normalizeLocale(locale) || "en";
+  state.locale = APP_SUPPORTED_LOCALES.includes(normalized) ? normalized : "en";
+  if (persist) localStorage.setItem(APP_LOCALE_KEY, state.locale);
+  if (syncUrl) syncLocaleSearchParam();
+  applyAppLocaleToStaticText();
 }
 
 function saveSession(humanId) {
@@ -520,34 +911,97 @@ function renderOnboarderLanding() {
 }
 
 function currentRoute() {
-  const route = window.location.hash.replace("#", "").trim();
-  if (route === "onboarder") {
-    if ((window.location.pathname || "/") === "/") {
-      window.location.replace("/onboarder");
-    }
-    return "home";
+  migrateLegacyHashRoute();
+  const { route, settingsSection } = resolvePathRoute(window.location.pathname || "/");
+  if (route === "settings") {
+    state.activeSettingsSection = settingsSection;
   }
-  if (ROUTES.has(route)) return route;
-  const path = (window.location.pathname || "").replace(/\/+$/, "") || "/";
-  if (path === "/onboarder") {
-    window.location.replace("/onboarder");
-    return "home";
-  }
-  return "home";
+  return route;
 }
 
-function goToRoute(route) {
+function resolvePathRoute(pathname) {
+  const path = (String(pathname || "").replace(/\/+$/, "") || "/");
+  if (path === "/" || path === "/home") return { route: "home", settingsSection: SETTINGS_DEFAULT_SECTION };
+  if (path === "/join") return { route: "join", settingsSection: SETTINGS_DEFAULT_SECTION };
+  if (path === "/new-project") return { route: "new-project", settingsSection: SETTINGS_DEFAULT_SECTION };
+  if (path === "/project") return { route: "project", settingsSection: SETTINGS_DEFAULT_SECTION };
+  if (path === "/world") return { route: "world", settingsSection: SETTINGS_DEFAULT_SECTION };
+  if (path === "/build") return { route: "build", settingsSection: SETTINGS_DEFAULT_SECTION };
+  if (path === "/market") return { route: "market", settingsSection: SETTINGS_DEFAULT_SECTION };
+  if (path === "/docs") return { route: "docs", settingsSection: SETTINGS_DEFAULT_SECTION };
+  if (path === "/settings") return { route: "settings", settingsSection: SETTINGS_DEFAULT_SECTION };
+  if (path.startsWith("/settings/")) {
+    const section = path.slice("/settings/".length).trim().toLowerCase();
+    return {
+      route: "settings",
+      settingsSection: SETTINGS_SECTIONS.has(section) ? section : SETTINGS_DEFAULT_SECTION
+    };
+  }
+  return { route: "home", settingsSection: SETTINGS_DEFAULT_SECTION };
+}
+
+function legacyHashToPath(hashValue) {
+  const raw = String(hashValue || "").replace(/^#/, "").trim();
+  if (!raw) return "";
+  const [first, second] = raw.split("/");
+  const route = String(first || "").toLowerCase();
+  if (route === "onboarder") return "/onboarder";
+  if (route === "home") return "/";
+  if (route === "settings") {
+    const section = String(second || "").toLowerCase();
+    if (SETTINGS_SECTIONS.has(section)) return `/settings/${section}`;
+    return `/settings/${SETTINGS_DEFAULT_SECTION}`;
+  }
+  if (ROUTES.has(route) && route !== "onboarder") {
+    return `/${route}`;
+  }
+  return "";
+}
+
+function migrateLegacyHashRoute() {
+  const hash = window.location.hash || "";
+  if (!hash) return;
+  const targetPath = legacyHashToPath(hash);
+  if (!targetPath) return;
+  if (targetPath === "/onboarder") {
+    window.location.replace("/onboarder");
+    return;
+  }
+  const url = new URL(window.location.href);
+  url.hash = "";
+  url.pathname = targetPath;
+  window.history.replaceState({}, "", `${url.pathname}${url.search}`);
+}
+
+function routeToPath(route, options = {}) {
+  const safeRoute = ROUTES.has(route) ? route : "home";
+  if (safeRoute === "home") return "/";
+  if (safeRoute === "settings") {
+    const sectionCandidate = String(options.settingsSection || SETTINGS_DEFAULT_SECTION).toLowerCase();
+    const section = SETTINGS_SECTIONS.has(sectionCandidate) ? sectionCandidate : SETTINGS_DEFAULT_SECTION;
+    return `/settings/${section}`;
+  }
+  return `/${safeRoute}`;
+}
+
+function goToRoute(route, options = {}) {
   const safeRoute = ROUTES.has(route) ? route : "home";
   if (safeRoute === "onboarder") {
-    window.location.href = "/onboarder";
+    const target = new URL("/onboarder", window.location.origin);
+    target.searchParams.set("lang", state.locale || "en");
+    window.location.href = `${target.pathname}${target.search}`;
     return;
   }
-  const hash = safeRoute === "home" ? "#home" : `#${safeRoute}`;
-  if ((window.location.pathname || "") !== "/") {
-    window.location.href = `/${hash}`;
-    return;
+  const targetPath = routeToPath(safeRoute, options);
+  const url = new URL(window.location.href);
+  if (url.pathname !== targetPath || url.hash) {
+    window.history.pushState({}, "", `${targetPath}${url.search}`);
   }
-  window.location.hash = hash;
+  if (safeRoute === "settings") {
+    const sectionCandidate = String(options.settingsSection || SETTINGS_DEFAULT_SECTION).toLowerCase();
+    state.activeSettingsSection = SETTINGS_SECTIONS.has(sectionCandidate) ? sectionCandidate : SETTINGS_DEFAULT_SECTION;
+  }
+  showRoute(currentRoute());
 }
 
 function currentHuman() {
@@ -2315,16 +2769,16 @@ function renderTopbarActions() {
   const human = currentHuman();
   if (!human) {
     root.innerHTML = `
-      <button type="button" class="topbar-button secondary" data-route-target="onboarder">Get OpenClaw</button>
-      <button type="button" class="topbar-button" data-route-target="join">Join</button>
+      <button type="button" class="topbar-button secondary" data-route-target="onboarder">${escapeHtml(appT("actionGetOpenClaw"))}</button>
+      <button type="button" class="topbar-button" data-route-target="join">${escapeHtml(appT("actionJoin"))}</button>
     `;
   } else {
     root.innerHTML = `
       <div class="session-chip">${human.displayName || human.humanId}</div>
-      <button type="button" class="topbar-button secondary" data-route-target="onboarder">Get OpenClaw</button>
-      <button type="button" class="topbar-button secondary" data-route-target="new-project">New Project</button>
-      <button type="button" class="topbar-button secondary" data-route-target="settings">Settings</button>
-      <button type="button" class="topbar-button ghost" id="signout-button">Sign Out</button>
+      <button type="button" class="topbar-button secondary" data-route-target="onboarder">${escapeHtml(appT("actionGetOpenClaw"))}</button>
+      <button type="button" class="topbar-button secondary" data-route-target="new-project">${escapeHtml(appT("actionNewProject"))}</button>
+      <button type="button" class="topbar-button secondary" data-route-target="settings">${escapeHtml(appT("actionSettings"))}</button>
+      <button type="button" class="topbar-button ghost" id="signout-button">${escapeHtml(appT("actionSignOut"))}</button>
     `;
     $("signout-button")?.addEventListener("click", () => {
       saveSession("");
@@ -5904,7 +6358,7 @@ function buildAgentReadyPrompt({ human, authKeyBundle, signedGuide }) {
     `- What We Are: ${window.location.origin}/guides/what-is.html`,
     `- AI Quickstart: ${window.location.origin}/guides/ai-quickstart.html`,
     `- OpenClaw Quick Setup: ${window.location.origin}/guides/openclaw-quick-setup.html`,
-    `- Public Protocols: ${window.location.origin}/#settings`,
+    `- Public Protocols: ${window.location.origin}/settings/protocols`,
     `- Universe Manifest: ${window.location.origin}/api/universe/manifest`,
     "",
     "## Authorized Human Context",
@@ -7440,6 +7894,10 @@ function renderSettingsShell() {
   document.querySelectorAll("[data-settings-section]").forEach((node) => {
     node.classList.toggle("active", node.dataset.settingsSection === state.activeSettingsSection);
   });
+  const summaryPanel = document.querySelector(".settings-summary-panel");
+  if (summaryPanel) {
+    summaryPanel.hidden = state.activeSettingsSection !== "profile";
+  }
 }
 
 function formDataToObject(form) {
@@ -7576,6 +8034,7 @@ async function bindPendingInstallerAuthSession() {
 
 function renderAll() {
   if (!state.summary) return;
+  applyAppLocaleToStaticText();
   renderTopbarActions();
   renderSummary(state.summary);
   renderBuildFilterSummary();
@@ -7869,10 +8328,22 @@ document.querySelectorAll("[data-route-target]").forEach((node) => {
   node.addEventListener("click", () => goToRoute(node.dataset.routeTarget));
 });
 
+document.querySelectorAll("[data-route-link]").forEach((node) => {
+  node.addEventListener("click", (event) => {
+    event.preventDefault();
+    goToRoute(node.dataset.routeLink);
+  });
+});
+
+$("app-locale-select")?.addEventListener("change", (event) => {
+  setAppLocale(event.currentTarget.value, { persist: true, syncUrl: true });
+  renderAll();
+});
+
 document.querySelectorAll("[data-settings-section]").forEach((node) => {
   node.addEventListener("click", () => {
-    state.activeSettingsSection = node.dataset.settingsSection;
-    renderSettingsShell();
+    const section = String(node.dataset.settingsSection || "").toLowerCase();
+    goToRoute("settings", { settingsSection: section });
   });
 });
 
@@ -7965,6 +8436,8 @@ $("security-password-reset-form")?.addEventListener("submit", async (event) => {
   }
 });
 
+window.addEventListener("popstate", () => showRoute(currentRoute()));
 window.addEventListener("hashchange", () => showRoute(currentRoute()));
+setAppLocale(state.locale, { persist: true, syncUrl: true });
 showRoute(currentRoute());
 loadAuthConfig().then(() => refresh()).catch((error) => setStatus(error.message, "error"));

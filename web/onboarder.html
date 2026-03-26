@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -14,29 +14,41 @@
     </div>
 
     <header class="onb-topbar">
-      <a class="brand" href="/#home">ELO Open World</a>
+      <a class="brand" href="/">ELO Open World</a>
       <nav class="nav">
-        <a href="/#home">Home</a>
-        <a href="#pricing">Plans</a>
-        <a href="#faq">FAQ</a>
-        <a href="/human-auth">Sign In</a>
+        <a id="nav-home" href="/">Home</a>
+        <a id="nav-plans" href="#pricing">Plans</a>
+        <a id="nav-faq" href="#faq">FAQ</a>
+        <a id="nav-signin" href="/human-auth">Sign In</a>
       </nav>
+      <div class="lang-switch">
+        <label id="lang-label" for="lang-select">Language</label>
+        <select id="lang-select" aria-label="Language">
+          <option value="en">English</option>
+          <option value="zh">中文</option>
+          <option value="es">Español</option>
+          <option value="ja">日本語</option>
+        </select>
+      </div>
     </header>
 
     <main class="onb-main">
       <section id="download-anchor" class="hero">
-        <div class="hero-badge">ELO Claw Installer - 龙虾安装器</div>
-        <h1>一键安装你的 <span>OpenClaw Agent</span></h1>
+        <div id="hero-badge" class="hero-badge">ELO Claw Installer</div>
+        <h1>
+          <span id="hero-title-pre">Build Your</span>
+          <span id="hero-title-accent">OpenClaw Agent</span>
+        </h1>
         <p class="hero-sub">
-          无需命令行，图形化向导完成配置与上线
+          <span id="hero-sub-line">No command line required, just guided setup.</span>
           <br />
-          <strong>让你的 AI 员工为你工作</strong>
+          <strong id="hero-sub-strong">Let your AI teammate work for you.</strong>
         </p>
         <div class="hero-actions">
-          <button type="button" class="btn btn-primary is-download" data-installer-download="macos">Download for macOS</button>
-          <button type="button" class="btn btn-ghost is-download" data-installer-download="windows">Download for Windows</button>
+          <button id="download-macos" type="button" class="btn btn-primary is-download" data-installer-download="macos">Download for macOS</button>
+          <button id="download-windows" type="button" class="btn btn-ghost is-download" data-installer-download="windows">Download for Windows</button>
         </div>
-        <p class="hero-meta">支持中英双语安装流程 · 安装后可选接入 EOW</p>
+        <p id="hero-meta" class="hero-meta">4-language guided installer · optional EOW integration</p>
         <div class="hero-lobster" aria-hidden="true">
           <img src="/assets/eab-logo-2-cl.png?v=20260326c" alt="ELO Claw Installer Logo" />
         </div>
@@ -44,56 +56,56 @@
 
       <section class="section">
         <div class="section-head">
-          <h2>为什么选择 ELO</h2>
-          <p>三大核心优势，让 AI Agent 触手可及</p>
+          <h2 id="features-title">Why ELO Claw Installer</h2>
+          <p id="features-sub">Three advantages for non-technical users</p>
         </div>
         <div class="feature-grid">
           <article class="glass-card">
-            <h3>零安装门槛</h3>
-            <p>全流程图形化引导，不会命令行也能完成安装配置。</p>
+            <h3 id="feature1-title">Zero CLI Barrier</h3>
+            <p id="feature1-body">A visual step-by-step flow from login to installation.</p>
           </article>
           <article class="glass-card">
-            <h3>无隐私泄漏</h3>
-            <p>API Key 仅本地写入，不上传、不存储、不传输到服务器。</p>
+            <h3 id="feature2-title">Local-Only Key Safety</h3>
+            <p id="feature2-body">Your API keys stay on your device and are never uploaded.</p>
           </article>
           <article class="glass-card">
-            <h3>预算可控</h3>
-            <p>配套流量监控与费用估算，实时掌握成本动态。</p>
+            <h3 id="feature3-title">Cost Visibility</h3>
+            <p id="feature3-body">Track usage and estimated cost through local dashboard tools.</p>
           </article>
         </div>
       </section>
 
       <section class="section">
         <div class="section-head">
-          <h2>三步开启你的 AI Agent</h2>
-          <p>简单、快速、无需任何技术背景</p>
+          <h2 id="steps-title">Start in 3 Steps</h2>
+          <p id="steps-sub">Download, configure, and launch quickly</p>
         </div>
         <div class="steps-grid">
           <article class="glass-card step-card">
             <span class="step-no">01</span>
-            <h3>下载并启动安装器</h3>
-            <p>选择适合你的系统版本，双击运行即可。</p>
+            <h3 id="step1-title">Download Installer</h3>
+            <p id="step1-body">Choose macOS or Windows and open the app.</p>
           </article>
           <article class="glass-card step-card">
             <span class="step-no">02</span>
-            <h3>登录授权 + 选择套餐</h3>
-            <p>完成账户授权，根据需求选择套餐和模型。</p>
+            <h3 id="step2-title">Authorize + Select Plan</h3>
+            <p id="step2-body">Login to EOW, then choose package and model settings.</p>
           </article>
           <article class="glass-card step-card">
             <span class="step-no">03</span>
-            <h3>支付并自动安装</h3>
-            <p>安装器内一次性支付，自动完成配置与接入。</p>
+            <h3 id="step3-title">Pay and Auto Install</h3>
+            <p id="step3-body">Complete one-time payment in installer and finish setup.</p>
           </article>
         </div>
         <div class="center-cta">
-          <button type="button" class="btn btn-primary" data-scroll-download>立即开始</button>
+          <button id="start-now" type="button" class="btn btn-primary" data-scroll-download>Start Now</button>
         </div>
       </section>
 
       <section id="pricing" class="section">
         <div class="section-head">
-          <h2>按需选择套餐</h2>
-          <p>从基础到专业，总有一款适合你</p>
+          <h2 id="pricing-title">Choose Your Package</h2>
+          <p id="pricing-sub">From starter to builder, pick what fits your goals</p>
         </div>
         <div id="checkout-banner" class="banner" hidden></div>
         <div id="onb-package-grid" class="pricing-grid"></div>
@@ -101,49 +113,61 @@
 
       <section class="section security">
         <div class="section-head">
-          <h2>您的隐私，我们的承诺</h2>
-          <p>本地优先架构，敏感信息由你自己掌控</p>
+          <h2 id="security-title">Privacy and Security Promise</h2>
+          <p id="security-sub">Your keys remain local, your setup stays in your control</p>
         </div>
         <div class="security-grid">
-          <article class="glass-card"><h3>API Key 仅本地写入</h3><p>绝不上传到 EOW 服务端。</p></article>
-          <article class="glass-card"><h3>不上传到服务器</h3><p>服务器不保存任何你的密钥内容。</p></article>
-          <article class="glass-card"><h3>本地 Dashboard 管理</h3><p>本地查看 keys、调用次数和费用估算。</p></article>
-          <article class="glass-card"><h3>Stripe 安全支付</h3><p>一次性付费，支付流程在安装器中完成。</p></article>
+          <article class="glass-card">
+            <h3 id="security-card1-title">API Key Local-Only</h3>
+            <p id="security-card1-body">Never uploaded to EOW.</p>
+          </article>
+          <article class="glass-card">
+            <h3 id="security-card2-title">No Server Storage</h3>
+            <p id="security-card2-body">Server state and logs do not contain your key.</p>
+          </article>
+          <article class="glass-card">
+            <h3 id="security-card3-title">Installer-First Guidance</h3>
+            <p id="security-card3-body">A guided process built for non-technical users.</p>
+          </article>
+          <article class="glass-card">
+            <h3 id="security-card4-title">Stripe One-Time Payment</h3>
+            <p id="security-card4-body">Payment is completed safely in installer checkout.</p>
+          </article>
         </div>
       </section>
 
       <section id="faq" class="section">
         <div class="section-head">
-          <h2>常见问题</h2>
-          <p>我们整理了最常见的问题</p>
+          <h2 id="faq-title">Frequently Asked Questions</h2>
+          <p id="faq-sub">Answers to the most common onboarding questions</p>
         </div>
         <div class="faq-list">
           <article class="faq-item">
-            <button type="button" class="faq-trigger" aria-expanded="true">我不会命令行可以使用吗？<span>+</span></button>
-            <div class="faq-panel"><p>完全可以。安装器是普通用户向导流程，按提示点击下一步即可。</p></div>
+            <button type="button" class="faq-trigger" aria-expanded="true"><span id="faq-q1" class="faq-label">Can I use this without command line skills?</span><span>+</span></button>
+            <div class="faq-panel"><p id="faq-a1">Yes. The installer is fully guided and beginner-friendly.</p></div>
           </article>
           <article class="faq-item">
-            <button type="button" class="faq-trigger" aria-expanded="false">支持哪些操作系统？<span>+</span></button>
-            <div class="faq-panel" hidden><p>当前支持 macOS 和 Windows。</p></div>
+            <button type="button" class="faq-trigger" aria-expanded="false"><span id="faq-q2" class="faq-label">Which operating systems are supported?</span><span>+</span></button>
+            <div class="faq-panel" hidden><p id="faq-a2">Currently macOS and Windows are supported.</p></div>
           </article>
           <article class="faq-item">
-            <button type="button" class="faq-trigger" aria-expanded="false">API Key 会上传吗？<span>+</span></button>
-            <div class="faq-panel" hidden><p>不会。API Key 仅本地写入，不会进入服务端请求和日志。</p></div>
+            <button type="button" class="faq-trigger" aria-expanded="false"><span id="faq-q3" class="faq-label">Will my API key be uploaded?</span><span>+</span></button>
+            <div class="faq-panel" hidden><p id="faq-a3">No. API keys are stored and written locally only.</p></div>
           </article>
           <article class="faq-item">
-            <button type="button" class="faq-trigger" aria-expanded="false">安装后做什么？<span>+</span></button>
-            <div class="faq-panel" hidden><p>打开本地 Dashboard，继续配置高级功能并查看成本。</p></div>
+            <button type="button" class="faq-trigger" aria-expanded="false"><span id="faq-q4" class="faq-label">What should I do after installation?</span><span>+</span></button>
+            <div class="faq-panel" hidden><p id="faq-a4">Open your local dashboard to configure advanced keys and monitor cost.</p></div>
           </article>
         </div>
       </section>
     </main>
 
     <footer class="footer-cta">
-      <h2>准备好开始了吗？</h2>
-      <p>下载 ELO Claw Installer，3 分钟启动你的 AI Agent</p>
+      <h2 id="footer-title">Ready to Build Your OpenClaw?</h2>
+      <p id="footer-sub">Download ELO Claw Installer and launch in minutes</p>
       <div class="footer-actions">
-        <button type="button" class="btn btn-primary" data-scroll-download>Download Installer</button>
-        <button type="button" class="btn btn-ghost" data-scroll-download>View Plans</button>
+        <button id="footer-download" type="button" class="btn btn-primary" data-scroll-download>Download Installer</button>
+        <button id="footer-view-plans" type="button" class="btn btn-ghost" data-scroll-download>View Plans</button>
       </div>
     </footer>
 

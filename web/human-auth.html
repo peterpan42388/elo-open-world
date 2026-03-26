@@ -46,7 +46,7 @@
       <header class="topbar">
         <a class="brand" href="/">ELO Open World</a>
         <div class="topbar-actions">
-          <a class="topbar-button secondary" href="/#home">Back Home</a>
+          <a class="topbar-button secondary" href="/">Back Home</a>
         </div>
       </header>
       <main class="human-auth-page">
@@ -100,7 +100,7 @@
           window.location.href = `/oauth/consent?returnTo=${encodeURIComponent(returnTo)}`;
           return;
         }
-        window.location.href = "/#settings";
+        window.location.href = "/settings/profile";
       }
 
       document.getElementById("human-login-form")?.addEventListener("submit", async (event) => {

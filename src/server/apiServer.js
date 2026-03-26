@@ -75,7 +75,7 @@ function renderAuthResultPage({ ok, message, humanId = "", installerAuthSessionI
     const extra = safeInstallerAuthSessionId ? `&installerAuthSessionId=${encodeURIComponent(installerAuthSessionId || "")}` : "";
     return `<!doctype html><html><body><script>
       localStorage.setItem('elo-open-world.session', '${safeHumanId}');
-      window.location.replace('/?sessionHumanId=${encodeURIComponent(humanId || "")}${extra}#settings');
+      window.location.replace('/settings/profile?sessionHumanId=${encodeURIComponent(humanId || "")}${extra}');
     </script><p>${safeMessage}</p></body></html>`;
   }
   return `<!doctype html><html><body><script>
@@ -85,7 +85,7 @@ function renderAuthResultPage({ ok, message, humanId = "", installerAuthSessionI
 
 function renderEmailVerifyResultPage({ ok, message }) {
   const safeMessage = String(message || "Email verification failed.").replace(/</g, "&lt;");
-  const route = ok ? "/#settings" : "/human-auth";
+  const route = ok ? "/settings/profile" : "/human-auth";
   return `<!doctype html><html><body><script>
     window.location.replace('${route}');
   </script><p>${safeMessage}</p></body></html>`;
@@ -105,7 +105,7 @@ function renderPasswordResetPage({ token = "", message = "", ok = false }) {
     <body>
       <div class="page">
         <header class="topbar">
-          <a class="brand" href="/#home">ELO Open World</a>
+          <a class="brand" href="/">ELO Open World</a>
           <div class="topbar-actions"><a class="topbar-button secondary" href="/human-auth">Back To Sign In</a></div>
         </header>
         <main>
@@ -167,8 +167,8 @@ function renderOnboarderServicePage() {
     <body>
       <div class="page">
         <header class="topbar">
-          <a class="brand" href="/#home">ELO Open World</a>
-          <div class="topbar-actions"><a class="topbar-button secondary" href="/#market">Back To Market</a></div>
+          <a class="brand" href="/">ELO Open World</a>
+          <div class="topbar-actions"><a class="topbar-button secondary" href="/market">Back To Market</a></div>
         </header>
         <main>
           <section class="panel guide-page">
@@ -232,8 +232,8 @@ function renderWebPluginServicePage() {
     <body>
       <div class="page">
         <header class="topbar">
-          <a class="brand" href="/#home">ELO Open World</a>
-          <div class="topbar-actions"><a class="topbar-button secondary" href="/#settings">Back To Settings</a></div>
+          <a class="brand" href="/">ELO Open World</a>
+          <div class="topbar-actions"><a class="topbar-button secondary" href="/settings/profile">Back To Settings</a></div>
         </header>
         <main>
           <section class="panel guide-page">
@@ -407,8 +407,27 @@ const server = http.createServer(async (req, res) => {
       return redirect(res, "/onboarder");
     }
 
+    if ((req.method === "GET" || req.method === "HEAD") && path === "/settings/") {
+      return redirect(res, "/settings/profile");
+    }
+
+    const eowAppPaths = new Set([
+      "/",
+      "/home",
+      "/join",
+      "/settings",
+      "/new-project",
+      "/project",
+      "/world",
+      "/build",
+      "/market",
+      "/docs"
+    ]);
+    const isSettingsSubPath = path.startsWith("/settings/");
+    const isAppShellPath = eowAppPaths.has(path) || isSettingsSubPath;
+
     if ((req.method === "GET" || req.method === "HEAD") && (
-      path === "/" ||
+      isAppShellPath ||
       path === "/onboarder" ||
       path === "/onboarder.html" ||
       path === "/onboarder.css" ||
@@ -422,7 +441,9 @@ const server = http.createServer(async (req, res) => {
       path.startsWith("/guides/") ||
       path.startsWith("/lib/")
     )) {
-      const staticPath = path === "/human-auth"
+      const staticPath = isAppShellPath
+        ? "/index.html"
+        : path === "/human-auth"
         ? "/human-auth.html"
         : path === "/oauth/consent"
           ? "/oauth-consent.html"
@@ -832,27 +853,50 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === "GET" && path === "/api/onboarder/public-offer") {
       const catalog = framework.onboarder.catalog();
+      const installerConfig = framework.onboarderInstaller?.installerConfig?.() || {};
       const readiness = framework.onboarderCommerce.billingProvider.billingReadiness?.() || {
         provider: "unknown",
         configured: false,
         packages: {}
       };
+      const trustNotesI18n = {
+        en: [
+          "API keys are local-only and not uploaded to EOW.",
+          "Installer uses guided UI flow for non-technical users.",
+          "Payment is one-time via Stripe and completed in installer."
+        ],
+        zh: [
+          "API Key 仅本地写入，不会上传到 EOW。",
+          "安装器为普通用户提供可视化引导流程。",
+          "支付为 Stripe 一次性付款，并在安装器内完成。"
+        ],
+        es: [
+          "Las API keys se guardan solo en local y no se suben a EOW.",
+          "El instalador ofrece una guía visual para usuarios no técnicos.",
+          "El pago es único con Stripe y se completa dentro del instalador."
+        ],
+        ja: [
+          "API Key はローカル保存のみで、EOW へアップロードされません。",
+          "インストーラーは非技術ユーザー向けのガイド UI を提供します。",
+          "支払いは Stripe の一回払いで、インストーラー内で完了します。"
+        ]
+      };
       return json(res, 200, {
         contract: "elo-agent-onboarder.public-offer.v1",
         generatedAt: Date.now(),
-        languages: ["zh", "en"],
+        languages: Array.isArray(installerConfig.supportedLanguages) && installerConfig.supportedLanguages.length
+          ? installerConfig.supportedLanguages
+          : ["en", "zh", "es", "ja"],
         funnel: "download-first",
         packages: catalog.packages || [],
+        packageContentsI18n: installerConfig.packageContentsI18n || {},
         billingReadiness: readiness,
         download: {
           macos: "/api/onboarder/installer/download?os=macos",
           windows: "/api/onboarder/installer/download?os=windows"
         },
-        trustNotes: [
-          "API keys are local-only and not uploaded to EOW.",
-          "Installer uses guided UI flow for non-technical users.",
-          "Payment is one-time via Stripe and completed in installer."
-        ]
+        trustNotes: trustNotesI18n.en,
+        trustNotesI18n
       });
     }
 

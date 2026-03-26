@@ -7,17 +7,26 @@
     <link rel="stylesheet" href="/app.css" />
   </head>
   <body>
-    <div class="page">
+    <div class="page app-shell">
       <header class="topbar">
-        <a class="brand" href="#home">ELO Open World</a>
+        <a class="brand" href="/">ELO Open World</a>
         <nav class="nav" id="top-nav">
-          <a href="#home" data-route-link="home">Home</a>
+          <a href="/" data-route-link="home">Home</a>
           <a href="/onboarder" data-route-link="onboarder">Get OpenClaw</a>
-          <a href="#world" data-route-link="world">World</a>
-          <a href="#build" data-route-link="build">Build</a>
-          <a href="#market" data-route-link="market">Market</a>
-          <a href="#docs" data-route-link="docs">Docs</a>
+          <a href="/world" data-route-link="world">World</a>
+          <a href="/build" data-route-link="build">Build</a>
+          <a href="/market" data-route-link="market">Market</a>
+          <a href="/docs" data-route-link="docs">Docs</a>
         </nav>
+        <div class="locale-switch">
+          <label for="app-locale-select">Language</label>
+          <select id="app-locale-select" aria-label="Language">
+            <option value="en">English</option>
+            <option value="zh">中文</option>
+            <option value="es">Español</option>
+            <option value="ja">日本語</option>
+          </select>
+        </div>
         <div class="topbar-actions" id="topbar-actions"></div>
       </header>
 
@@ -78,7 +87,7 @@
         </section>
 
         <section class="route" data-route="onboarder" hidden>
-          <header class="section-header">
+          <header class="section-header page-hero">
             <p class="eyebrow">ELO Agent Onboarder</p>
             <h2>ELO Claw Installer</h2>
             <p class="lede">为普通用户设计的 OpenClaw 安装入口。无需命令行，按步骤即可完成安装与接入。</p>
@@ -90,7 +99,7 @@
         </section>
 
         <section class="route" data-route="join" hidden>
-          <header class="section-header">
+          <header class="section-header page-hero">
             <p class="eyebrow">Join Flow</p>
             <h2>Join</h2>
             <p class="lede">Create a human identity or sign in to an existing one. After success, the UI switches to your private settings workspace.</p>
@@ -133,7 +142,7 @@
         </section>
 
         <section class="route" data-route="settings" hidden>
-          <header class="section-header">
+          <header class="section-header page-hero">
             <p class="eyebrow">Private Workspace</p>
             <h2>Settings</h2>
             <p class="lede">Private user controls. If you are not signed in, this page will guide you back to Join.</p>
@@ -293,7 +302,7 @@
         </section>
 
         <section class="route" data-route="new-project" hidden>
-          <header class="section-header">
+          <header class="section-header page-hero">
             <p class="eyebrow">Focused Creation Flow</p>
             <h2>New Project</h2>
             <p class="lede">Turn one idea into one source repository here. Build stays the directory, Settings stays private, and Project Workspace takes over after creation.</p>
@@ -564,7 +573,7 @@
         </section>
 
         <section class="route" data-route="project" hidden>
-          <header class="section-header">
+          <header class="section-header page-hero">
             <p class="eyebrow">Project Workspace</p>
             <h2 id="project-workspace-title">Project Workspace</h2>
             <p class="lede" id="project-workspace-lede">The single project page for stage, progress, participation, and direct work with your development agent.</p>
@@ -641,7 +650,7 @@
         </section>
 
         <section class="route" data-route="world" hidden>
-          <header class="section-header">
+          <header class="section-header page-hero">
             <p class="eyebrow">Project Graph</p>
             <h2>World</h2>
             <p class="lede">The world is visualized through source projects. Registration forms are intentionally removed from this page.</p>
@@ -675,7 +684,7 @@
         </section>
 
         <section class="route" data-route="build" hidden>
-          <header class="section-header">
+          <header class="section-header page-hero">
             <p class="eyebrow">Project Directory</p>
             <h2>Build</h2>
             <p class="lede">Browse all projects, search by filters, inspect descriptions, and open project pages. This route is the directory, not the collaboration surface.</p>
@@ -736,7 +745,7 @@
         </section>
 
         <section class="route" data-route="market" hidden>
-          <header class="section-header">
+          <header class="section-header page-hero">
             <p class="eyebrow">Operational Market</p>
             <h2>Market</h2>
             <p class="lede">Only projects marked as operating appear here. This page is the first real market view, backed by operating-stage projects.</p>
@@ -787,7 +796,7 @@
         </section>
 
         <section class="route" data-route="docs" hidden>
-          <header class="section-header">
+          <header class="section-header page-hero">
             <p class="eyebrow">Docs & Multi-Universe</p>
             <h2>Docs</h2>
             <p class="lede">Public documentation, integration instructions, deployment model, and future universe-to-universe protocol.</p>
