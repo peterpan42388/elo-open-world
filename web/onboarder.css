@@ -177,8 +177,16 @@ body {
 }
 
 .hero-lobster {
-  font-size: clamp(72px, 10vw, 124px);
+  width: clamp(136px, 16vw, 220px);
+  margin: 4px auto 0;
   animation: float-lobster 3s ease-in-out infinite;
+}
+
+.hero-lobster img {
+  width: 100%;
+  height: auto;
+  display: block;
+  filter: drop-shadow(0 18px 30px rgba(3, 5, 16, 0.55));
 }
 
 @keyframes float-lobster {
