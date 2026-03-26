@@ -521,9 +521,18 @@ function renderOnboarderLanding() {
 
 function currentRoute() {
   const route = window.location.hash.replace("#", "").trim();
+  if (route === "onboarder") {
+    if ((window.location.pathname || "/") === "/") {
+      window.location.replace("/onboarder");
+    }
+    return "home";
+  }
   if (ROUTES.has(route)) return route;
   const path = (window.location.pathname || "").replace(/\/+$/, "") || "/";
-  if (path === "/onboarder") return "onboarder";
+  if (path === "/onboarder") {
+    window.location.replace("/onboarder");
+    return "home";
+  }
   return "home";
 }
 

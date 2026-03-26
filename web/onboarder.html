@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ELO Claw Installer</title>
+    <link rel="stylesheet" href="/onboarder.css" />
+  </head>
+  <body>
+    <div class="onb-bg-blobs" aria-hidden="true">
+      <span class="blob blob-a"></span>
+      <span class="blob blob-b"></span>
+      <span class="blob blob-c"></span>
+    </div>
+
+    <header class="onb-topbar">
+      <a class="brand" href="/#home">ELO Open World</a>
+      <nav class="nav">
+        <a href="/#home">Home</a>
+        <a href="#pricing">Plans</a>
+        <a href="#faq">FAQ</a>
+        <a href="/human-auth">Sign In</a>
+      </nav>
+    </header>
+
+    <main class="onb-main">
+      <section id="download-anchor" class="hero">
+        <div class="hero-badge">ELO Claw Installer - 龙虾安装器</div>
+        <h1>一键安装你的 <span>OpenClaw Agent</span></h1>
+        <p class="hero-sub">
+          无需命令行，图形化向导完成配置与上线
+          <br />
+          <strong>让你的 AI 员工为你工作</strong>
+        </p>
+        <div class="hero-actions">
+          <button type="button" class="btn btn-primary is-download" data-installer-download="macos">Download for macOS</button>
+          <button type="button" class="btn btn-ghost is-download" data-installer-download="windows">Download for Windows</button>
+        </div>
+        <p class="hero-meta">支持中英双语安装流程 · 安装后可选接入 EOW</p>
+        <div class="hero-lobster" aria-hidden="true">🦞</div>
+      </section>
+
+      <section class="section">
+        <div class="section-head">
+          <h2>为什么选择 ELO</h2>
+          <p>三大核心优势，让 AI Agent 触手可及</p>
+        </div>
+        <div class="feature-grid">
+          <article class="glass-card">
+            <h3>零安装门槛</h3>
+            <p>全流程图形化引导，不会命令行也能完成安装配置。</p>
+          </article>
+          <article class="glass-card">
+            <h3>无隐私泄漏</h3>
+            <p>API Key 仅本地写入，不上传、不存储、不传输到服务器。</p>
+          </article>
+          <article class="glass-card">
+            <h3>预算可控</h3>
+            <p>配套流量监控与费用估算，实时掌握成本动态。</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-head">
+          <h2>三步开启你的 AI Agent</h2>
+          <p>简单、快速、无需任何技术背景</p>
+        </div>
+        <div class="steps-grid">
+          <article class="glass-card step-card">
+            <span class="step-no">01</span>
+            <h3>下载并启动安装器</h3>
+            <p>选择适合你的系统版本，双击运行即可。</p>
+          </article>
+          <article class="glass-card step-card">
+            <span class="step-no">02</span>
+            <h3>登录授权 + 选择套餐</h3>
+            <p>完成账户授权，根据需求选择套餐和模型。</p>
+          </article>
+          <article class="glass-card step-card">
+            <span class="step-no">03</span>
+            <h3>支付并自动安装</h3>
+            <p>安装器内一次性支付，自动完成配置与接入。</p>
+          </article>
+        </div>
+        <div class="center-cta">
+          <button type="button" class="btn btn-primary" data-scroll-download>立即开始</button>
+        </div>
+      </section>
+
+      <section id="pricing" class="section">
+        <div class="section-head">
+          <h2>按需选择套餐</h2>
+          <p>从基础到专业，总有一款适合你</p>
+        </div>
+        <div id="checkout-banner" class="banner" hidden></div>
+        <div id="onb-package-grid" class="pricing-grid"></div>
+      </section>
+
+      <section class="section security">
+        <div class="section-head">
+          <h2>您的隐私，我们的承诺</h2>
+          <p>本地优先架构，敏感信息由你自己掌控</p>
+        </div>
+        <div class="security-grid">
+          <article class="glass-card"><h3>API Key 仅本地写入</h3><p>绝不上传到 EOW 服务端。</p></article>
+          <article class="glass-card"><h3>不上传到服务器</h3><p>服务器不保存任何你的密钥内容。</p></article>
+          <article class="glass-card"><h3>本地 Dashboard 管理</h3><p>本地查看 keys、调用次数和费用估算。</p></article>
+          <article class="glass-card"><h3>Stripe 安全支付</h3><p>一次性付费，支付流程在安装器中完成。</p></article>
+        </div>
+      </section>
+
+      <section id="faq" class="section">
+        <div class="section-head">
+          <h2>常见问题</h2>
+          <p>我们整理了最常见的问题</p>
+        </div>
+        <div class="faq-list">
+          <article class="faq-item">
+            <button type="button" class="faq-trigger" aria-expanded="true">我不会命令行可以使用吗？<span>+</span></button>
+            <div class="faq-panel"><p>完全可以。安装器是普通用户向导流程，按提示点击下一步即可。</p></div>
+          </article>
+          <article class="faq-item">
+            <button type="button" class="faq-trigger" aria-expanded="false">支持哪些操作系统？<span>+</span></button>
+            <div class="faq-panel" hidden><p>当前支持 macOS 和 Windows。</p></div>
+          </article>
+          <article class="faq-item">
+            <button type="button" class="faq-trigger" aria-expanded="false">API Key 会上传吗？<span>+</span></button>
+            <div class="faq-panel" hidden><p>不会。API Key 仅本地写入，不会进入服务端请求和日志。</p></div>
+          </article>
+          <article class="faq-item">
+            <button type="button" class="faq-trigger" aria-expanded="false">安装后做什么？<span>+</span></button>
+            <div class="faq-panel" hidden><p>打开本地 Dashboard，继续配置高级功能并查看成本。</p></div>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer-cta">
+      <h2>准备好开始了吗？</h2>
+      <p>下载 ELO Claw Installer，3 分钟启动你的 AI Agent</p>
+      <div class="footer-actions">
+        <button type="button" class="btn btn-primary" data-scroll-download>Download Installer</button>
+        <button type="button" class="btn btn-ghost" data-scroll-download>View Plans</button>
+      </div>
+    </footer>
+
+    <script src="/onboarder.js" type="module"></script>
+  </body>
+</html>

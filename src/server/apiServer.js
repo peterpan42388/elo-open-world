@@ -410,6 +410,9 @@ const server = http.createServer(async (req, res) => {
     if ((req.method === "GET" || req.method === "HEAD") && (
       path === "/" ||
       path === "/onboarder" ||
+      path === "/onboarder.html" ||
+      path === "/onboarder.css" ||
+      path === "/onboarder.js" ||
       path === "/human-auth" ||
       path === "/oauth/consent" ||
       path === "/index.html" ||
@@ -423,7 +426,7 @@ const server = http.createServer(async (req, res) => {
         : path === "/oauth/consent"
           ? "/oauth-consent.html"
           : path === "/onboarder"
-            ? "/index.html"
+            ? "/onboarder.html"
           : path;
       return await serveStatic(staticPath, res);
     }
