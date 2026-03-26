@@ -84,10 +84,11 @@ Tasks:
 - Continue improving artifact readability and delivery UX where needed.
 
 ## Recommended Next Action
-Move to `P0 World Completion`, specifically:
-1. keep `Project First` as the default world preset while tightening cluster declutter for larger graphs
-2. continue polishing drawer and focus-mode transitions without reintroducing heavy overlay work
-3. keep `World Insights` and loader fallback aligned with the real graph state so production never fails silently
+Move to `EOW Production Refactor - Phase 2`:
+1. complete path-route migration copy and interaction parity for `/build`, `/market`, `/docs`, `/world`
+2. finish full-route i18n text binding in `en/zh/es/ja` for the main route headers, navigation, and high-frequency actions
+3. continue de-card visual cleanup in Settings/Build/Market so each route keeps one-screen focus instead of stacked dense sections
+4. keep legacy hash redirects active until external links are migrated
 
 ## Update Protocol
 After every execution cycle, update this file with:
@@ -97,6 +98,13 @@ After every execution cycle, update this file with:
 - any new blockers
 
 ## Last Completed
+- Completed `EOW Production Refactor - Phase 1` and deployed to production:
+  - implemented path-first route core in `web/app.js` with legacy hash migration (`/#settings` -> `/settings/profile`, `/#world` -> `/world`, etc.)
+  - updated server route handling in `src/server/apiServer.js` so deep-link refresh works for `/settings/:section`, `/world`, `/build`, `/market`, `/docs`
+  - fixed settings stacked rendering by route-driven section visibility (single section visible at a time)
+  - added global locale foundation (`en/zh/es/ja`) with topbar language switch and persisted locale resolution (`?lang` > localStorage > browser > en)
+  - added initial `elo炫酷风 v2` shell primitives in `web/app.css` and applied `app-shell`/`page-hero` baseline
+  - pushed commit `d709ead` to `codex/open-world-onboarding-init`, deployed on `world.metavie.co`, and verified container health + route/API smoke checks
 - Implemented onboarder launch-entry restructuring baseline:
   - added dedicated `/onboarder` public entry (non-hash route mapped to SPA shell)
   - added Home + topbar public CTA to Onboarder, and switched Quick Start step 2 from Settings to installer flow
