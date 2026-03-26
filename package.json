@@ -8,7 +8,8 @@
     "start": "node src/server/apiServer.js",
     "dev": "node src/server/apiServer.js",
     "test": "node --test",
-    "report": "node src/server/reportCli.js"
+    "report": "node src/server/reportCli.js",
+    "check:i18n-dynamic": "node scripts/check-dynamic-i18n.js"
   },
   "license": "MIT",
   "dependencies": {

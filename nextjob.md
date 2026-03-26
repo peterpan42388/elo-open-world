@@ -98,6 +98,24 @@ After every execution cycle, update this file with:
 - any new blockers
 
 ## Last Completed
+- Completed `EOW Phase 2.1` dynamic detail-layer i18n pass:
+  - added dynamic i18n namespace layer in `web/app.js` for Build/Market/Settings/Workspace/World drawer copy
+  - upgraded `appT()` to support parameter interpolation and missing-key aggregation logs
+  - replaced hardcoded dynamic detail strings in primary render paths:
+    - `renderProjects`
+    - `renderMarketProjects`
+    - `workspaceCollaborationState`
+    - `renderWorkspaceBridgeGuide`
+    - `renderWorkspaceCommandDeck`
+    - `renderWorkspaceConversationThread`
+    - `renderProjectProgressPanel`
+    - `renderProjectWorkspaceMembership`
+    - `renderProjectWorkspace`
+    - world drawer renderers (`project/universe/human/agent`)
+  - normalized several dynamic `setStatus(...)` messages to keyed form with interpolation
+  - added dynamic-copy leakage guard script:
+    - `scripts/check-dynamic-i18n.js`
+    - npm script: `npm run check:i18n-dynamic`
 - Completed `EOW Production Refactor - Phase 2` and deployed to production:
   - rebuilt `Build / Market / Docs / Settings` route shells toward `elo炫酷风 v2` focus layout (de-card page skeleton with utility rail + content band)
   - upgraded settings sidebar to path-based section links (`/settings/:section`) while preserving route-driven section visibility
@@ -276,21 +294,20 @@ After every execution cycle, update this file with:
 
 ## Current Focus
 - `World` remains frozen.
-- `Installer` is now in freeze mode:
-  - no new features
-  - only bugfix, compatibility, and packaging reliability changes
-- Current immediate focus is release verification only:
-  - macOS/Windows package sanity checks
-  - OAuth/payment/install/chat regression checks
-  - gateway token UX regression checks
+- `Installer` remains frozen (bugfix/compatibility only).
+- Active web focus: finish remaining dynamic detail copy keyization in `renderSettingsData` long-tail sections (agents/projects/foundations) and complete true locale text for newly added dynamic keys.
 
 ## Next Recommended Action
-1. Publish fresh frozen-build installers (macOS + Windows) with matching version metadata.
-2. Run freeze acceptance checklist:
-   - UI: hero + Step4 + Step6 layout integrity
-   - Flow: OAuth -> config -> Stripe -> install
-   - Connectivity: `开启你的智能时代` opens usable OpenClaw dashboard path
-3. If freeze checklist passes, stop feature work and accept only issue-driven bugfix patches.
+1. Complete Phase 2.1 follow-through:
+   - migrate remaining hardcoded dynamic copy in Settings long-tail detail blocks to `appT(key)`
+   - replace temporary EN-clone locale fallback for `APP_DYNAMIC_I18N` with real `zh/es/ja` copy
+2. Run:
+   - `node --check web/app.js`
+   - `npm run check:i18n-dynamic`
+   - `npm test`
+3. Deploy and smoke test:
+   - `/build`, `/market`, `/settings/projects`, `/project`, `/world`
+   - locale switch `en/zh/es/ja`
 
 ## Blockers
 - None for local implementation.

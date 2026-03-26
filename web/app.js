@@ -546,6 +546,357 @@ const APP_I18N = {
     docsCardRuntimeBody: "現在の stub-ready モデルと実運用 OpenClaw 互換 runtime への移行方法を説明します。"
   }
 };
+const APP_DYNAMIC_I18N = {
+  en: {
+    "action.openProjectWorkspace": "Open Project Workspace",
+    "action.openProject": "Open Project",
+    "action.openInBuild": "Open In Build Directory",
+    "action.openGithubRepo": "Open GitHub Repo",
+    "action.openService": "Open Service",
+    "action.sourceRepo": "Source Repo",
+    "action.liveService": "Live Service",
+    "action.visualMockNode": "Visual Mock Node",
+    "action.focusCluster": "Focus Cluster",
+    "action.openProjectDirectory": "Open Project Directory",
+    "action.requestParticipation": "Request Participation",
+    "action.inviteMember": "Invite Member",
+    "action.changeRole": "Change Role",
+    "action.removeMember": "Remove Member",
+    "action.acceptInvite": "Accept Invite",
+    "action.acceptRequest": "Accept Request",
+    "action.rejectRequest": "Reject Request",
+    "status.openWorkspaceContext": "Open {title} in Project Workspace for participation and delivery context.",
+    "status.participationSubmitted": "Participation request submitted.",
+    "status.inviteCreated": "Invite created for {agentId}",
+    "status.roleUpdated": "Role updated for {agentId}",
+    "status.removedMember": "Removed {agentId} from project",
+    "status.inviteAccepted": "Invite accepted.",
+    "status.participationResolved": "Participation request {decision}.",
+    "status.noAgentAvailable": "No agent available. Create or register an agent first, then retry download.",
+    "status.deliveryContractDownloaded": "Delivery contract downloaded.",
+    "status.artifactBundleDownloaded": "Artifact bundle downloaded.",
+    "status.artifactZipDownloaded": "Artifact ZIP downloaded.",
+    "status.foundationJsonCopied": "Foundation artifact JSON copied.",
+    "status.artifactZipExportFailed": "Artifact zip export failed.",
+    "status.dynamicError": "{message}",
+    "build.detail.noRepoLinked": "No repo linked",
+    "build.detail.noSummary": "No summary provided.",
+    "build.detail.noRunYet": "No Run Yet",
+    "build.detail.workspaceUpdate": "Workspace Update",
+    "build.detail.repo": "Repo",
+    "build.detail.service": "Service",
+    "build.detail.operating": "Operating",
+    "build.detail.recruiting": "Recruiting",
+    "build.detail.workspaceEntry": "Workspace Entry",
+    "build.detail.requests": "Requests",
+    "build.detail.waiting": "Waiting",
+    "build.detail.reviewInWorkspace": "Review in Project Workspace.",
+    "build.detail.latestDelivery": "Latest Delivery",
+    "build.detail.signal": "Signal",
+    "build.detail.directorySnapshot": "Directory Snapshot",
+    "build.detail.owner": "Owner",
+    "build.detail.participants": "Participants",
+    "build.detail.stage": "Stage",
+    "build.detail.state": "State",
+    "build.detail.rating": "Rating",
+    "build.detail.heat": "Heat",
+    "build.detail.github": "GitHub",
+    "build.detail.operatingAndEntry": "Operating And Entry",
+    "build.detail.projectWorkspace": "Project Workspace",
+    "build.detail.entryRoute": "Entry Route",
+    "build.detail.participation": "Participation",
+    "build.detail.openRequests": "Open Requests",
+    "build.detail.directorySignal": "Directory Signal",
+    "build.detail.serviceEndpoint": "Service Endpoint",
+    "build.detail.notSet": "Not set",
+    "build.detail.latestRunAt": "Latest Run At",
+    "build.detail.operatingContext": "Operating Context",
+    "build.detail.recruitingPath": "Recruiting Path",
+    "build.detail.latestActivity": "Latest Activity",
+    "build.detail.workspaceEntryTitle": "Project Workspace Entry",
+    "build.detail.externalSurface": "External Surface",
+    "build.detail.externalSurfaceNote": "Source inspection stays separate from collaboration controls.",
+    "build.detail.repoLinkMissing": "Repository link publishes after the source surface is connected.",
+    "market.detail.noSourceRepo": "No source repo listed",
+    "market.detail.noServiceEndpoint": "Service endpoint not set",
+    "market.detail.foundationAccess": "Foundation Access",
+    "market.detail.projectAccess": "Project Access",
+    "market.detail.pricingDefault": "Usage still routes through the published project surface while protocol pricing stays lightweight.",
+    "market.detail.usageWithService": "Start with the service endpoint for live usage, then open the project page for operator context.",
+    "market.detail.usageWithoutService": "This project is marked operating, but the project page still carries the clearest operator context until the endpoint is published.",
+    "market.detail.projectUpdate": "Project Update",
+    "market.detail.sourceRepo": "Source Repo",
+    "market.detail.operating": "Operating",
+    "market.detail.endpointLive": "Endpoint Live",
+    "market.detail.endpointPending": "Endpoint Pending",
+    "market.detail.access": "Access",
+    "market.detail.usageEntry": "Usage Entry",
+    "market.detail.serviceAndProject": "Service + Project",
+    "market.detail.projectOnly": "Project Page Only",
+    "market.detail.operatingLiveNote": "Service endpoint is available for direct usage entry.",
+    "market.detail.operatingPendingNote": "This project is already treated as operating, but the endpoint is still being finalized.",
+    "market.detail.operatingSnapshot": "Operating Snapshot",
+    "market.detail.sourceProject": "Source Project",
+    "market.detail.latestRun": "Latest Run",
+    "market.detail.accessModel": "Access Model",
+    "market.detail.pricing": "Pricing",
+    "market.detail.usage": "Usage",
+    "market.detail.workspaceEntryNote": "Operator context, members, and delivery history stay attached to the project page.",
+    "market.detail.workspaceEntryTitle": "Project Workspace Entry",
+    "market.detail.usageSurfaces": "Usage Surfaces",
+    "market.detail.usageSurfacesNote": "Live service and source links stay separate from the operator entry path.",
+    "market.detail.liveServiceMissing": "Live service publishes after the operating endpoint is available.",
+    "market.detail.sourceRepoMissing": "Source repo publishes after the source surface is connected.",
+    "market.detail.linksMissing": "Usage links publish after the live endpoint or source repo is available.",
+    "settings.detail.noActiveProjectSelected": "No active project selected.",
+    "settings.detail.noBridgeContext": "No bridge context yet.",
+    "settings.detail.openProjectCommandDeck": "Open a project to load the command deck.",
+    "settings.detail.noWorkspaceConversation": "No workspace conversation yet.",
+    "settings.detail.noProjectMembershipState": "No project selected, so no membership state is available.",
+    "settings.detail.noAgentAvailable": "No agent available",
+    "settings.detail.human": "Human",
+    "settings.detail.auth": "Auth",
+    "settings.detail.github": "GitHub",
+    "settings.detail.agents": "Agents",
+    "settings.detail.projects": "Projects",
+    "settings.detail.ownedProjects": "Owned Projects",
+    "settings.detail.operating": "Operating",
+    "settings.detail.humanId": "Human ID",
+    "settings.detail.email": "Email",
+    "settings.detail.emailVerification": "Email Verification",
+    "settings.detail.displayName": "Display Name",
+    "settings.detail.copy": "Copy",
+    "settings.detail.joinPromptRegenerated": "Secure join prompt regenerated for {humanId}",
+    "settings.detail.selectMainAgent": "Select your main agent",
+    "settings.detail.linked": "Linked",
+    "settings.detail.notLinked": "Not linked",
+    "settings.detail.verified": "Verified",
+    "settings.detail.pending": "Pending",
+    "settings.detail.sendVerificationEmail": "Send Verification Email",
+    "settings.detail.emailVerified": "Email Verified",
+    "settings.detail.refreshGithubLink": "Refresh GitHub Link",
+    "settings.detail.linkGithub": "Link GitHub Account",
+    "settings.detail.unlinkGithub": "Unlink GitHub",
+    "settings.detail.emailDeliveryNotConfigured": "Email delivery is not configured on this deployment.",
+    "settings.detail.emailVerificationRecommended": "Use email verification before you rely on the account for longer-lived access.",
+    "settings.detail.githubOauthNotConfigured": "GitHub OAuth is not configured on this deployment.",
+    "settings.detail.githubRequiredForSource": "GitHub link is required before creating a source project.",
+    "settings.detail.verificationEmailSent": "Verification email sent to {email}",
+    "settings.detail.githubUnlinked": "GitHub unlinked from {humanId}",
+    "settings.detail.agentAuthKeyLede": "Issue a human-scoped keypair so your agent can self-register with a signed request.",
+    "settings.detail.keyStatus": "Key Status",
+    "settings.detail.issued": "Issued",
+    "settings.detail.notIssued": "Not issued",
+    "settings.detail.issuedAt": "Issued At",
+    "settings.detail.lastUsed": "Last Used",
+    "settings.detail.fingerprint": "Fingerprint",
+    "settings.detail.notAvailable": "Not available",
+    "settings.detail.issueNewAgentAuthKey": "Issue New Agent Auth Key",
+    "settings.detail.downloadPemBundle": "Download PEM Bundle",
+    "settings.detail.privateKeyOneTime": "Private key material is returned only once. Re-issuing rotates the active agent auth key.",
+    "settings.detail.issueKeyHint": "Issue a key to receive the one-time PEM bundle.",
+    "settings.detail.issuedAgentAuthKey": "Issued agent auth key for {humanId}",
+    "settings.detail.primarySignin": "Primary Sign-In",
+    "settings.detail.emailStatus": "Email Status",
+    "settings.detail.githubLink": "GitHub Link",
+    "settings.detail.pendingVerification": "Pending verification",
+    "settings.detail.githubPrimarySigninNote": "This account currently uses GitHub as the primary sign-in method. Email verification is still recommended for account recovery and future password setup.",
+    "settings.detail.passwordPrimarySigninNote": "This account uses local password authentication. Email verification should be completed before relying on the account for long-term access.",
+    "settings.detail.openProjectToSendTask": "Open a project to send a project-specific task.",
+    "settings.detail.workspace": "Workspace",
+    "settings.detail.noActiveProject": "No active project",
+    "settings.detail.profileCopied": "Copied profile field.",
+    "settings.detail.aiPromptCopied": "AI registration prompt copied.",
+    "settings.detail.fingerprintCopied": "Fingerprint copied.",
+    "workspace.detail.bridgeRequiredHeadline": "Browser bridge not detected.",
+    "workspace.detail.bridgeRequiredNote": "Load elo-agent-web-plugin in this browser first, then re-check bridge readiness from this page.",
+    "workspace.detail.bridgeRequiredPlaceholder": "Check the browser bridge before sending a task.",
+    "workspace.detail.bridgeSetupHeadline": "Bridge configuration still needs attention.",
+    "workspace.detail.bridgeSetupNote": "Finish the world URL, agent, and endpoint configuration in the browser bridge before sending a project task.",
+    "workspace.detail.bridgeSetupPlaceholder": "Finish bridge configuration before sending a task.",
+    "workspace.detail.memberAgentNeededHeadline": "No eligible project member agent is attached to your account yet.",
+    "workspace.detail.memberAgentNeededNote": "Have the owner invite one of your registered agents, or accept the pending invite, before using the project thread.",
+    "workspace.detail.memberAgentNeededPlaceholder": "Add one of your registered agents as a project member first.",
+    "workspace.detail.awaitingAccessHeadline": "Participation approval is still pending.",
+    "workspace.detail.awaitingAccessNote": "Wait for the project owner to review your request before using the project conversation deck.",
+    "workspace.detail.awaitingAccessPlaceholder": "Collaboration unlocks after the participation request is approved.",
+    "workspace.detail.participationRequiredHeadline": "Join the project before tasking an agent here.",
+    "workspace.detail.participationRequiredNote": "Use the participation panel on this page to request access, then come back to the command deck once your agent is attached.",
+    "workspace.detail.participationRequiredPlaceholder": "Request participation before sending a project task.",
+    "workspace.detail.readyHeadline": "Command deck is ready for project work.",
+    "workspace.detail.readyNote": "Keep the task short, specific, and tied to this project so the conversation timeline stays useful after refresh.",
+    "workspace.detail.readyPlaceholder": "Describe the next task, decision, blocker, or refinement for your agent.",
+    "workspace.detail.bridgeReadiness": "Bridge Readiness",
+    "workspace.detail.bridgeReadinessLede": "Verify the browser bridge, current endpoint, and target world before sending the next project task.",
+    "workspace.detail.browserBridge": "Browser Bridge",
+    "workspace.detail.workspaceAgent": "Workspace Agent",
+    "workspace.detail.agentEndpoint": "Agent Endpoint",
+    "workspace.detail.worldUrl": "World URL",
+    "workspace.detail.nextStep": "Next step",
+    "workspace.detail.bridgeProtocol": "Bridge Protocol",
+    "workspace.detail.openBridgeProject": "Open Bridge Project",
+    "workspace.detail.projectService": "Project Service",
+    "workspace.detail.agentCommandDeck": "Agent Command Deck",
+    "workspace.detail.agentCommandDeckLede": "Route project-specific requests through a member agent so the timeline stays attached to the workspace.",
+    "workspace.detail.yourAccess": "Your Access",
+    "workspace.detail.owner": "Owner",
+    "workspace.detail.participant": "Participant",
+    "workspace.detail.viewer": "Viewer",
+    "workspace.detail.eligibleAgents": "Eligible Agents",
+    "workspace.detail.selectedAgent": "Selected Agent",
+    "workspace.detail.conversationEntries": "Conversation Entries",
+    "workspace.detail.lastSpeaker": "Last Speaker",
+    "workspace.detail.lastActivity": "Last Activity",
+    "workspace.detail.noneAvailable": "None available",
+    "workspace.detail.noConversationYet": "No conversation yet",
+    "workspace.detail.primaryWorkingAgent": "Primary working agent",
+    "workspace.detail.threadEmptyTitle": "No project conversation yet.",
+    "workspace.detail.threadEmptyReady": "Use the working agent selector and send the next task, blocker, or design question. This thread stays attached to the project record.",
+    "workspace.detail.totalEntries": "Total Entries",
+    "workspace.detail.humanMessages": "Human Messages",
+    "workspace.detail.agentMessages": "Agent Messages",
+    "workspace.detail.latestExchange": "Latest Exchange",
+    "workspace.detail.noMessageContent": "No message content recorded.",
+    "workspace.detail.earlierContext": "Earlier Context ({count})",
+    "workspace.detail.latestExchanges": "Latest Exchanges",
+    "workspace.detail.latestMostRecent": "{count} most recent entries",
+    "workspace.detail.intake": "Intake",
+    "workspace.detail.refinement": "Refinement",
+    "workspace.detail.sourceProject": "Source Project",
+    "workspace.detail.operating": "Operating",
+    "workspace.detail.ready": "Ready",
+    "workspace.detail.pending": "Pending",
+    "workspace.detail.noLinkedRequirement": "Project idea intake still needs a linked requirement.",
+    "workspace.detail.noDirection": "Primary-agent refinement has not produced a structured direction yet.",
+    "workspace.detail.noSourceRepo": "Source repository not created yet.",
+    "workspace.detail.notOperatingYet": "Not operating yet.",
+    "workspace.detail.currentDirection": "Current Direction",
+    "workspace.detail.deliverySignals": "Delivery Signals",
+    "workspace.detail.requirement": "Requirement",
+    "workspace.detail.latestFoundationRun": "Latest Foundation Run",
+    "workspace.detail.noStructuredRequirement": "No structured requirement summary yet.",
+    "workspace.detail.directionWillAppear": "Project direction will appear here after requirement refinement.",
+    "workspace.detail.milestones": "Milestones",
+    "workspace.detail.openQuestions": "Open Questions",
+    "workspace.detail.noMilestones": "No milestones captured yet.",
+    "workspace.detail.noOpenQuestions": "No open questions recorded.",
+    "workspace.detail.currentMembers": "Current Members",
+    "workspace.detail.roleLabel": "Role",
+    "workspace.detail.workspaceReady": "Workspace ready",
+    "workspace.detail.noMemberAgents": "No member agents recorded.",
+    "workspace.detail.noMembershipHistory": "No membership history yet.",
+    "workspace.detail.pendingInvites": "Pending Invites",
+    "workspace.detail.statusLabel": "Status",
+    "workspace.detail.noPendingInvites": "No pending invites.",
+    "workspace.detail.participationRequests": "Participation Requests",
+    "workspace.detail.agentsLabel": "Agents",
+    "workspace.detail.noAgentsLinked": "No agents linked",
+    "workspace.detail.noParticipationRequests": "No participation requests yet.",
+    "workspace.detail.membershipHistory": "Membership History",
+    "workspace.detail.ownerControls": "Owner Controls",
+    "workspace.detail.participationRequest": "Participation Request",
+    "workspace.detail.enabled": "Enabled",
+    "workspace.detail.alreadyParticipating": "Already participating",
+    "workspace.detail.requestAccess": "Request access",
+    "workspace.detail.agentIdToInvite": "Agent ID To Invite",
+    "workspace.detail.agentIdToInvitePlaceholder": "agent id to invite",
+    "workspace.detail.inviteRole": "Invite Role",
+    "workspace.detail.currentMember": "Current Member",
+    "workspace.detail.selectMember": "Select member",
+    "workspace.detail.newRole": "New Role",
+    "workspace.detail.memberToRemove": "Member To Remove",
+    "workspace.detail.alreadyParticipatingNote": "You are already participating in this project through one of your registered agents.",
+    "workspace.detail.joinReason": "Why do you want to join this project?",
+    "workspace.detail.joinReasonPlaceholder": "Explain your interest, the agent you want to contribute with, and the role you expect to play.",
+    "workspace.detail.enterMessageFirst": "Enter a project message first.",
+    "workspace.detail.selectAgentFirst": "Select a workspace agent first.",
+    "workspace.detail.notAssigned": "not assigned",
+    "workspace.detail.closed": "Closed",
+    "workspace.detail.open": "Open",
+    "workspace.detail.singleProjectLede": "Single project page for direct collaboration, participation, and delivery work.",
+    "workspace.detail.notRecruiting": "Not Recruiting",
+    "workspace.detail.yourRole": "Your Role",
+    "workspace.detail.repository": "Repository",
+    "workspace.detail.none": "none",
+    "workspace.detail.primaryAgent": "Primary Agent",
+    "workspace.detail.members": "Members",
+    "workspace.detail.projectRecord": "Project Record",
+    "workspace.detail.noSummaryYet": "No summary yet.",
+    "workspace.detail.participationAndDelivery": "Participation And Delivery",
+    "workspace.detail.executionFocus": "Execution Focus",
+    "workspace.detail.latestMembershipChange": "Latest Membership Change",
+    "workspace.detail.sourceAndOperatingInputs": "Source And Operating Inputs",
+    "workspace.detail.noProjectAgentAvailable": "No project agent available",
+    "workspace.detail.workspaceResponseReceived": "Workspace response received from {agentId}.",
+    "workspace.detail.loadedIntoMetadataEditor": "Loaded {title} into metadata editor.",
+    "world.drawer.projectNode": "Project Node",
+    "world.drawer.universeNode": "Universe Node",
+    "world.drawer.humanNode": "Human Node",
+    "world.drawer.agentNode": "Agent Node",
+    "world.drawer.closeProjectDetails": "Close project details",
+    "world.drawer.closeUniverseDetails": "Close universe details",
+    "world.drawer.closeHumanDetails": "Close human details",
+    "world.drawer.closeAgentDetails": "Close agent details",
+    "world.drawer.cluster": "Cluster",
+    "world.drawer.focus": "Focus",
+    "world.drawer.surface": "Surface",
+    "world.drawer.tags": "Tags",
+    "world.drawer.noTagsYet": "No tags yet.",
+    "world.drawer.foundationRuns": "Foundation Runs",
+    "world.drawer.latestDelivery": "Latest Delivery",
+    "world.drawer.noRuns": "No foundation runs recorded yet.",
+    "world.drawer.relationshipSummary": "Relationship Summary",
+    "world.drawer.sharedOwners": "Shared Owners",
+    "world.drawer.sharedAgents": "Shared Agents",
+    "world.drawer.sharedPlugins": "Shared Plugins",
+    "world.drawer.clusterLens": "Cluster Lens",
+    "world.drawer.clusterContext": "Cluster Context",
+    "world.drawer.projects": "Projects",
+    "world.drawer.agents": "Agents",
+    "world.drawer.owners": "Owners",
+    "world.drawer.current": "current",
+    "world.drawer.noClusterSiblings": "No cluster siblings available.",
+    "world.drawer.visualLabNoteTitle": "Visual Lab Note",
+    "world.drawer.visualLabNoteBody": "This is synthetic data used to stress-test the World graph. It exists for layout and interaction tuning, not for project execution.",
+    "world.drawer.visualLab": "Visual Lab",
+    "world.drawer.operatingFoundation": "Operating Foundation",
+    "world.drawer.dataSurface": "Data Surface",
+    "world.drawer.hierarchy": "Hierarchy",
+    "world.drawer.foundations": "Foundations",
+    "world.drawer.agentLinks": "Agent Links",
+    "world.drawer.ownerClusters": "Owner Clusters",
+    "world.drawer.topPluginAttachments": "Top Plugin Attachments",
+    "world.drawer.projectLinkCount": "{count} project link{suffix}",
+    "world.drawer.noPluginClusters": "No plugin clusters yet.",
+    "world.drawer.topClusters": "Top Clusters",
+    "world.drawer.projectNodeCount": "{count} project node{suffix}",
+    "world.drawer.noClusterSummaries": "No cluster summaries yet.",
+    "world.drawer.universeBody": "The universe node anchors all source projects and highlights the strongest owner, plugin, and foundation clusters in this deployment.",
+    "world.drawer.noLinkedProjects": "No linked projects.",
+    "world.drawer.linkedProjects": "Linked Projects",
+    "world.drawer.linkedAgents": "Linked Agents",
+    "world.drawer.noLinkedAgents": "No linked agents.",
+    "world.drawer.agentLinkedHint": "Agent node linked through this human.",
+    "world.drawer.projectParticipation": "Project Participation",
+    "world.drawer.liveOnly": "Live data only",
+    "world.drawer.hybridLab": "Hybrid visual lab",
+    "world.drawer.mockOnly": "Visual lab only",
+    "world.drawer.plugins": "Plugins",
+    "world.drawer.human": "Human",
+    "world.drawer.focusDefault": "Open",
+    "world.drawer.focusSelection": "Selection",
+    "world.drawer.focusRelation": "Relation",
+    "world.drawer.focusCluster": "Cluster"
+  },
+  zh: {},
+  es: {},
+  ja: {}
+};
+for (const locale of ["zh", "es", "ja"]) {
+  APP_DYNAMIC_I18N[locale] = { ...APP_DYNAMIC_I18N.en };
+}
+const APP_I18N_CACHE = new Map();
+const APP_I18N_MISSING_KEYS = new Set();
 const APP_STATIC_TEXT_BINDINGS = [
   ['.locale-switch label', "langLabel"],
   ['[data-route-link="home"]', "navHome"],
@@ -811,8 +1162,40 @@ function resolveLocaleFromEnvironment() {
   return "en";
 }
 
-function appT(key) {
-  return APP_I18N[state.locale]?.[key] || APP_I18N.en[key] || key;
+function appMessageTable(locale) {
+  const normalized = APP_SUPPORTED_LOCALES.includes(locale) ? locale : "en";
+  if (APP_I18N_CACHE.has(normalized)) return APP_I18N_CACHE.get(normalized);
+  const table = {
+    ...(APP_I18N.en || {}),
+    ...(APP_DYNAMIC_I18N.en || {}),
+    ...(APP_I18N[normalized] || {}),
+    ...(APP_DYNAMIC_I18N[normalized] || {})
+  };
+  APP_I18N_CACHE.set(normalized, table);
+  return table;
+}
+
+function interpolateTemplate(template, params = {}) {
+  return String(template).replace(/\{([a-zA-Z0-9_]+)\}/g, (_, token) => {
+    if (!(token in params)) return `{${token}}`;
+    return String(params[token]);
+  });
+}
+
+function appT(key, params = null) {
+  const table = appMessageTable(state.locale);
+  let value = table?.[key];
+  if (value == null) {
+    value = (APP_I18N.en || {})[key] ?? (APP_DYNAMIC_I18N.en || {})[key];
+  }
+  if (value == null) {
+    if (!APP_I18N_MISSING_KEYS.has(key)) {
+      APP_I18N_MISSING_KEYS.add(key);
+      console.warn(`[i18n] missing key: ${key}`);
+    }
+    return key;
+  }
+  return params ? interpolateTemplate(value, params) : value;
 }
 
 function syncLocaleSearchParam() {
@@ -4855,18 +5238,18 @@ function renderWorldProjectDrawer(projects, project) {
   const clusterSummary = worldClusterSummary(projects, cluster.clusterId);
   const latestRun = latestProjectFoundationRun(project);
   const focusLabel = {
-    default: "Open",
-    selection: "Selection",
-    relation: "Relation",
-    cluster: "Cluster"
-  }[state.worldFocusMode] || "Open";
+    default: appT("world.drawer.focusDefault"),
+    selection: appT("world.drawer.focusSelection"),
+    relation: appT("world.drawer.focusRelation"),
+    cluster: appT("world.drawer.focusCluster")
+  }[state.worldFocusMode] || appT("world.drawer.focusDefault");
   return `
     <div class="world-drawer-header">
       <div>
-        <span class="eyebrow">Project Node</span>
+        <span class="eyebrow">${escapeHtml(appT("world.drawer.projectNode"))}</span>
         <h3>${escapeHtml(project.title)}</h3>
       </div>
-      <button type="button" class="world-drawer-close" id="world-drawer-close" aria-label="Close project details">×</button>
+      <button type="button" class="world-drawer-close" id="world-drawer-close" aria-label="${escapeHtml(appT("world.drawer.closeProjectDetails"))}">×</button>
     </div>
     <div class="world-drawer-body">
       <section class="world-drawer-section">
@@ -4875,77 +5258,77 @@ function renderWorldProjectDrawer(projects, project) {
           ${createBadge(projectTypeLabel(project.kind))}
           ${createBadge(project.stage || "source")}
           ${createBadge(projectStateLabel(project.state))}
-          ${isOperatingFoundationProject(project) ? createBadge("Operating Foundation") : ""}
-          ${visualMock ? createBadge("Visual Lab") : ""}
+          ${isOperatingFoundationProject(project) ? createBadge(appT("world.drawer.operatingFoundation")) : ""}
+          ${visualMock ? createBadge(appT("world.drawer.visualLab")) : ""}
         </div>
         ${renderBoundedNoteList([
-          { label: "Cluster", value: project.visualClusterLabel || cluster.clusterLabel },
-          { label: "Focus", value: focusLabel },
-          { label: "Surface", value: `${worldHierarchyPresetLabel()} · ${worldDeclutterModeLabel()}` }
+          { label: appT("world.drawer.cluster"), value: project.visualClusterLabel || cluster.clusterLabel },
+          { label: appT("world.drawer.focus"), value: focusLabel },
+          { label: appT("world.drawer.surface"), value: `${worldHierarchyPresetLabel()} · ${worldDeclutterModeLabel()}` }
         ])}
       </section>
       <section class="world-drawer-section detail-grid compact">
-        <div class="detail-item"><span>Owner</span><strong class="detail-code">${escapeHtml(project.ownerHumanId || "-")}</strong></div>
-        <div class="detail-item"><span>Cluster</span><strong>${escapeHtml(project.visualClusterLabel || cluster.clusterLabel)}</strong></div>
-        <div class="detail-item"><span>Agents</span><strong>${project.memberAgentIds?.length || 0}</strong></div>
-        <div class="detail-item"><span>Plugins</span><strong>${project.pluginIds?.length || 0}</strong></div>
-        <div class="detail-item"><span>Recruiting</span><strong>${escapeHtml(recruitingState.label)}</strong></div>
-        <div class="detail-item"><span>Rating</span><strong>${project.rating || 0}</strong></div>
-        <div class="detail-item"><span>Heat</span><strong>${project.heat || 0}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("build.detail.owner"))}</span><strong class="detail-code">${escapeHtml(project.ownerHumanId || "-")}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("world.drawer.cluster"))}</span><strong>${escapeHtml(project.visualClusterLabel || cluster.clusterLabel)}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("world.drawer.agents"))}</span><strong>${project.memberAgentIds?.length || 0}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("world.drawer.plugins"))}</span><strong>${project.pluginIds?.length || 0}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("build.detail.recruiting"))}</span><strong>${escapeHtml(recruitingState.label)}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("build.detail.rating"))}</span><strong>${project.rating || 0}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("build.detail.heat"))}</span><strong>${project.heat || 0}</strong></div>
       </section>
       <section class="world-drawer-section">
-        <h4>Tags</h4>
-        ${renderDirectoryTags(project.tags || [], 6) || '<div class="empty compact">No tags yet.</div>'}
+        <h4>${escapeHtml(appT("world.drawer.tags"))}</h4>
+        ${renderDirectoryTags(project.tags || [], 6) || `<div class="empty compact">${escapeHtml(appT("world.drawer.noTagsYet"))}</div>`}
       </section>
       <section class="world-drawer-section">
-        <h4>Foundation Runs</h4>
+        <h4>${escapeHtml(appT("world.drawer.foundationRuns"))}</h4>
         ${renderProjectFoundationRunSummary(project)}
         ${latestRun ? `
           <div class="nested-list">
-            <div class="nested-item"><strong>Latest Delivery</strong><span>${escapeHtml(formatActionLabel(latestRun.action))} · ${escapeHtml(latestRun.profile || "-")} · ${escapeHtml(formatCompactTimestamp(latestRun.generatedAt))}</span></div>
+            <div class="nested-item"><strong>${escapeHtml(appT("world.drawer.latestDelivery"))}</strong><span>${escapeHtml(formatActionLabel(latestRun.action))} · ${escapeHtml(latestRun.profile || "-")} · ${escapeHtml(formatCompactTimestamp(latestRun.generatedAt))}</span></div>
           </div>
-        ` : '<div class="empty compact">No foundation runs recorded yet.</div>'}
+        ` : `<div class="empty compact">${escapeHtml(appT("world.drawer.noRuns"))}</div>`}
         ${(project.foundationRuns || []).length > 1 ? renderProjectFoundationRunList(project, 2) : ""}
       </section>
       <section class="world-drawer-section">
-        <h4>Relationship Summary</h4>
+        <h4>${escapeHtml(appT("world.drawer.relationshipSummary"))}</h4>
         ${renderBoundedNoteList([
-          { label: "Shared Owners", value: worldRelationSummary(related.ownerMatches) },
-          { label: "Shared Agents", value: worldRelationSummary(related.agentMatches) },
-          { label: "Shared Plugins", value: worldRelationSummary(related.pluginMatches) },
-          { label: "Cluster Lens", value: `${project.visualClusterLabel || cluster.clusterLabel} · ${worldHierarchyPresetLabel()}` }
+          { label: appT("world.drawer.sharedOwners"), value: worldRelationSummary(related.ownerMatches) },
+          { label: appT("world.drawer.sharedAgents"), value: worldRelationSummary(related.agentMatches) },
+          { label: appT("world.drawer.sharedPlugins"), value: worldRelationSummary(related.pluginMatches) },
+          { label: appT("world.drawer.clusterLens"), value: `${project.visualClusterLabel || cluster.clusterLabel} · ${worldHierarchyPresetLabel()}` }
         ])}
       </section>
       <section class="world-drawer-section">
-        <h4>Cluster Context</h4>
+        <h4>${escapeHtml(appT("world.drawer.clusterContext"))}</h4>
         <div class="nested-list">
-          <div class="nested-item"><strong>Cluster</strong><span>${escapeHtml(clusterSummary.clusterLabel)}</span></div>
-          <div class="nested-item"><strong>Projects</strong><span>${clusterSummary.projectCount}</span></div>
-          <div class="nested-item"><strong>Operating</strong><span>${clusterSummary.operatingCount}</span></div>
-          <div class="nested-item"><strong>Owners</strong><span>${clusterSummary.ownerCount}</span></div>
+          <div class="nested-item"><strong>${escapeHtml(appT("world.drawer.cluster"))}</strong><span>${escapeHtml(clusterSummary.clusterLabel)}</span></div>
+          <div class="nested-item"><strong>${escapeHtml(appT("world.drawer.projects"))}</strong><span>${clusterSummary.projectCount}</span></div>
+          <div class="nested-item"><strong>${escapeHtml(appT("workspace.detail.operating"))}</strong><span>${clusterSummary.operatingCount}</span></div>
+          <div class="nested-item"><strong>${escapeHtml(appT("world.drawer.owners"))}</strong><span>${clusterSummary.ownerCount}</span></div>
         </div>
         ${clusterSummary.projects.length
           ? `<div class="nested-list">${clusterSummary.projects.slice(0, 3).map((entry) => `
               <button type="button" class="nested-item nested-item-button" data-world-project-shortcut="${escapeHtml(entry.projectId)}">
                 <strong>${escapeHtml(entry.title)}</strong>
-                <span>${escapeHtml(entry.repoFullName || entry.repoName)}${entry.projectId === project.projectId ? " · current" : ""}</span>
+                <span>${escapeHtml(entry.repoFullName || entry.repoName)}${entry.projectId === project.projectId ? ` · ${escapeHtml(appT("world.drawer.current"))}` : ""}</span>
               </button>
             `).join("")}</div>`
-          : '<div class="empty compact">No cluster siblings available.</div>'}
+          : `<div class="empty compact">${escapeHtml(appT("world.drawer.noClusterSiblings"))}</div>`}
       </section>
       ${visualMock ? `
         <section class="world-drawer-section">
-          <h4>Visual Lab Note</h4>
-          <p>This is synthetic data used to stress-test the World graph. It exists for layout and interaction tuning, not for project execution.</p>
+          <h4>${escapeHtml(appT("world.drawer.visualLabNoteTitle"))}</h4>
+          <p>${escapeHtml(appT("world.drawer.visualLabNoteBody"))}</p>
         </section>
       ` : ""}
       <section class="world-drawer-section world-drawer-actions">
-        <button type="button" class="topbar-button secondary" data-world-focus-cluster="${escapeHtml(project.projectId)}">Focus Cluster</button>
+        <button type="button" class="topbar-button secondary" data-world-focus-cluster="${escapeHtml(project.projectId)}">${escapeHtml(appT("action.focusCluster"))}</button>
         ${visualMock
-          ? `<button type="button" class="topbar-button ghost" disabled>Visual Mock Node</button>`
-          : `<button type="button" class="topbar-button" data-open-project-id="${escapeHtml(project.projectId)}">Open Project</button>`}
-        <a class="topbar-button ghost" href="${escapeHtml(project.repoUrl)}" target="_blank" rel="noreferrer">Open GitHub Repo</a>
-        ${serviceHref ? `<a class="topbar-button ghost" href="${escapeHtml(serviceHref)}" target="_blank" rel="noreferrer">Open Service</a>` : ""}
+          ? `<button type="button" class="topbar-button ghost" disabled>${escapeHtml(appT("action.visualMockNode"))}</button>`
+          : `<button type="button" class="topbar-button" data-open-project-id="${escapeHtml(project.projectId)}">${escapeHtml(appT("action.openProject"))}</button>`}
+        <a class="topbar-button ghost" href="${escapeHtml(project.repoUrl)}" target="_blank" rel="noreferrer">${escapeHtml(appT("action.openGithubRepo"))}</a>
+        ${serviceHref ? `<a class="topbar-button ghost" href="${escapeHtml(serviceHref)}" target="_blank" rel="noreferrer">${escapeHtml(appT("action.openService"))}</a>` : ""}
       </section>
     </div>
   `;
@@ -4955,48 +5338,48 @@ function renderWorldUniverseDrawer(projects) {
   const universe = worldUniverseSummary(projects);
   const topClusters = worldClusterLensProjects(projects);
   const visualModeLabel = {
-    live: "Live data only",
-    hybrid: "Hybrid visual lab",
-    mock: "Visual lab only"
-  }[state.worldVisualMode] || "Hybrid visual lab";
+    live: appT("world.drawer.liveOnly"),
+    hybrid: appT("world.drawer.hybridLab"),
+    mock: appT("world.drawer.mockOnly")
+  }[state.worldVisualMode] || appT("world.drawer.hybridLab");
   return `
     <div class="world-drawer-header">
       <div>
-        <span class="eyebrow">Universe Node</span>
+        <span class="eyebrow">${escapeHtml(appT("world.drawer.universeNode"))}</span>
         <h3>elo-universe-0</h3>
       </div>
-      <button type="button" class="world-drawer-close" id="world-drawer-close" aria-label="Close universe details">×</button>
+      <button type="button" class="world-drawer-close" id="world-drawer-close" aria-label="${escapeHtml(appT("world.drawer.closeUniverseDetails"))}">×</button>
     </div>
     <div class="world-drawer-body">
       <section class="world-drawer-section">
-        <p>The universe node anchors all source projects and highlights the strongest owner, plugin, and foundation clusters in this deployment.</p>
+        <p>${escapeHtml(appT("world.drawer.universeBody"))}</p>
         <div class="nested-list">
-          <div class="nested-item"><strong>Data Surface</strong><span>${escapeHtml(visualModeLabel)}</span></div>
-          <div class="nested-item"><strong>Hierarchy</strong><span>${escapeHtml(worldHierarchyPresetLabel())}</span></div>
+          <div class="nested-item"><strong>${escapeHtml(appT("world.drawer.dataSurface"))}</strong><span>${escapeHtml(visualModeLabel)}</span></div>
+          <div class="nested-item"><strong>${escapeHtml(appT("world.drawer.hierarchy"))}</strong><span>${escapeHtml(worldHierarchyPresetLabel())}</span></div>
         </div>
       </section>
       <section class="world-drawer-section detail-grid compact">
-        <div class="detail-item"><span>Projects</span><strong>${universe.projectCount}</strong></div>
-        <div class="detail-item"><span>Operating</span><strong>${universe.operatingProjectCount}</strong></div>
-        <div class="detail-item"><span>Foundations</span><strong>${universe.foundationCount}</strong></div>
-        <div class="detail-item"><span>Owners</span><strong>${universe.ownerCount}</strong></div>
-        <div class="detail-item"><span>Agent Links</span><strong>${universe.linkedAgents}</strong></div>
-        <div class="detail-item"><span>Owner Clusters</span><strong>${universe.sharedOwners.length}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("world.drawer.projects"))}</span><strong>${universe.projectCount}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("workspace.detail.operating"))}</span><strong>${universe.operatingProjectCount}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("world.drawer.foundations"))}</span><strong>${universe.foundationCount}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("world.drawer.owners"))}</span><strong>${universe.ownerCount}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("world.drawer.agentLinks"))}</span><strong>${universe.linkedAgents}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("world.drawer.ownerClusters"))}</span><strong>${universe.sharedOwners.length}</strong></div>
       </section>
       <section class="world-drawer-section">
-        <h4>Top Plugin Attachments</h4>
+        <h4>${escapeHtml(appT("world.drawer.topPluginAttachments"))}</h4>
         ${universe.topPlugins.length
-          ? `<div class="nested-list">${universe.topPlugins.map(([pluginId, count]) => `<div class="nested-item"><strong>${escapeHtml(pluginId)}</strong><span>${count} project link${count === 1 ? "" : "s"}</span></div>`).join("")}</div>`
-          : '<div class="empty compact">No plugin clusters yet.</div>'}
+          ? `<div class="nested-list">${universe.topPlugins.map(([pluginId, count]) => `<div class="nested-item"><strong>${escapeHtml(pluginId)}</strong><span>${escapeHtml(appT("world.drawer.projectLinkCount", { count, suffix: count === 1 ? "" : "s" }))}</span></div>`).join("")}</div>`
+          : `<div class="empty compact">${escapeHtml(appT("world.drawer.noPluginClusters"))}</div>`}
       </section>
       <section class="world-drawer-section">
-        <h4>Top Clusters</h4>
+        <h4>${escapeHtml(appT("world.drawer.topClusters"))}</h4>
         ${topClusters.length
-          ? `<div class="nested-list">${topClusters.map((cluster) => `<button type="button" class="nested-item nested-item-button" data-world-focus-cluster="${escapeHtml(cluster.anchorProjectId)}"><strong>${escapeHtml(cluster.clusterLabel)}</strong><span>${cluster.projectIds.length} project node${cluster.projectIds.length === 1 ? "" : "s"}</span></button>`).join("")}</div>`
-          : '<div class="empty compact">No cluster summaries yet.</div>'}
+          ? `<div class="nested-list">${topClusters.map((cluster) => `<button type="button" class="nested-item nested-item-button" data-world-focus-cluster="${escapeHtml(cluster.anchorProjectId)}"><strong>${escapeHtml(cluster.clusterLabel)}</strong><span>${escapeHtml(appT("world.drawer.projectNodeCount", { count: cluster.projectIds.length, suffix: cluster.projectIds.length === 1 ? "" : "s" }))}</span></button>`).join("")}</div>`
+          : `<div class="empty compact">${escapeHtml(appT("world.drawer.noClusterSummaries"))}</div>`}
       </section>
       <section class="world-drawer-section world-drawer-actions">
-        <button type="button" class="topbar-button" data-route-target="build">Open Project Directory</button>
+        <button type="button" class="topbar-button" data-route-target="build">${escapeHtml(appT("action.openProjectDirectory"))}</button>
       </section>
     </div>
   `;
@@ -5007,27 +5390,27 @@ function renderWorldHumanDrawer(projects, humanMeta) {
   return `
     <div class="world-drawer-header">
       <div>
-        <span class="eyebrow">Human Node</span>
+        <span class="eyebrow">${escapeHtml(appT("world.drawer.humanNode"))}</span>
         <h3>${escapeHtml(humanMeta.humanId)}</h3>
       </div>
-      <button type="button" class="world-drawer-close" id="world-drawer-close" aria-label="Close human details">×</button>
+      <button type="button" class="world-drawer-close" id="world-drawer-close" aria-label="${escapeHtml(appT("world.drawer.closeHumanDetails"))}">×</button>
     </div>
     <div class="world-drawer-body">
       <section class="world-drawer-section detail-grid compact">
-        <div class="detail-item"><span>Projects</span><strong>${linkedProjects.length}</strong></div>
-        <div class="detail-item"><span>Agents</span><strong>${(humanMeta.agentIds || []).length}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("world.drawer.projects"))}</span><strong>${linkedProjects.length}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("world.drawer.agents"))}</span><strong>${(humanMeta.agentIds || []).length}</strong></div>
       </section>
       <section class="world-drawer-section">
-        <h4>Linked Projects</h4>
+        <h4>${escapeHtml(appT("world.drawer.linkedProjects"))}</h4>
         ${linkedProjects.length
           ? `<div class="nested-list">${linkedProjects.map((project) => `<div class="nested-item"><strong>${escapeHtml(project.title)}</strong><span>${escapeHtml(project.repoFullName || project.repoName)}</span></div>`).join("")}</div>`
-          : '<div class="empty compact">No linked projects.</div>'}
+          : `<div class="empty compact">${escapeHtml(appT("world.drawer.noLinkedProjects"))}</div>`}
       </section>
       <section class="world-drawer-section">
-        <h4>Linked Agents</h4>
+        <h4>${escapeHtml(appT("world.drawer.linkedAgents"))}</h4>
         ${(humanMeta.agentIds || []).length
-          ? `<div class="nested-list">${humanMeta.agentIds.map((agentId) => `<div class="nested-item"><strong>${escapeHtml(agentId)}</strong><span>Agent node linked through this human.</span></div>`).join("")}</div>`
-          : '<div class="empty compact">No linked agents.</div>'}
+          ? `<div class="nested-list">${humanMeta.agentIds.map((agentId) => `<div class="nested-item"><strong>${escapeHtml(agentId)}</strong><span>${escapeHtml(appT("world.drawer.agentLinkedHint"))}</span></div>`).join("")}</div>`
+          : `<div class="empty compact">${escapeHtml(appT("world.drawer.noLinkedAgents"))}</div>`}
       </section>
     </div>
   `;
@@ -5038,21 +5421,21 @@ function renderWorldAgentDrawer(projects, agentMeta) {
   return `
     <div class="world-drawer-header">
       <div>
-        <span class="eyebrow">Agent Node</span>
+        <span class="eyebrow">${escapeHtml(appT("world.drawer.agentNode"))}</span>
         <h3>${escapeHtml(agentMeta.agentId)}</h3>
       </div>
-      <button type="button" class="world-drawer-close" id="world-drawer-close" aria-label="Close agent details">×</button>
+      <button type="button" class="world-drawer-close" id="world-drawer-close" aria-label="${escapeHtml(appT("world.drawer.closeAgentDetails"))}">×</button>
     </div>
     <div class="world-drawer-body">
       <section class="world-drawer-section detail-grid compact">
-        <div class="detail-item"><span>Human</span><strong class="detail-code">${escapeHtml(agentMeta.humanId || "-")}</strong></div>
-        <div class="detail-item"><span>Projects</span><strong>${linkedProjects.length}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("world.drawer.human"))}</span><strong class="detail-code">${escapeHtml(agentMeta.humanId || "-")}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("world.drawer.projects"))}</span><strong>${linkedProjects.length}</strong></div>
       </section>
       <section class="world-drawer-section">
-        <h4>Project Participation</h4>
+        <h4>${escapeHtml(appT("world.drawer.projectParticipation"))}</h4>
         ${linkedProjects.length
           ? `<div class="nested-list">${linkedProjects.map((project) => `<div class="nested-item"><strong>${escapeHtml(project.title)}</strong><span>${escapeHtml(project.stage || "source")} · ${escapeHtml(projectStateLabel(project.state))}</span></div>`).join("")}</div>`
-          : '<div class="empty compact">No linked projects.</div>'}
+          : `<div class="empty compact">${escapeHtml(appT("world.drawer.noLinkedProjects"))}</div>`}
       </section>
     </div>
   `;
@@ -5431,13 +5814,13 @@ function renderSettingsData() {
       const issued = await request("/api/auth/join-token/issue", "POST", { humanId: human.humanId });
       state.latestJoinToken = issued;
       if (promptOutput) promptOutput.textContent = buildAgentMarkdownPrompt();
-      setStatus(`Secure join prompt regenerated for ${human.humanId}`, "ok");
+      setStatus(appT("settings.detail.joinPromptRegenerated", { humanId: human.humanId }), "ok");
       await refresh();
     } catch (error) {
       setStatus(error.message, "error");
     }
   });
-  $("copy-agent-prompt-primary")?.addEventListener("click", () => copyText(buildAgentMarkdownPrompt(), "AI registration prompt copied."));
+  $("copy-agent-prompt-primary")?.addEventListener("click", () => copyText(buildAgentMarkdownPrompt(), appT("settings.detail.aiPromptCopied")));
   $("download-agent-prompt-primary")?.addEventListener("click", () => {
     const activeHuman = currentHuman();
     if (!activeHuman) return;
@@ -5473,7 +5856,7 @@ function renderSettingsData() {
     if (starterResult) starterResult.innerHTML = "";
     if (signedActions) signedActions.innerHTML = "";
     if (starterForm?.primaryAgentId) {
-      starterForm.primaryAgentId.innerHTML = '<option value="">Select your main agent</option>';
+      starterForm.primaryAgentId.innerHTML = `<option value="">${escapeHtml(appT("settings.detail.selectMainAgent"))}</option>`;
     }
     if (projectForm?.ownerHumanId) projectForm.ownerHumanId.value = "";
     return;
@@ -5485,7 +5868,7 @@ function renderSettingsData() {
   const participatingProjects = projects.filter((project) => project.ownerHumanId !== human.humanId);
   const operatingProjects = projects.filter((project) => String(project.stage || "").toLowerCase() === "operating");
   const foundations = foundationProjects();
-  const linkedGitHubStatus = human.githubLogin ? "Linked" : "Not linked";
+  const linkedGitHubStatus = human.githubLogin ? appT("settings.detail.linked") : appT("settings.detail.notLinked");
   const authMethodLabel = (human.authMethods || []).length ? human.authMethods.join(" + ") : human.admissionMethod || "unknown";
   const onlineAgents = agents.filter((agent) => agent.online).length;
   const workingAgents = agents.filter((agent) => agent.online && agent.model).length;
@@ -5495,13 +5878,13 @@ function renderSettingsData() {
 
   if (settingsSummaryGrid) {
     settingsSummaryGrid.innerHTML = [
-      ["Human", human.displayName || human.humanId],
-      ["Auth", authMethodLabel],
-      ["GitHub", linkedGitHubStatus],
-      ["Agents", agents.length],
-      ["Projects", projects.length],
-      ["Owned Projects", ownedProjects.length],
-      ["Operating", operatingProjects.length]
+      [appT("settings.detail.human"), human.displayName || human.humanId],
+      [appT("settings.detail.auth"), authMethodLabel],
+      [appT("settings.detail.github"), linkedGitHubStatus],
+      [appT("settings.detail.agents"), agents.length],
+      [appT("settings.detail.projects"), projects.length],
+      [appT("settings.detail.ownedProjects"), ownedProjects.length],
+      [appT("settings.detail.operating"), operatingProjects.length]
     ].map(([label, value]) => `
       <div class="detail-item">
         <span>${label}</span>
@@ -5511,45 +5894,45 @@ function renderSettingsData() {
   }
 
   profile.innerHTML = [
-    ["Human ID", human.humanId, true],
-    ["Email", human.email, true],
-    ["Email Verification", human.emailVerified ? "Verified" : "Pending", false],
-    ["GitHub", human.githubLogin || "Not linked", true],
-    ["Display Name", human.displayName || human.humanId, false]
+    [appT("settings.detail.humanId"), human.humanId, true],
+    [appT("settings.detail.email"), human.email, true],
+    [appT("settings.detail.emailVerification"), human.emailVerified ? appT("settings.detail.verified") : appT("settings.detail.pending"), false],
+    [appT("settings.detail.github"), human.githubLogin || appT("settings.detail.notLinked"), true],
+    [appT("settings.detail.displayName"), human.displayName || human.humanId, false]
   ].map(([key, value, copyable]) => `
     <div class="detail-item">
       <span>${key}</span>
       <div class="detail-value-row">
         <strong class="${copyable ? "detail-code" : ""}">${value}</strong>
-        ${copyable ? `<button type="button" class="mini-copy-button" data-copy-value="${String(value).replace(/"/g, "&quot;")}">Copy</button>` : ""}
+        ${copyable ? `<button type="button" class="mini-copy-button" data-copy-value="${String(value).replace(/"/g, "&quot;")}">${escapeHtml(appT("settings.detail.copy"))}</button>` : ""}
       </div>
     </div>
   `).join("");
 
   profile.querySelectorAll("[data-copy-value]").forEach((button) => {
-    button.addEventListener("click", () => copyText(button.dataset.copyValue || "", "Copied profile field."));
+    button.addEventListener("click", () => copyText(button.dataset.copyValue || "", appT("settings.detail.profileCopied")));
   });
 
   if (profileActions) {
     profileActions.innerHTML = `
       <div class="action-row">
         <button type="button" class="topbar-button secondary" id="send-verification-button" ${state.authConfig.emailEnabled ? "" : "disabled"}>
-          ${human.emailVerified ? "Email Verified" : "Send Verification Email"}
+          ${human.emailVerified ? escapeHtml(appT("settings.detail.emailVerified")) : escapeHtml(appT("settings.detail.sendVerificationEmail"))}
         </button>
         <button type="button" class="topbar-button secondary" id="github-link-button" ${state.authConfig.githubEnabled ? "" : "disabled"}>
-          ${human.githubLogin ? "Refresh GitHub Link" : "Link GitHub Account"}
+          ${human.githubLogin ? escapeHtml(appT("settings.detail.refreshGithubLink")) : escapeHtml(appT("settings.detail.linkGithub"))}
         </button>
-        ${human.githubLogin ? '<button type="button" class="topbar-button ghost" id="github-unlink-button">Unlink GitHub</button>' : ""}
+        ${human.githubLogin ? `<button type="button" class="topbar-button ghost" id="github-unlink-button">${escapeHtml(appT("settings.detail.unlinkGithub"))}</button>` : ""}
       </div>
-      <p class="note">${!state.authConfig.emailEnabled ? "Email delivery is not configured on this deployment." : "Use email verification before you rely on the account for longer-lived access."}</p>
-      <p class="note">${!state.authConfig.githubEnabled ? "GitHub OAuth is not configured on this deployment." : "GitHub link is required before creating a source project."}</p>
+      <p class="note">${!state.authConfig.emailEnabled ? escapeHtml(appT("settings.detail.emailDeliveryNotConfigured")) : escapeHtml(appT("settings.detail.emailVerificationRecommended"))}</p>
+      <p class="note">${!state.authConfig.githubEnabled ? escapeHtml(appT("settings.detail.githubOauthNotConfigured")) : escapeHtml(appT("settings.detail.githubRequiredForSource"))}</p>
     `;
 
     $("send-verification-button")?.addEventListener("click", async () => {
       if (human.emailVerified) return;
       try {
         const result = await request("/api/auth/email/send-verification", "POST", { humanId: human.humanId });
-        setStatus(`Verification email sent to ${result.email}`, "ok");
+        setStatus(appT("settings.detail.verificationEmailSent", { email: result.email }), "ok");
         await refresh();
       } catch (error) {
         setStatus(error.message, "error");
@@ -5563,7 +5946,7 @@ function renderSettingsData() {
     $("github-unlink-button")?.addEventListener("click", async () => {
       try {
         await request("/api/auth/github/unlink", "POST", { humanId: human.humanId });
-        setStatus(`GitHub unlinked from ${human.humanId}`, "ok");
+        setStatus(appT("settings.detail.githubUnlinked", { humanId: human.humanId }), "ok");
         await refresh();
       } catch (error) {
         setStatus(error.message, "error");
@@ -5577,32 +5960,32 @@ function renderSettingsData() {
       <div class="panel key-subpanel">
         <div class="panel-header">
           <h3>Agent Auth Key</h3>
-          <p>Issue a human-scoped keypair so your agent can self-register with a signed request.</p>
+          <p>${escapeHtml(appT("settings.detail.agentAuthKeyLede"))}</p>
         </div>
         <div class="detail-grid compact">
-          <div class="detail-item"><span>Key Status</span><strong>${authKey ? "Issued" : "Not issued"}</strong></div>
-          <div class="detail-item"><span>Issued At</span><strong>${formatTimestamp(authKey?.issuedAt)}</strong></div>
-          <div class="detail-item"><span>Last Used</span><strong>${formatTimestamp(authKey?.lastUsedAt)}</strong></div>
+          <div class="detail-item"><span>${escapeHtml(appT("settings.detail.keyStatus"))}</span><strong>${authKey ? escapeHtml(appT("settings.detail.issued")) : escapeHtml(appT("settings.detail.notIssued"))}</strong></div>
+          <div class="detail-item"><span>${escapeHtml(appT("settings.detail.issuedAt"))}</span><strong>${formatTimestamp(authKey?.issuedAt)}</strong></div>
+          <div class="detail-item"><span>${escapeHtml(appT("settings.detail.lastUsed"))}</span><strong>${formatTimestamp(authKey?.lastUsedAt)}</strong></div>
         </div>
         <div class="code-panel">
           <div class="summary-row">
-            <strong>Fingerprint</strong>
-            ${authKey?.fingerprint ? '<button type="button" class="mini-copy-button" id="copy-auth-fingerprint">Copy</button>' : ""}
+            <strong>${escapeHtml(appT("settings.detail.fingerprint"))}</strong>
+            ${authKey?.fingerprint ? `<button type="button" class="mini-copy-button" id="copy-auth-fingerprint">${escapeHtml(appT("settings.detail.copy"))}</button>` : ""}
           </div>
-          <pre class="code-block compact">${authKey?.fingerprint || "Not available"}</pre>
+          <pre class="code-block compact">${authKey?.fingerprint || escapeHtml(appT("settings.detail.notAvailable"))}</pre>
         </div>
         <div class="action-row">
-          <button type="button" class="topbar-button secondary" id="issue-auth-key-button">Issue New Agent Auth Key</button>
-          ${state.latestAuthKeyBundle ? '<button type="button" class="topbar-button ghost" id="download-auth-key-button">Download PEM Bundle</button>' : ""}
+          <button type="button" class="topbar-button secondary" id="issue-auth-key-button">${escapeHtml(appT("settings.detail.issueNewAgentAuthKey"))}</button>
+          ${state.latestAuthKeyBundle ? `<button type="button" class="topbar-button ghost" id="download-auth-key-button">${escapeHtml(appT("settings.detail.downloadPemBundle"))}</button>` : ""}
         </div>
-        <p class="note">Private key material is returned only once. Re-issuing rotates the active agent auth key.</p>
+        <p class="note">${escapeHtml(appT("settings.detail.privateKeyOneTime"))}</p>
         <pre id="auth-key-output" class="code-block">${state.latestAuthKeyBundle ? JSON.stringify({
           keyId: state.latestAuthKeyBundle.keyId,
           algorithm: state.latestAuthKeyBundle.algorithm,
           fingerprint: state.latestAuthKeyBundle.fingerprint,
           publicKeyPem: state.latestAuthKeyBundle.publicKeyPem,
           privateKeyPem: state.latestAuthKeyBundle.privateKeyPem
-        }, null, 2) : "Issue a key to receive the one-time PEM bundle."}</pre>
+        }, null, 2) : escapeHtml(appT("settings.detail.issueKeyHint"))}</pre>
       </div>
     `;
 
@@ -5610,7 +5993,7 @@ function renderSettingsData() {
       try {
         const issued = await request("/api/auth/keys/issue", "POST", { humanId: human.humanId });
         state.latestAuthKeyBundle = issued;
-        setStatus(`Issued agent auth key for ${human.humanId}`, "ok");
+        setStatus(appT("settings.detail.issuedAgentAuthKey", { humanId: human.humanId }), "ok");
         await refresh();
       } catch (error) {
         setStatus(error.message, "error");
@@ -5618,7 +6001,7 @@ function renderSettingsData() {
     });
 
     $("copy-auth-fingerprint")?.addEventListener("click", () => {
-      copyText(authKey?.fingerprint || "", "Fingerprint copied.");
+      copyText(authKey?.fingerprint || "", appT("settings.detail.fingerprintCopied"));
     });
 
     $("download-auth-key-button")?.addEventListener("click", () => {
@@ -5650,24 +6033,24 @@ function renderSettingsData() {
     const isGitHubFirst = authMethods.has("github") && !authMethods.has("password");
     securityPanel.innerHTML = `
       <div class="detail-grid">
-        <div class="detail-item"><span>Primary Sign-In</span><strong>${isGitHubFirst ? "GitHub OAuth" : "Email + Password"}</strong></div>
-        <div class="detail-item"><span>Email Status</span><strong>${human.emailVerified ? "Verified" : "Pending verification"}</strong></div>
-        <div class="detail-item"><span>GitHub Link</span><strong>${human.githubLogin || "Not linked"}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("settings.detail.primarySignin"))}</span><strong>${isGitHubFirst ? "GitHub OAuth" : "Email + Password"}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("settings.detail.emailStatus"))}</span><strong>${human.emailVerified ? escapeHtml(appT("settings.detail.verified")) : escapeHtml(appT("settings.detail.pendingVerification"))}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("settings.detail.githubLink"))}</span><strong>${human.githubLogin || escapeHtml(appT("settings.detail.notLinked"))}</strong></div>
       </div>
       <div class="action-row">
         <button type="button" class="topbar-button secondary" id="send-verification-button-security" ${state.authConfig.emailEnabled ? "" : "disabled"}>
-          ${human.emailVerified ? "Email Verified" : "Send Verification Email"}
+          ${human.emailVerified ? escapeHtml(appT("settings.detail.emailVerified")) : escapeHtml(appT("settings.detail.sendVerificationEmail"))}
         </button>
       </div>
       <p class="note">${isGitHubFirst
-        ? "This account currently uses GitHub as the primary sign-in method. Email verification is still recommended for account recovery and future password setup."
-        : "This account uses local password authentication. Email verification should be completed before relying on the account for long-term access."}</p>
+        ? escapeHtml(appT("settings.detail.githubPrimarySigninNote"))
+        : escapeHtml(appT("settings.detail.passwordPrimarySigninNote"))}</p>
     `;
     $("send-verification-button-security")?.addEventListener("click", async () => {
       if (human.emailVerified) return;
       try {
         const result = await request("/api/auth/email/send-verification", "POST", { humanId: human.humanId });
-        setStatus(`Verification email sent to ${result.email}`, "ok");
+        setStatus(appT("settings.detail.verificationEmailSent", { email: result.email }), "ok");
         await refresh();
       } catch (error) {
         setStatus(error.message, "error");
@@ -6116,7 +6499,7 @@ function renderSettingsData() {
             state.latestFoundationArtifacts[projectId] = { action: 'delivery-contract', result, agentId };
             renderSettingsData();
             downloadTextFile(`onboarder-${node.dataset.entitlementId}.delivery-contract.json`, JSON.stringify(result, null, 2), 'application/json;charset=utf-8');
-            setStatus('Delivery contract downloaded.', 'ok');
+            setStatus(appT("status.deliveryContractDownloaded"), 'ok');
           } catch (error) {
             setStatus(error.message, 'error');
             if (/agent/i.test(error.message || "")) window.alert(error.message);
@@ -6140,7 +6523,7 @@ function renderSettingsData() {
             state.latestFoundationArtifacts[projectId] = { action: 'artifact-bundle', result, agentId };
             renderSettingsData();
             downloadTextFile(`onboarder-${node.dataset.entitlementId}.artifact-bundle.json`, JSON.stringify(result, null, 2), 'application/json;charset=utf-8');
-            setStatus('Artifact bundle downloaded.', 'ok');
+            setStatus(appT("status.artifactBundleDownloaded"), 'ok');
           } catch (error) {
             setStatus(error.message, 'error');
             if (/agent/i.test(error.message || "")) window.alert(error.message);
@@ -6181,7 +6564,7 @@ function renderSettingsData() {
             link.click();
             link.remove();
             URL.revokeObjectURL(url);
-            setStatus('Artifact ZIP downloaded.', 'ok');
+            setStatus(appT("status.artifactZipDownloaded"), 'ok');
           } catch (error) {
             setStatus(error.message, 'error');
             if (/agent/i.test(error.message || "")) window.alert(error.message);
@@ -6192,7 +6575,7 @@ function renderSettingsData() {
         node.addEventListener('click', () => {
           const artifact = state.latestFoundationArtifacts?.[node.dataset.projectId || ''];
           if (!artifact?.result) return;
-          copyText(JSON.stringify(artifact.result, null, 2), 'Foundation artifact JSON copied.');
+          copyText(JSON.stringify(artifact.result, null, 2), appT("status.foundationJsonCopied"));
         });
       });
       foundationsRoot.querySelectorAll('.foundation-download-json').forEach((node) => {
@@ -6224,7 +6607,7 @@ function renderSettingsData() {
             })
           });
           if (!response.ok) {
-            setStatus('Artifact zip export failed.', 'error');
+            setStatus(appT("status.artifactZipExportFailed"), 'error');
             return;
           }
           const blob = await response.blob();
@@ -6237,7 +6620,7 @@ function renderSettingsData() {
           link.click();
           link.remove();
           URL.revokeObjectURL(url);
-          setStatus('Artifact zip downloaded.', 'ok');
+          setStatus(appT("status.artifactZipDownloaded"), 'ok');
         });
       });
       foundationsRoot.querySelectorAll('.foundation-download-bundle-file').forEach((node) => {
@@ -6896,11 +7279,11 @@ function renderProjects(projects) {
     const latestRun = latestProjectFoundationRun(project);
     const latestWorkspaceMessage = latestProjectWorkspaceMessage(project);
     const openParticipationRequests = (project.participationRequests || []).filter((entry) => entry.status === "pending");
-    const repoLabel = project.repoFullName || project.repoName || "No repo linked";
+    const repoLabel = project.repoFullName || project.repoName || appT("build.detail.noRepoLinked");
     const serviceLabel = project.serviceEndpoint || "";
     const directorySignal = `R ${project.rating || 0} / H ${project.heat || 0}`;
     const safeTitle = escapeHtml(project.title);
-    const safeSummary = escapeHtml(project.summary || "No summary provided.");
+    const safeSummary = escapeHtml(project.summary || appT("build.detail.noSummary"));
     const safeRepoLabel = escapeHtml(repoLabel);
     const safeServiceLabel = escapeHtml(serviceLabel);
     const repoHref = sanitizeExternalHref(project.repoUrl);
@@ -6909,15 +7292,15 @@ function renderProjects(projects) {
       stripProtocol: true,
       maxLength: 40
     }));
-    const safeRepoName = escapeHtml(project.repoName || "No repo linked");
+    const safeRepoName = escapeHtml(project.repoName || appT("build.detail.noRepoLinked"));
     const safeOwnerHumanId = escapeHtml(project.ownerHumanId || "-");
     const safeStage = escapeHtml(project.stage || "source");
     const safeStateLabel = escapeHtml(projectStateLabel(project.state));
     const safeLatestRunAction = escapeHtml(latestRun
-      ? formatActionLabel(latestRun.action, "No Run Yet")
+      ? formatActionLabel(latestRun.action, appT("build.detail.noRunYet"))
       : latestWorkspaceMessage?.at
-        ? "Workspace Update"
-        : "No Run Yet");
+        ? appT("build.detail.workspaceUpdate")
+        : appT("build.detail.noRunYet"));
     const safeLatestRunNote = escapeHtml(formatLatestDeliveryNote({ latestRun, latestWorkspaceMessage }));
     const safeDirectorySignal = escapeHtml(directorySignal);
     const latestActivity = projectLatestActivity(project);
@@ -6937,12 +7320,12 @@ function renderProjects(projects) {
               </div>
               <div class="build-card-identity-list">
                 <div class="build-card-identity-item">
-                  <span>Repo</span>
+                  <span>${escapeHtml(appT("build.detail.repo"))}</span>
                   <strong class="detail-code detail-code-compact" title="${safeRepoLabel}">${compactRepoLabel}</strong>
                 </div>
                 ${serviceLabel ? `
                   <div class="build-card-identity-item">
-                    <span>Service</span>
+                    <span>${escapeHtml(appT("build.detail.service"))}</span>
                     <strong class="detail-code detail-code-compact" title="${safeServiceLabel}">${compactServiceLabel}</strong>
                   </div>
                 ` : ""}
@@ -6956,17 +7339,17 @@ function renderProjects(projects) {
           <p class="build-card-summary">${safeSummary}</p>
           <div class="build-card-signal-grid">
             <div class="build-card-signal">
-              <span>Operating</span>
+              <span>${escapeHtml(appT("build.detail.operating"))}</span>
               <strong>${escapeHtml(projectDirectoryOperatingHeadline(project))}</strong>
               <p>${escapeHtml(clampDirectionalCopy(projectDirectoryOperatingHint(project), 72))}</p>
             </div>
             <div class="build-card-signal">
-              <span>Recruiting</span>
+              <span>${escapeHtml(appT("build.detail.recruiting"))}</span>
               <strong>${escapeHtml(projectDirectoryRecruitingHeadline(project))}</strong>
               <p>${escapeHtml(clampDirectionalCopy(projectDirectoryRecruitingHint(project), 72))}</p>
             </div>
             <div class="build-card-signal">
-              <span>Workspace Entry</span>
+              <span>${escapeHtml(appT("build.detail.workspaceEntry"))}</span>
               <strong>${escapeHtml(projectDirectoryParticipationHeadline(project, human, myProjectIds))}</strong>
               <p>${escapeHtml(clampDirectionalCopy(projectDirectoryParticipationHint(project, human, myProjectIds), 72))}</p>
             </div>
@@ -6974,18 +7357,18 @@ function renderProjects(projects) {
           <div class="build-card-meta">
             ${openParticipationRequests.length ? `
               <div class="build-meta-item demand">
-                <span>Requests</span>
-                <strong>${openParticipationRequests.length} Waiting</strong>
-                <p>Review in Project Workspace.</p>
+                <span>${escapeHtml(appT("build.detail.requests"))}</span>
+                <strong>${openParticipationRequests.length} ${escapeHtml(appT("build.detail.waiting"))}</strong>
+                <p>${escapeHtml(appT("build.detail.reviewInWorkspace"))}</p>
               </div>
             ` : ""}
             <div class="build-meta-item build-meta-item-activity">
-              <span>Latest Delivery</span>
+              <span>${escapeHtml(appT("build.detail.latestDelivery"))}</span>
               <strong>${safeLatestRunAction}</strong>
               <p>${safeLatestRunNote}</p>
             </div>
             <div class="build-meta-item">
-              <span>Signal</span>
+              <span>${escapeHtml(appT("build.detail.signal"))}</span>
               <strong>${safeDirectorySignal}</strong>
             </div>
           </div>
@@ -6996,37 +7379,37 @@ function renderProjects(projects) {
         <div class="build-directory-detail-grid">
           <div class="build-directory-detail-block">
             <div class="summary-row">
-              <strong>Directory Snapshot</strong>
+              <strong>${escapeHtml(appT("build.detail.directorySnapshot"))}</strong>
               <span>${safeRepoName}</span>
             </div>
             <div class="detail-grid compact">
-              <div class="detail-item"><span>Owner</span><strong class="detail-code">${safeOwnerHumanId}</strong></div>
-              <div class="detail-item"><span>Participants</span><strong>${project.memberAgentIds?.length || 0}</strong></div>
-              <div class="detail-item"><span>Stage</span><strong>${safeStage}</strong></div>
-              <div class="detail-item"><span>State</span><strong>${safeStateLabel}</strong></div>
-              <div class="detail-item"><span>Rating</span><strong>${project.rating || 0}</strong></div>
-              <div class="detail-item"><span>Heat</span><strong>${project.heat || 0}</strong></div>
-              <div class="detail-item detail-item-wide"><span>GitHub</span><strong class="detail-code">${safeRepoLabel}</strong></div>
+              <div class="detail-item"><span>${escapeHtml(appT("build.detail.owner"))}</span><strong class="detail-code">${safeOwnerHumanId}</strong></div>
+              <div class="detail-item"><span>${escapeHtml(appT("build.detail.participants"))}</span><strong>${project.memberAgentIds?.length || 0}</strong></div>
+              <div class="detail-item"><span>${escapeHtml(appT("build.detail.stage"))}</span><strong>${safeStage}</strong></div>
+              <div class="detail-item"><span>${escapeHtml(appT("build.detail.state"))}</span><strong>${safeStateLabel}</strong></div>
+              <div class="detail-item"><span>${escapeHtml(appT("build.detail.rating"))}</span><strong>${project.rating || 0}</strong></div>
+              <div class="detail-item"><span>${escapeHtml(appT("build.detail.heat"))}</span><strong>${project.heat || 0}</strong></div>
+              <div class="detail-item detail-item-wide"><span>${escapeHtml(appT("build.detail.github"))}</span><strong class="detail-code">${safeRepoLabel}</strong></div>
             </div>
           </div>
           <div class="build-directory-detail-block">
             <div class="summary-row">
-              <strong>Operating And Entry</strong>
-              <span>Project Workspace</span>
+              <strong>${escapeHtml(appT("build.detail.operatingAndEntry"))}</strong>
+              <span>${escapeHtml(appT("build.detail.projectWorkspace"))}</span>
             </div>
             <div class="detail-grid compact">
-              <div class="detail-item"><span>Entry Route</span><strong>Project Workspace</strong></div>
-              <div class="detail-item"><span>Participation</span><strong>${escapeHtml(participationState.label)}</strong></div>
-              <div class="detail-item"><span>Recruiting</span><strong>${escapeHtml(recruitingState.label)}</strong></div>
-              <div class="detail-item"><span>Open Requests</span><strong>${openParticipationRequests.length}</strong></div>
-              <div class="detail-item"><span>Directory Signal</span><strong>${safeDirectorySignal}</strong></div>
-              <div class="detail-item detail-item-wide"><span>Service Endpoint</span><strong class="detail-code">${safeServiceLabel || "Not set"}</strong></div>
-              <div class="detail-item"><span>Latest Run At</span><strong>${latestRun ? formatTimestamp(latestRun.generatedAt) : "-"}</strong></div>
+              <div class="detail-item"><span>${escapeHtml(appT("build.detail.entryRoute"))}</span><strong>${escapeHtml(appT("build.detail.projectWorkspace"))}</strong></div>
+              <div class="detail-item"><span>${escapeHtml(appT("build.detail.participation"))}</span><strong>${escapeHtml(participationState.label)}</strong></div>
+              <div class="detail-item"><span>${escapeHtml(appT("build.detail.recruiting"))}</span><strong>${escapeHtml(recruitingState.label)}</strong></div>
+              <div class="detail-item"><span>${escapeHtml(appT("build.detail.openRequests"))}</span><strong>${openParticipationRequests.length}</strong></div>
+              <div class="detail-item"><span>${escapeHtml(appT("build.detail.directorySignal"))}</span><strong>${safeDirectorySignal}</strong></div>
+              <div class="detail-item detail-item-wide"><span>${escapeHtml(appT("build.detail.serviceEndpoint"))}</span><strong class="detail-code">${safeServiceLabel || escapeHtml(appT("build.detail.notSet"))}</strong></div>
+              <div class="detail-item"><span>${escapeHtml(appT("build.detail.latestRunAt"))}</span><strong>${latestRun ? formatTimestamp(latestRun.generatedAt) : "-"}</strong></div>
             </div>
             ${renderBoundedNoteList([
-              { label: "Operating Context", value: operatingState.note },
-              { label: "Recruiting Path", value: recruitingState.note },
-              { label: "Latest Activity", value: latestActivity.detail }
+              { label: appT("build.detail.operatingContext"), value: operatingState.note },
+              { label: appT("build.detail.recruitingPath"), value: recruitingState.note },
+              { label: appT("build.detail.latestActivity"), value: latestActivity.detail }
             ])}
           </div>
         </div>
@@ -7035,7 +7418,7 @@ function renderProjects(projects) {
         <div class="build-directory-actions">
           <div class="directory-action-group directory-action-group-primary">
             <div class="directory-action-copy">
-              <span class="directory-action-label">Project Workspace Entry</span>
+              <span class="directory-action-label">${escapeHtml(appT("build.detail.workspaceEntryTitle"))}</span>
               <p>${escapeHtml(clampDirectionalCopy(`${participationState.label}. ${participationState.note}`, 120))}</p>
             </div>
             <div class="directory-action-primary">
@@ -7044,17 +7427,17 @@ function renderProjects(projects) {
           </div>
           <div class="directory-action-group">
             <div class="directory-action-copy">
-              <span class="directory-action-label">External Surface</span>
-              <p>Source inspection stays separate from collaboration controls.</p>
+              <span class="directory-action-label">${escapeHtml(appT("build.detail.externalSurface"))}</span>
+              <p>${escapeHtml(appT("build.detail.externalSurfaceNote"))}</p>
             </div>
             <div class="directory-action-secondary">
               ${renderDirectoryExternalLinks(
                 [{
-                  label: "Source Repo",
+                  label: appT("action.sourceRepo"),
                   href: repoHref,
-                  missingMessage: "Repository link publishes after the source surface is connected."
+                  missingMessage: appT("build.detail.repoLinkMissing")
                 }],
-                "Repository link publishes after the source surface is connected."
+                appT("build.detail.repoLinkMissing")
               )}
             </div>
           </div>
@@ -7067,7 +7450,7 @@ function renderProjects(projects) {
   root.querySelectorAll(".open-workspace-button").forEach((node) => {
     node.addEventListener("click", () => {
       openProjectWorkspace(node.dataset.projectOpen);
-      setStatus(`Open ${node.dataset.projectTitle} in Project Workspace for participation and delivery context.`, "ok");
+      setStatus(appT("status.openWorkspaceContext", { title: node.dataset.projectTitle || "-" }), "ok");
     });
   });
 }
@@ -7092,16 +7475,16 @@ function workspaceCollaborationState(project, agents) {
     return pendingRequest
       ? {
           canSend: false,
-          headline: "Participation approval is still pending.",
-          note: "Wait for the project owner to review your request before using the project conversation deck.",
-          placeholder: "Collaboration unlocks after the participation request is approved.",
+          headline: appT("workspace.detail.awaitingAccessHeadline"),
+          note: appT("workspace.detail.awaitingAccessNote"),
+          placeholder: appT("workspace.detail.awaitingAccessPlaceholder"),
           statusLabel: "Awaiting Access"
         }
       : {
           canSend: false,
-          headline: "Join the project before tasking an agent here.",
-          note: "Use the participation panel on this page to request access, then come back to the command deck once your agent is attached.",
-          placeholder: "Request participation before sending a project task.",
+          headline: appT("workspace.detail.participationRequiredHeadline"),
+          note: appT("workspace.detail.participationRequiredNote"),
+          placeholder: appT("workspace.detail.participationRequiredPlaceholder"),
           statusLabel: "Participation Required"
         };
   }
@@ -7109,9 +7492,9 @@ function workspaceCollaborationState(project, agents) {
   if (!bridge?.available) {
     return {
       canSend: false,
-      headline: "Browser bridge not detected.",
-      note: "Load elo-agent-web-plugin in this browser first, then re-check bridge readiness from this page.",
-      placeholder: "Check the browser bridge before sending a task.",
+      headline: appT("workspace.detail.bridgeRequiredHeadline"),
+      note: appT("workspace.detail.bridgeRequiredNote"),
+      placeholder: appT("workspace.detail.bridgeRequiredPlaceholder"),
       statusLabel: "Bridge Required"
     };
   }
@@ -7119,9 +7502,9 @@ function workspaceCollaborationState(project, agents) {
   if (!bridge?.configured) {
     return {
       canSend: false,
-      headline: "Bridge configuration still needs attention.",
-      note: "Finish the world URL, agent, and endpoint configuration in the browser bridge before sending a project task.",
-      placeholder: "Finish bridge configuration before sending a task.",
+      headline: appT("workspace.detail.bridgeSetupHeadline"),
+      note: appT("workspace.detail.bridgeSetupNote"),
+      placeholder: appT("workspace.detail.bridgeSetupPlaceholder"),
       statusLabel: "Bridge Setup"
     };
   }
@@ -7129,18 +7512,18 @@ function workspaceCollaborationState(project, agents) {
   if (!agents.length) {
     return {
       canSend: false,
-      headline: "No eligible project member agent is attached to your account yet.",
-      note: "Have the owner invite one of your registered agents, or accept the pending invite, before using the project thread.",
-      placeholder: "Add one of your registered agents as a project member first.",
+      headline: appT("workspace.detail.memberAgentNeededHeadline"),
+      note: appT("workspace.detail.memberAgentNeededNote"),
+      placeholder: appT("workspace.detail.memberAgentNeededPlaceholder"),
       statusLabel: "Member Agent Needed"
     };
   }
 
   return {
     canSend: true,
-    headline: "Command deck is ready for project work.",
-    note: "Keep the task short, specific, and tied to this project so the conversation timeline stays useful after refresh.",
-    placeholder: "Describe the next task, decision, blocker, or refinement for your agent.",
+    headline: appT("workspace.detail.readyHeadline"),
+    note: appT("workspace.detail.readyNote"),
+    placeholder: appT("workspace.detail.readyPlaceholder"),
     statusLabel: "Ready"
   };
 }
@@ -7194,43 +7577,43 @@ function renderWorkspaceBridgeGuide(project, agents) {
   const config = bridge?.config || {};
   const foundationProject = (state.summary?.projects || []).find((item) => item.repoName === "elo-agent-web-plugin");
   const bridgeDocs = "https://github.com/peterpan42388/elo-agent-web-plugin/blob/codex/browser-bridge-skeleton/docs/BRIDGE_PROTOCOL.md";
-  const workspaceAgent = agents[0]?.label || agents[0]?.agentId || "No eligible agent";
-  const configuredEndpoint = config.agentEndpoint || "Not configured";
+  const workspaceAgent = agents[0]?.label || agents[0]?.agentId || appT("workspace.detail.noneAvailable");
+  const configuredEndpoint = config.agentEndpoint || appT("build.detail.notSet");
   const configuredOrigin = config.worldUrl || window.location.origin;
   const bridgeStateClass = bridge?.configured ? "ready" : bridge?.available ? "attention" : "locked";
 
-  let nextStep = "Install and configure the browser bridge before you ask your project agent to work inside this page.";
+  let nextStep = appT("workspace.detail.bridgeRequiredNote");
   if (bridge?.available && !bridge?.configured) {
-    nextStep = "The bridge is detected, but its world URL, agent, or endpoint is incomplete. Finish the extension configuration, then re-check the bridge.";
+    nextStep = appT("workspace.detail.bridgeSetupNote");
   } else if (bridge?.configured && agents.length) {
-    nextStep = "The bridge is ready. Keep the working agent selected and use this page as the project-specific coordination thread.";
+    nextStep = appT("workspace.detail.readyNote");
   } else if (bridge?.configured && !agents.length) {
-    nextStep = "The bridge is ready, but this project still needs one of your registered agents as a member before direct collaboration can continue.";
+    nextStep = appT("workspace.detail.memberAgentNeededNote");
   }
 
   return `
     <div class="workspace-command-card workspace-bridge-guide">
       <div class="workspace-command-header">
         <div class="copy-stack">
-          <strong>Bridge Readiness</strong>
-          <p>Verify the browser bridge, current endpoint, and target world before sending the next project task.</p>
+          <strong>${escapeHtml(appT("workspace.detail.bridgeReadiness"))}</strong>
+          <p>${escapeHtml(appT("workspace.detail.bridgeReadinessLede"))}</p>
         </div>
         <span class="workspace-state-pill ${bridgeStateClass}">${bridgeStatusLabel()}</span>
       </div>
       <div class="detail-grid compact">
-        <div class="detail-item"><span>Browser Bridge</span><strong>${bridgeStatusLabel()}</strong></div>
-        <div class="detail-item"><span>Workspace Agent</span><strong>${workspaceAgent}</strong></div>
-        <div class="detail-item"><span>Agent Endpoint</span><strong class="detail-code">${escapeHtml(configuredEndpoint)}</strong></div>
-        <div class="detail-item"><span>World URL</span><strong class="detail-code">${escapeHtml(configuredOrigin)}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("workspace.detail.browserBridge"))}</span><strong>${bridgeStatusLabel()}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("workspace.detail.workspaceAgent"))}</span><strong>${workspaceAgent}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("workspace.detail.agentEndpoint"))}</span><strong class="detail-code">${escapeHtml(configuredEndpoint)}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("workspace.detail.worldUrl"))}</span><strong class="detail-code">${escapeHtml(configuredOrigin)}</strong></div>
       </div>
       <div class="workspace-bridge-note">
-        <strong>Next step</strong>
+        <strong>${escapeHtml(appT("workspace.detail.nextStep"))}</strong>
         <p>${nextStep}</p>
       </div>
       <div class="action-row">
-        <a href="${bridgeDocs}" target="_blank" rel="noreferrer">Bridge Protocol</a>
-        ${foundationProject ? `<button type="button" class="topbar-button ghost open-workspace-button" data-project-open="${foundationProject.projectId}">Open Bridge Project</button>` : ""}
-        ${project?.serviceEndpoint ? `<a href="${project.serviceEndpoint}" target="_blank" rel="noreferrer">Project Service</a>` : ""}
+        <a href="${bridgeDocs}" target="_blank" rel="noreferrer">${escapeHtml(appT("workspace.detail.bridgeProtocol"))}</a>
+        ${foundationProject ? `<button type="button" class="topbar-button ghost open-workspace-button" data-project-open="${foundationProject.projectId}">${escapeHtml(appT("workspace.detail.openBridgeProject"))}</button>` : ""}
+        ${project?.serviceEndpoint ? `<a href="${project.serviceEndpoint}" target="_blank" rel="noreferrer">${escapeHtml(appT("workspace.detail.projectService"))}</a>` : ""}
       </div>
     </div>
   `;
@@ -7246,18 +7629,18 @@ function renderWorkspaceCommandDeck(project, agents, messages, collaborationStat
     <div class="workspace-command-deck">
       <div class="workspace-command-header">
         <div class="copy-stack">
-          <strong>Agent Command Deck</strong>
-          <p>Route project-specific requests through a member agent so the timeline stays attached to the workspace.</p>
+          <strong>${escapeHtml(appT("workspace.detail.agentCommandDeck"))}</strong>
+          <p>${escapeHtml(appT("workspace.detail.agentCommandDeckLede"))}</p>
         </div>
         <span class="workspace-state-pill ${stateClass}">${escapeHtml(collaborationState.statusLabel)}</span>
       </div>
       <div class="detail-grid compact">
-        <div class="detail-item"><span>Your Access</span><strong>${isOwner ? "Owner" : isParticipant ? "Participant" : "Viewer"}</strong></div>
-        <div class="detail-item"><span>Eligible Agents</span><strong>${agents.length}</strong></div>
-        <div class="detail-item"><span>Selected Agent</span><strong>${escapeHtml(selectedAgent?.label || selectedAgent?.agentId || "None available")}</strong></div>
-        <div class="detail-item"><span>Conversation Entries</span><strong>${messages.length}</strong></div>
-        <div class="detail-item"><span>Last Speaker</span><strong class="${latestMessage?.actorId ? "detail-code" : ""}">${escapeHtml(latestMessage?.actorId || "No conversation yet")}</strong></div>
-        <div class="detail-item"><span>Last Activity</span><strong>${latestMessage ? formatTimestamp(latestMessage.at) : "No conversation yet"}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("workspace.detail.yourAccess"))}</span><strong>${isOwner ? escapeHtml(appT("workspace.detail.owner")) : isParticipant ? escapeHtml(appT("workspace.detail.participant")) : escapeHtml(appT("workspace.detail.viewer"))}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("workspace.detail.eligibleAgents"))}</span><strong>${agents.length}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("workspace.detail.selectedAgent"))}</span><strong>${escapeHtml(selectedAgent?.label || selectedAgent?.agentId || appT("workspace.detail.noneAvailable"))}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("workspace.detail.conversationEntries"))}</span><strong>${messages.length}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("workspace.detail.lastSpeaker"))}</span><strong class="${latestMessage?.actorId ? "detail-code" : ""}">${escapeHtml(latestMessage?.actorId || appT("workspace.detail.noConversationYet"))}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("workspace.detail.lastActivity"))}</span><strong>${latestMessage ? formatTimestamp(latestMessage.at) : escapeHtml(appT("workspace.detail.noConversationYet"))}</strong></div>
       </div>
       <div class="workspace-command-note">
         <strong>${escapeHtml(collaborationState.headline)}</strong>
@@ -7265,7 +7648,7 @@ function renderWorkspaceCommandDeck(project, agents, messages, collaborationStat
       </div>
       ${selectedAgent ? `
         <div class="workspace-command-agent">
-          <span>Primary working agent</span>
+          <span>${escapeHtml(appT("workspace.detail.primaryWorkingAgent"))}</span>
           <strong>${escapeHtml(selectedAgent.label || selectedAgent.agentId)}</strong>
           <span class="detail-code">${escapeHtml(selectedAgent.agentId)}</span>
         </div>
@@ -7278,8 +7661,8 @@ function renderWorkspaceConversationThread(project, human, messages, collaborati
   if (!messages.length) {
     return `
       <div class="workspace-thread-empty">
-        <strong>No project conversation yet.</strong>
-        <p>${escapeHtml(collaborationState.canSend ? "Use the working agent selector and send the next task, blocker, or design question. This thread stays attached to the project record." : collaborationState.note)}</p>
+        <strong>${escapeHtml(appT("workspace.detail.threadEmptyTitle"))}</strong>
+        <p>${escapeHtml(collaborationState.canSend ? appT("workspace.detail.threadEmptyReady") : collaborationState.note)}</p>
       </div>
     `;
   }
@@ -7312,22 +7695,22 @@ function renderWorkspaceConversationThread(project, human, messages, collaborati
   return `
     <div class="workspace-thread-summary">
       <div class="detail-grid compact">
-        <div class="detail-item"><span>Total Entries</span><strong>${messages.length}</strong></div>
-        <div class="detail-item"><span>Human Messages</span><strong>${humanCount}</strong></div>
-        <div class="detail-item"><span>Agent Messages</span><strong>${agentCount}</strong></div>
-        <div class="detail-item"><span>Last Activity</span><strong>${formatTimestamp(lastEntry.at)}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("workspace.detail.totalEntries"))}</span><strong>${messages.length}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("workspace.detail.humanMessages"))}</span><strong>${humanCount}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("workspace.detail.agentMessages"))}</span><strong>${agentCount}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("workspace.detail.lastActivity"))}</span><strong>${formatTimestamp(lastEntry.at)}</strong></div>
       </div>
       <div class="workspace-latest-exchange">
         <div class="summary-row">
-          <strong>Latest Exchange</strong>
+          <strong>${escapeHtml(appT("workspace.detail.latestExchange"))}</strong>
           <span>${lastEntry.role === "human" ? human.displayName || human.humanId : lastEntry.actorId || "Agent"}</span>
         </div>
-        <pre class="code-block compact">${escapeHtml(lastPreviewText || "No message content recorded.")}</pre>
+        <pre class="code-block compact">${escapeHtml(lastPreviewText || appT("workspace.detail.noMessageContent"))}</pre>
       </div>
     </div>
     ${olderMessages.length ? `
       <details class="workspace-thread-history">
-        <summary>Earlier Context (${olderMessages.length})</summary>
+        <summary>${escapeHtml(appT("workspace.detail.earlierContext", { count: olderMessages.length }))}</summary>
         <div class="list-stack">
           ${olderMessages.map((entry, index) => renderMessageCard(entry, index, "older")).join("")}
         </div>
@@ -7335,8 +7718,8 @@ function renderWorkspaceConversationThread(project, human, messages, collaborati
     ` : ""}
     <div class="workspace-thread-recent">
       <div class="summary-row">
-        <strong>Latest Exchanges</strong>
-        <span>${recentMessages.length} most recent entries</span>
+        <strong>${escapeHtml(appT("workspace.detail.latestExchanges"))}</strong>
+        <span>${escapeHtml(appT("workspace.detail.latestMostRecent", { count: recentMessages.length }))}</span>
       </div>
       <div class="list-stack">
         ${recentMessages.map((entry, index) => renderMessageCard(entry, messages.length - recentMessages.length + index, "recent")).join("")}
@@ -7354,39 +7737,39 @@ function renderProjectProgressPanel(project) {
   const stateLabel = projectStateLabel(project.state);
   const stageTrack = [
     {
-      label: "Intake",
-      description: requirement ? `Requirement ${requirement.requirementId}` : "Project idea intake still needs a linked requirement.",
+      label: appT("workspace.detail.intake"),
+      description: requirement ? `${appT("workspace.detail.requirement")} ${requirement.requirementId}` : appT("workspace.detail.noLinkedRequirement"),
       active: Boolean(requirement)
     },
     {
-      label: "Refinement",
-      description: summary?.projectDirection || "Primary-agent refinement has not produced a structured direction yet.",
+      label: appT("workspace.detail.refinement"),
+      description: summary?.projectDirection || appT("workspace.detail.noDirection"),
       active: Boolean(summary)
     },
     {
-      label: "Source Project",
-      description: project.repoFullName || project.repoName || "Source repository not created yet.",
+      label: appT("workspace.detail.sourceProject"),
+      description: project.repoFullName || project.repoName || appT("workspace.detail.noSourceRepo"),
       active: ["source", "operating"].includes(stage)
     },
     {
-      label: "Operating",
-      description: stage === "operating" ? "This project is running as an operating service." : "Not operating yet.",
+      label: appT("workspace.detail.operating"),
+      description: stage === "operating" ? appT("market.detail.operatingLiveNote") : appT("workspace.detail.notOperatingYet"),
       active: stage === "operating"
     }
   ];
   const milestones = Array.isArray(summary?.milestones) && summary.milestones.length
     ? summary.milestones.map((item) => `<li>${escapeHtml(item)}</li>`).join("")
-    : "<li>No milestones captured yet.</li>";
+    : `<li>${escapeHtml(appT("workspace.detail.noMilestones"))}</li>`;
   const questions = Array.isArray(summary?.questions) && summary.questions.length
     ? summary.questions.map((item) => `<li>${escapeHtml(item)}</li>`).join("")
-    : "<li>No open questions recorded.</li>";
+    : `<li>${escapeHtml(appT("workspace.detail.noOpenQuestions"))}</li>`;
   return `
     <div class="workspace-stage-track">
       ${stageTrack.map((item) => `
         <div class="workspace-stage-step ${item.active ? "active" : ""}">
           <div class="summary-row">
             <strong>${item.label}</strong>
-            <span>${item.active ? "Ready" : "Pending"}</span>
+            <span>${item.active ? escapeHtml(appT("workspace.detail.ready")) : escapeHtml(appT("workspace.detail.pending"))}</span>
           </div>
           <p>${escapeHtml(item.description)}</p>
         </div>
@@ -7395,36 +7778,36 @@ function renderProjectProgressPanel(project) {
     <div class="build-directory-detail-grid">
       <div class="build-directory-detail-block">
         <div class="summary-row">
-          <strong>Current Direction</strong>
+          <strong>${escapeHtml(appT("workspace.detail.currentDirection"))}</strong>
           <span>${project.stage || "source"}</span>
         </div>
-        <p>${summary?.restatedRequirement || project.summary || "No structured requirement summary yet."}</p>
-        <p>${summary?.projectDirection || "Project direction will appear here after requirement refinement."}</p>
+        <p>${summary?.restatedRequirement || project.summary || escapeHtml(appT("workspace.detail.noStructuredRequirement"))}</p>
+        <p>${summary?.projectDirection || escapeHtml(appT("workspace.detail.directionWillAppear"))}</p>
       </div>
       <div class="build-directory-detail-block">
         <div class="summary-row">
-          <strong>Delivery Signals</strong>
+          <strong>${escapeHtml(appT("workspace.detail.deliverySignals"))}</strong>
           <span>${stateLabel}</span>
         </div>
         <div class="detail-grid compact">
-          <div class="detail-item"><span>Requirement</span><strong>${project.requirementId || "No linked requirement"}</strong></div>
-          <div class="detail-item"><span>Stage</span><strong>${project.stage || "source"}</strong></div>
-          <div class="detail-item"><span>State</span><strong>${stateLabel}</strong></div>
-          <div class="detail-item"><span>Latest Foundation Run</span><strong>${project.foundationRuns?.[0]?.action || "none"}</strong></div>
+          <div class="detail-item"><span>${escapeHtml(appT("workspace.detail.requirement"))}</span><strong>${project.requirementId || escapeHtml(appT("workspace.detail.noLinkedRequirement"))}</strong></div>
+          <div class="detail-item"><span>${escapeHtml(appT("build.detail.stage"))}</span><strong>${project.stage || "source"}</strong></div>
+          <div class="detail-item"><span>${escapeHtml(appT("build.detail.state"))}</span><strong>${stateLabel}</strong></div>
+          <div class="detail-item"><span>${escapeHtml(appT("workspace.detail.latestFoundationRun"))}</span><strong>${project.foundationRuns?.[0]?.action || "none"}</strong></div>
         </div>
       </div>
     </div>
     <div class="build-directory-detail-grid">
       <div class="build-directory-detail-block">
         <div class="summary-row">
-          <strong>Milestones</strong>
+          <strong>${escapeHtml(appT("workspace.detail.milestones"))}</strong>
           <span>${Array.isArray(summary?.milestones) ? summary.milestones.length : 0}</span>
         </div>
         <ul class="content-list">${milestones}</ul>
       </div>
       <div class="build-directory-detail-block">
         <div class="summary-row">
-          <strong>Open Questions</strong>
+          <strong>${escapeHtml(appT("workspace.detail.openQuestions"))}</strong>
           <span>${Array.isArray(summary?.questions) ? summary.questions.length : 0}</span>
         </div>
         <ul class="content-list">${questions}</ul>
@@ -7443,7 +7826,7 @@ function renderProjectWorkspaceMembership(project, human) {
   const root = $("project-workspace-membership");
   if (!root) return;
   if (!project || !human) {
-    root.innerHTML = '<div class="empty">No active project selected.</div>';
+    root.innerHTML = `<div class="empty">${escapeHtml(appT("settings.detail.noActiveProjectSelected"))}</div>`;
     return;
   }
 
@@ -7454,22 +7837,22 @@ function renderProjectWorkspaceMembership(project, human) {
     <div class="workspace-membership-grid">
       <div class="workspace-membership-block">
         <div class="summary-row">
-          <strong>Current Members</strong>
+          <strong>${escapeHtml(appT("workspace.detail.currentMembers"))}</strong>
           <span>${project.memberAgentIds?.length || 0}</span>
         </div>
         <div class="nested-list">
           ${(project.memberAgentIds || []).length ? (project.memberAgentIds || []).map((agentId) => `
             <div class="nested-item">
               <strong class="detail-code">${agentId}</strong>
-              <span>Role: ${projectMemberRole(project, agentId)}</span>
-              <span>${workspaceReadyAgents.has(agentId) ? "Workspace ready" : "Participant"}</span>
+              <span>${escapeHtml(appT("workspace.detail.roleLabel"))}: ${projectMemberRole(project, agentId)}</span>
+              <span>${workspaceReadyAgents.has(agentId) ? escapeHtml(appT("workspace.detail.workspaceReady")) : escapeHtml(appT("workspace.detail.participant"))}</span>
             </div>
-          `).join("") : '<div class="empty">No member agents recorded.</div>'}
+          `).join("") : `<div class="empty">${escapeHtml(appT("workspace.detail.noMemberAgents"))}</div>`}
         </div>
       </div>
       <div class="workspace-membership-block">
         <div class="summary-row">
-          <strong>Pending Invites</strong>
+          <strong>${escapeHtml(appT("workspace.detail.pendingInvites"))}</strong>
           <span>${project.memberInvites?.length || 0}</span>
         </div>
         ${(project.memberInvites || []).length ? `
@@ -7477,18 +7860,18 @@ function renderProjectWorkspaceMembership(project, human) {
             ${(project.memberInvites || []).map((invite) => `
               <div class="nested-item">
                 <strong class="detail-code">${invite.agentId}</strong>
-                <span>Role: ${invite.role}</span>
-                <span>Status: ${invite.status}</span>
+                <span>${escapeHtml(appT("workspace.detail.roleLabel"))}: ${invite.role}</span>
+                <span>${escapeHtml(appT("workspace.detail.statusLabel"))}: ${invite.status}</span>
                 <span>${formatTimestamp(invite.createdAt)}</span>
-                ${isOwner && invite.status === "pending" ? `<button type="button" class="topbar-button ghost workspace-membership-accept" data-invite-id="${invite.inviteId}">Accept Invite</button>` : ""}
+                ${isOwner && invite.status === "pending" ? `<button type="button" class="topbar-button ghost workspace-membership-accept" data-invite-id="${invite.inviteId}">${escapeHtml(appT("action.acceptInvite"))}</button>` : ""}
               </div>
             `).join("")}
           </div>
-        ` : '<div class="empty">No pending invites.</div>'}
+        ` : `<div class="empty">${escapeHtml(appT("workspace.detail.noPendingInvites"))}</div>`}
       </div>
       <div class="workspace-membership-block">
         <div class="summary-row">
-          <strong>Participation Requests</strong>
+          <strong>${escapeHtml(appT("workspace.detail.participationRequests"))}</strong>
           <span>${pendingRequests.length}</span>
         </div>
         ${pendingRequests.length ? `
@@ -7496,24 +7879,24 @@ function renderProjectWorkspaceMembership(project, human) {
             ${pendingRequests.slice(0, 8).map((requestEntry) => `
               <div class="nested-item">
                 <strong class="detail-code">${requestEntry.humanId}</strong>
-                <span>Status: ${requestEntry.status}</span>
-                <span>Agents: ${(requestEntry.agentIds || []).length ? requestEntry.agentIds.join(", ") : "No agents linked"}</span>
+                <span>${escapeHtml(appT("workspace.detail.statusLabel"))}: ${requestEntry.status}</span>
+                <span>${escapeHtml(appT("workspace.detail.agentsLabel"))}: ${(requestEntry.agentIds || []).length ? requestEntry.agentIds.join(", ") : escapeHtml(appT("workspace.detail.noAgentsLinked"))}</span>
                 <span>${formatTimestamp(requestEntry.createdAt)}</span>
                 ${requestEntry.message ? `<span>${escapeHtml(requestEntry.message)}</span>` : ""}
                 ${isOwner && requestEntry.status === "pending" ? `
                   <div class="action-row">
-                    <button type="button" class="topbar-button ghost workspace-participation-resolve" data-request-id="${requestEntry.requestId}" data-decision="accepted">Accept Request</button>
-                    <button type="button" class="topbar-button ghost workspace-participation-resolve" data-request-id="${requestEntry.requestId}" data-decision="rejected">Reject Request</button>
+                    <button type="button" class="topbar-button ghost workspace-participation-resolve" data-request-id="${requestEntry.requestId}" data-decision="accepted">${escapeHtml(appT("action.acceptRequest"))}</button>
+                    <button type="button" class="topbar-button ghost workspace-participation-resolve" data-request-id="${requestEntry.requestId}" data-decision="rejected">${escapeHtml(appT("action.rejectRequest"))}</button>
                   </div>
                 ` : ""}
               </div>
             `).join("")}
           </div>
-        ` : '<div class="empty">No participation requests yet.</div>'}
+        ` : `<div class="empty">${escapeHtml(appT("workspace.detail.noParticipationRequests"))}</div>`}
       </div>
       <div class="workspace-membership-block workspace-membership-history">
         <div class="summary-row">
-          <strong>Membership History</strong>
+          <strong>${escapeHtml(appT("workspace.detail.membershipHistory"))}</strong>
           <span>${project.memberHistory?.length || 0}</span>
         </div>
         ${(project.memberHistory || []).length ? `
@@ -7528,58 +7911,58 @@ function renderProjectWorkspaceMembership(project, human) {
               </div>
             `).join("")}
           </div>
-        ` : '<div class="empty">No membership history yet.</div>'}
+        ` : `<div class="empty">${escapeHtml(appT("workspace.detail.noMembershipHistory"))}</div>`}
       </div>
       <div class="workspace-membership-block">
         <div class="summary-row">
-          <strong>${isOwner ? "Owner Controls" : "Participation Request"}</strong>
-          <span>${isOwner ? "Enabled" : isParticipant ? "Already participating" : "Request access"}</span>
+          <strong>${isOwner ? escapeHtml(appT("workspace.detail.ownerControls")) : escapeHtml(appT("workspace.detail.participationRequest"))}</strong>
+          <span>${isOwner ? escapeHtml(appT("workspace.detail.enabled")) : isParticipant ? escapeHtml(appT("workspace.detail.alreadyParticipating")) : escapeHtml(appT("workspace.detail.requestAccess"))}</span>
         </div>
         ${isOwner ? `
           <div class="copy-stack">
             <form class="workspace-membership-form" id="workspace-membership-invite-form">
               <label class="creation-field">
-                <span>Agent ID To Invite</span>
-                <input name="agentId" placeholder="agent id to invite" required />
+                <span>${escapeHtml(appT("workspace.detail.agentIdToInvite"))}</span>
+                <input name="agentId" placeholder="${escapeHtml(appT("workspace.detail.agentIdToInvitePlaceholder"))}" required />
               </label>
               <label class="creation-field">
-                <span>Invite Role</span>
+                <span>${escapeHtml(appT("workspace.detail.inviteRole"))}</span>
                 <select name="role">${projectMemberRoleOptions()}</select>
               </label>
-              <button type="submit">Invite Member</button>
+              <button type="submit">${escapeHtml(appT("action.inviteMember"))}</button>
             </form>
             <form class="workspace-membership-form" id="workspace-membership-role-form">
               <label class="creation-field">
-                <span>Current Member</span>
+                <span>${escapeHtml(appT("workspace.detail.currentMember"))}</span>
                 <select name="agentId" required>
-                  <option value="">Select member</option>
+                  <option value="">${escapeHtml(appT("workspace.detail.selectMember"))}</option>
                   ${(project.memberAgentIds || []).map((agentId) => `<option value="${agentId}">${agentId}</option>`).join("")}
                 </select>
               </label>
               <label class="creation-field">
-                <span>New Role</span>
+                <span>${escapeHtml(appT("workspace.detail.newRole"))}</span>
                 <select name="role">${projectMemberRoleOptions()}</select>
               </label>
-              <button type="submit">Change Role</button>
+              <button type="submit">${escapeHtml(appT("action.changeRole"))}</button>
             </form>
             <form class="workspace-membership-form" id="workspace-membership-remove-form">
               <label class="creation-field">
-                <span>Member To Remove</span>
+                <span>${escapeHtml(appT("workspace.detail.memberToRemove"))}</span>
                 <select name="agentId" required>
-                  <option value="">Select member</option>
+                  <option value="">${escapeHtml(appT("workspace.detail.selectMember"))}</option>
                   ${(project.memberAgentIds || []).map((agentId) => `<option value="${agentId}">${agentId}</option>`).join("")}
                 </select>
               </label>
-              <button type="submit" class="topbar-button ghost">Remove Member</button>
+              <button type="submit" class="topbar-button ghost">${escapeHtml(appT("action.removeMember"))}</button>
             </form>
           </div>
-        ` : isParticipant ? '<p class="note">You are already participating in this project through one of your registered agents.</p>' : `
+        ` : isParticipant ? `<p class="note">${escapeHtml(appT("workspace.detail.alreadyParticipatingNote"))}</p>` : `
           <form class="workspace-membership-form" id="workspace-participation-request-form">
             <label class="creation-field workspace-chat-field-full">
-              <span>Why do you want to join this project?</span>
-              <textarea name="message" placeholder="Explain your interest, the agent you want to contribute with, and the role you expect to play." required></textarea>
+              <span>${escapeHtml(appT("workspace.detail.joinReason"))}</span>
+              <textarea name="message" placeholder="${escapeHtml(appT("workspace.detail.joinReasonPlaceholder"))}" required></textarea>
             </label>
-            <button type="submit">Request Participation</button>
+            <button type="submit">${escapeHtml(appT("action.requestParticipation"))}</button>
           </form>
         `}
       </div>
@@ -7596,7 +7979,7 @@ function renderProjectWorkspaceMembership(project, human) {
           humanId: human.humanId,
           message: form.message.value
         });
-        setStatus("Participation request submitted.", "ok");
+        setStatus(appT("status.participationSubmitted"), "ok");
         await refresh();
       } catch (error) {
         setStatus(error.message, "error");
@@ -7615,7 +7998,7 @@ function renderProjectWorkspaceMembership(project, human) {
         agentId: form.agentId.value,
         role: form.role.value
       });
-      setStatus(`Invite created for ${form.agentId.value}`, "ok");
+      setStatus(appT("status.inviteCreated", { agentId: form.agentId.value }), "ok");
       await refresh();
     } catch (error) {
       setStatus(error.message, "error");
@@ -7632,7 +8015,7 @@ function renderProjectWorkspaceMembership(project, human) {
         agentId: form.agentId.value,
         role: form.role.value
       });
-      setStatus(`Role updated for ${form.agentId.value}`, "ok");
+      setStatus(appT("status.roleUpdated", { agentId: form.agentId.value }), "ok");
       await refresh();
     } catch (error) {
       setStatus(error.message, "error");
@@ -7648,7 +8031,7 @@ function renderProjectWorkspaceMembership(project, human) {
         ownerHumanId: human.humanId,
         agentId: form.agentId.value
       });
-      setStatus(`Removed ${form.agentId.value} from project`, "ok");
+      setStatus(appT("status.removedMember", { agentId: form.agentId.value }), "ok");
       await refresh();
     } catch (error) {
       setStatus(error.message, "error");
@@ -7663,7 +8046,7 @@ function renderProjectWorkspaceMembership(project, human) {
           ownerHumanId: human.humanId,
           inviteId: button.dataset.inviteId
         });
-        setStatus("Invite accepted.", "ok");
+        setStatus(appT("status.inviteAccepted"), "ok");
         await refresh();
       } catch (error) {
         setStatus(error.message, "error");
@@ -7681,7 +8064,7 @@ function renderProjectWorkspaceMembership(project, human) {
           decision: button.dataset.decision,
           note: ""
         });
-        setStatus(`Participation request ${button.dataset.decision}.`, "ok");
+        setStatus(appT("status.participationResolved", { decision: button.dataset.decision || "-" }), "ok");
         await refresh();
       } catch (error) {
         setStatus(error.message, "error");
@@ -7707,22 +8090,22 @@ function renderProjectWorkspace() {
   const human = currentHuman();
   const project = activeProject();
   if (!human || !project) {
-    title.textContent = "Project Workspace";
-    lede.textContent = "Open a project from Build or My Projects to start a dedicated workspace.";
-    sidebar.innerHTML = '<div class="empty">No active project selected.</div>';
-    overview.innerHTML = '<div class="detail-item"><span>Workspace</span><strong>No active project</strong></div>';
-    progress.innerHTML = '<div class="empty">No active project selected.</div>';
-    bridgeStatus.innerHTML = '<div class="empty">No bridge context yet.</div>';
-    commandStatus.innerHTML = '<div class="empty">Open a project to load the command deck.</div>';
-    thread.innerHTML = '<div class="empty">No workspace conversation yet.</div>';
-    membership.innerHTML = '<div class="empty">No project selected, so no membership state is available.</div>';
-    agentSelect.innerHTML = '<option value="">No agent available</option>';
+    title.textContent = appT("projectTitle");
+    lede.textContent = appT("projectLede");
+    sidebar.innerHTML = `<div class="empty">${escapeHtml(appT("settings.detail.noActiveProjectSelected"))}</div>`;
+    overview.innerHTML = `<div class="detail-item"><span>${escapeHtml(appT("settings.detail.workspace"))}</span><strong>${escapeHtml(appT("settings.detail.noActiveProject"))}</strong></div>`;
+    progress.innerHTML = `<div class="empty">${escapeHtml(appT("settings.detail.noActiveProjectSelected"))}</div>`;
+    bridgeStatus.innerHTML = `<div class="empty">${escapeHtml(appT("settings.detail.noBridgeContext"))}</div>`;
+    commandStatus.innerHTML = `<div class="empty">${escapeHtml(appT("settings.detail.openProjectCommandDeck"))}</div>`;
+    thread.innerHTML = `<div class="empty">${escapeHtml(appT("settings.detail.noWorkspaceConversation"))}</div>`;
+    membership.innerHTML = `<div class="empty">${escapeHtml(appT("settings.detail.noProjectMembershipState"))}</div>`;
+    agentSelect.innerHTML = `<option value="">${escapeHtml(appT("settings.detail.noAgentAvailable"))}</option>`;
     agentSelect.disabled = true;
     const chatInput = $("project-workspace-chat-input");
     const submitButton = form.querySelector('button[type="submit"]');
     if (chatInput) {
       chatInput.disabled = true;
-      chatInput.placeholder = "Open a project to send a project-specific task.";
+      chatInput.placeholder = appT("settings.detail.openProjectToSendTask");
     }
     if (submitButton) submitButton.disabled = true;
     return;
@@ -7738,14 +8121,14 @@ function renderProjectWorkspace() {
   const latestMessage = latestProjectWorkspaceMessage(project);
   const latestMembershipEvent = (project.memberHistory || []).length ? project.memberHistory[project.memberHistory.length - 1] : null;
   const ownMemberAgent = currentHumanAgents().find((agent) => (project.memberAgentIds || []).includes(agent.agentId)) || null;
-  const workspaceRole = isOwner ? "owner" : ownMemberAgent ? projectMemberRole(project, ownMemberAgent.agentId) : "not assigned";
-  const recruitingLabel = String(project.state || "").toLowerCase() === "paused" ? "Closed" : "Open";
+  const workspaceRole = isOwner ? appT("workspace.detail.owner") : ownMemberAgent ? projectMemberRole(project, ownMemberAgent.agentId) : appT("workspace.detail.notAssigned");
+  const recruitingLabel = String(project.state || "").toLowerCase() === "paused" ? appT("workspace.detail.closed") : appT("workspace.detail.open");
   const collaborationState = workspaceCollaborationState(project, agents);
   const latestActivityInfo = projectLatestActivity(project);
   const latestActivity = latestActivityInfo.label;
   const executionFocus = latestActivityInfo.detail;
   title.textContent = project.title;
-  lede.textContent = project.summary || "Single project page for direct collaboration, participation, and delivery work.";
+  lede.textContent = project.summary || appT("workspace.detail.singleProjectLede");
   sidebar.innerHTML = `
     <div class="workspace-sidebar-block">
       <div class="summary-row">
@@ -7754,64 +8137,64 @@ function renderProjectWorkspace() {
           ${createBadge(projectTypeLabel(project.kind))}
           ${createBadge(project.stage || "source")}
           ${createBadge(projectStateLabel(project.state))}
-          ${createBadge(recruitingLabel === "Open" ? "Recruiting" : "Not Recruiting")}
+          ${createBadge(recruitingLabel === appT("workspace.detail.open") ? appT("build.detail.recruiting") : appT("workspace.detail.notRecruiting"))}
         </div>
       </div>
       <div class="detail-grid compact">
-        <div class="detail-item"><span>Your Access</span><strong>${accessState.label}</strong></div>
-        <div class="detail-item"><span>Your Role</span><strong>${escapeHtml(workspaceRole)}</strong></div>
-        <div class="detail-item"><span>Repository</span><strong class="detail-code">${escapeHtml(project.repoName)}</strong></div>
-        <div class="detail-item"><span>Owner</span><strong class="detail-code">${escapeHtml(project.ownerHumanId)}</strong></div>
-        <div class="detail-item"><span>Requirement</span><strong class="detail-code">${escapeHtml(project.requirementId || "none")}</strong></div>
-        <div class="detail-item"><span>Primary Agent</span><strong>${escapeHtml(agents[0]?.label || agents[0]?.agentId || "none")}</strong></div>
-        <div class="detail-item"><span>Members</span><strong>${project.memberAgentIds?.length || 0}</strong></div>
-        <div class="detail-item"><span>Plugins</span><strong>${project.pluginIds?.length || 0}</strong></div>
-        <div class="detail-item"><span>Foundation Runs</span><strong>${project.foundationRuns?.length || 0}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("workspace.detail.yourAccess"))}</span><strong>${accessState.label}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("workspace.detail.yourRole"))}</span><strong>${escapeHtml(workspaceRole)}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("workspace.detail.repository"))}</span><strong class="detail-code">${escapeHtml(project.repoName)}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("build.detail.owner"))}</span><strong class="detail-code">${escapeHtml(project.ownerHumanId)}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("workspace.detail.requirement"))}</span><strong class="detail-code">${escapeHtml(project.requirementId || appT("workspace.detail.none"))}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("workspace.detail.primaryAgent"))}</span><strong>${escapeHtml(agents[0]?.label || agents[0]?.agentId || appT("workspace.detail.none"))}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("workspace.detail.members"))}</span><strong>${project.memberAgentIds?.length || 0}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("world.drawer.plugins"))}</span><strong>${project.pluginIds?.length || 0}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("world.drawer.foundationRuns"))}</span><strong>${project.foundationRuns?.length || 0}</strong></div>
       </div>
-      <p><strong>Project Record</strong><br />${escapeHtml(project.summary || "No summary yet.")}</p>
+      <p><strong>${escapeHtml(appT("workspace.detail.projectRecord"))}</strong><br />${escapeHtml(project.summary || appT("workspace.detail.noSummaryYet"))}</p>
       <p class="note">${escapeHtml(accessState.note)}</p>
       ${project.repoUrl || project.serviceEndpoint ? `
         <div class="action-row">
-          ${project.repoUrl ? `<a href="${project.repoUrl}" target="_blank" rel="noreferrer">Open GitHub Repo</a>` : ""}
-          ${project.serviceEndpoint ? `<a href="${project.serviceEndpoint}" target="_blank" rel="noreferrer">Open Service</a>` : ""}
+          ${project.repoUrl ? `<a href="${project.repoUrl}" target="_blank" rel="noreferrer">${escapeHtml(appT("action.openGithubRepo"))}</a>` : ""}
+          ${project.serviceEndpoint ? `<a href="${project.serviceEndpoint}" target="_blank" rel="noreferrer">${escapeHtml(appT("action.openService"))}</a>` : ""}
         </div>
       ` : ""}
     </div>
     <div class="workspace-sidebar-block">
-      <strong>Participation And Delivery</strong>
+      <strong>${escapeHtml(appT("workspace.detail.participationAndDelivery"))}</strong>
       <div class="detail-grid compact">
-        <div class="detail-item"><span>Stage</span><strong>${project.stage || "source"}</strong></div>
-        <div class="detail-item"><span>State</span><strong>${projectStateLabel(project.state)}</strong></div>
-        <div class="detail-item"><span>Recruiting</span><strong>${recruitingLabel}</strong></div>
-        <div class="detail-item"><span>Pending Requests</span><strong>${openParticipationRequests.length}</strong></div>
-        <div class="detail-item"><span>Pending Invites</span><strong>${openInvites.length}</strong></div>
-        <div class="detail-item"><span>Latest Run</span><strong>${latestRun?.action || "none"}</strong></div>
-        <div class="detail-item"><span>Latest Activity</span><strong>${latestActivity}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("build.detail.stage"))}</span><strong>${project.stage || "source"}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("build.detail.state"))}</span><strong>${projectStateLabel(project.state)}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("build.detail.recruiting"))}</span><strong>${recruitingLabel}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("build.detail.openRequests"))}</span><strong>${openParticipationRequests.length}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("workspace.detail.pendingInvites"))}</span><strong>${openInvites.length}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("market.detail.latestRun"))}</span><strong>${latestRun?.action || appT("workspace.detail.none")}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("build.detail.latestActivity"))}</span><strong>${latestActivity}</strong></div>
       </div>
-      <p><strong>Execution Focus</strong><br />${escapeHtml(executionFocus)}</p>
-      ${latestMembershipEvent ? `<p><strong>Latest Membership Change</strong><br />${escapeHtml(`${membershipHistoryLabel(latestMembershipEvent.type)} by ${latestMembershipEvent.actorHumanId || "-"} at ${formatTimestamp(latestMembershipEvent.at)}`)}</p>` : ""}
+      <p><strong>${escapeHtml(appT("workspace.detail.executionFocus"))}</strong><br />${escapeHtml(executionFocus)}</p>
+      ${latestMembershipEvent ? `<p><strong>${escapeHtml(appT("workspace.detail.latestMembershipChange"))}</strong><br />${escapeHtml(`${membershipHistoryLabel(latestMembershipEvent.type)} by ${latestMembershipEvent.actorHumanId || "-"} at ${formatTimestamp(latestMembershipEvent.at)}`)}</p>` : ""}
     </div>
     <div class="workspace-sidebar-block">
-      <strong>Source And Operating Inputs</strong>
+      <strong>${escapeHtml(appT("workspace.detail.sourceAndOperatingInputs"))}</strong>
       <div class="tag-row">
-        ${(project.tags || []).length ? (project.tags || []).map((tag) => `<span class="subtle-tag">${escapeHtml(tag)}</span>`).join("") : '<span class="subtle-tag">No tags</span>'}
+        ${(project.tags || []).length ? (project.tags || []).map((tag) => `<span class="subtle-tag">${escapeHtml(tag)}</span>`).join("") : `<span class="subtle-tag">${escapeHtml(appT("world.drawer.noTagsYet"))}</span>`}
       </div>
-      ${project.usageNote ? `<p><strong>Usage Note</strong><br />${escapeHtml(project.usageNote)}</p>` : ""}
-      ${project.pricingNote ? `<p><strong>Pricing Note</strong><br />${escapeHtml(project.pricingNote)}</p>` : ""}
+      ${project.usageNote ? `<p><strong>${escapeHtml(appT("market.detail.usage"))}</strong><br />${escapeHtml(project.usageNote)}</p>` : ""}
+      ${project.pricingNote ? `<p><strong>${escapeHtml(appT("market.detail.pricing"))}</strong><br />${escapeHtml(project.pricingNote)}</p>` : ""}
       ${renderProjectFoundationRunSummary(project)}
       ${renderProjectFoundationRunList(project, 3)}
     </div>
   `;
 
   overview.innerHTML = [
-    { label: "Your Access", value: accessState.label },
-    { label: "Your Role", value: workspaceRole },
-    { label: "Primary Agent", value: agents[0]?.label || agents[0]?.agentId || "No eligible agent" },
-    { label: "Conversation Entries", value: messages.length },
-    { label: "Pending Requests", value: openParticipationRequests.length },
-    { label: "Repository", value: project.repoFullName || project.repoName, className: "detail-code" },
-    { label: "Latest Foundation Run", value: latestRun?.action || "none" },
-    { label: "Latest Activity", value: latestActivity }
+    { label: appT("workspace.detail.yourAccess"), value: accessState.label },
+    { label: appT("workspace.detail.yourRole"), value: workspaceRole },
+    { label: appT("workspace.detail.primaryAgent"), value: agents[0]?.label || agents[0]?.agentId || appT("workspace.detail.noneAvailable") },
+    { label: appT("workspace.detail.conversationEntries"), value: messages.length },
+    { label: appT("build.detail.openRequests"), value: openParticipationRequests.length },
+    { label: appT("workspace.detail.repository"), value: project.repoFullName || project.repoName, className: "detail-code" },
+    { label: appT("workspace.detail.latestFoundationRun"), value: latestRun?.action || appT("workspace.detail.none") },
+    { label: appT("build.detail.latestActivity"), value: latestActivity }
   ].map(({ label, value, className = "" }) => `
     <div class="detail-item workspace-overview-item">
       <span>${escapeHtml(String(label))}</span>
@@ -7829,7 +8212,7 @@ function renderProjectWorkspace() {
 
   agentSelect.innerHTML = agents.length
     ? agents.map((agent) => `<option value="${agent.agentId}">${agent.label || agent.agentId}</option>`).join("")
-    : '<option value="">No project agent available</option>';
+    : `<option value="">${escapeHtml(appT("workspace.detail.noProjectAgentAvailable"))}</option>`;
   agentSelect.disabled = !collaborationState.canSend;
   const chatInput = $("project-workspace-chat-input");
   const submitButton = form.querySelector('button[type="submit"]');
@@ -7853,11 +8236,11 @@ async function sendProjectWorkspacePrompt() {
   const agents = workspaceAgentsForProject(project);
   const collaborationState = workspaceCollaborationState(project, agents);
   if (!collaborationState.canSend) throw new Error(collaborationState.headline);
-  if (!prompt) throw new Error("Enter a project message first.");
+  if (!prompt) throw new Error(appT("workspace.detail.enterMessageFirst"));
   const agentId = agentSelect.value;
-  if (!agentId) throw new Error("Select a workspace agent first.");
+  if (!agentId) throw new Error(appT("workspace.detail.selectAgentFirst"));
   if (!window.ELOAgentBridge || typeof window.ELOAgentBridge.sendPrompt !== "function") {
-    throw new Error("Browser bridge is not available.");
+    throw new Error(appT("workspace.detail.bridgeRequiredHeadline"));
   }
 
   const response = await window.ELOAgentBridge.sendPrompt({
@@ -7895,7 +8278,7 @@ async function sendProjectWorkspacePrompt() {
   });
   input.value = "";
   await refresh();
-  setStatus(`Workspace response received from ${agentId}.`, "ok");
+  setStatus(appT("workspace.detail.workspaceResponseReceived", { agentId }), "ok");
 }
 
 
@@ -7922,7 +8305,7 @@ function populateProjectEditForm(projectId) {
   form.pricingNote.value = project.pricingNote || "";
   form.usageNote.value = project.usageNote || "";
   form.scrollIntoView({ behavior: "smooth", block: "start" });
-  setStatus(`Loaded ${project.title} into metadata editor.`, "ok");
+  setStatus(appT("workspace.detail.loadedIntoMetadataEditor", { title: project.title }), "ok");
 }
 
 function bindProjectEditButtons() {
@@ -7964,8 +8347,8 @@ function renderMarketProjects(projects) {
     return;
   }
   root.innerHTML = filtered.map((project) => {
-    const repoLabel = project.repoFullName || project.repoName || "No source repo listed";
-    const serviceLabel = project.serviceEndpoint || "Service endpoint not set";
+    const repoLabel = project.repoFullName || project.repoName || appT("market.detail.noSourceRepo");
+    const serviceLabel = project.serviceEndpoint || appT("market.detail.noServiceEndpoint");
     const safeRepoLabel = escapeHtml(repoLabel);
     const safeServiceLabel = escapeHtml(serviceLabel);
     const repoHref = sanitizeExternalHref(project.repoUrl);
@@ -7976,13 +8359,13 @@ function renderMarketProjects(projects) {
       maxLength: 40
     }));
     const latestRun = latestProjectFoundationRun(project);
-    const accessModel = isOperatingFoundationProject(project) ? "Foundation Access" : "Project Access";
-    const accessNote = project.pricingNote || "Usage still routes through the published project surface while protocol pricing stays lightweight.";
+    const accessModel = isOperatingFoundationProject(project) ? appT("market.detail.foundationAccess") : appT("market.detail.projectAccess");
+    const accessNote = project.pricingNote || appT("market.detail.pricingDefault");
     const usageNote = project.usageNote || (project.serviceEndpoint
-      ? "Start with the service endpoint for live usage, then open the project page for operator context."
-      : "This project is marked operating, but the project page still carries the clearest operator context until the endpoint is published.");
+      ? appT("market.detail.usageWithService")
+      : appT("market.detail.usageWithoutService"));
     const marketSignal = `R ${project.rating || 0} / H ${project.heat || 0}`;
-    const safeLatestRunAction = escapeHtml(latestRun ? formatActionLabel(latestRun.action, "No Run Yet") : "Project Update");
+    const safeLatestRunAction = escapeHtml(latestRun ? formatActionLabel(latestRun.action, appT("build.detail.noRunYet")) : appT("market.detail.projectUpdate"));
     const safeLatestRunNote = escapeHtml(formatLatestDeliveryNote({ latestRun, fallbackAt: project.updatedAt }));
     return `
     <details class="expand-card market-directory-card" data-project-card="${project.projectId}">
@@ -8000,46 +8383,46 @@ function renderMarketProjects(projects) {
               </div>
               <div class="build-card-identity-list">
                 <div class="build-card-identity-item">
-                  <span>Source Repo</span>
+                  <span>${escapeHtml(appT("market.detail.sourceRepo"))}</span>
                   <strong class="detail-code detail-code-compact" title="${safeRepoLabel}">${compactRepoLabel}</strong>
                 </div>
                 <div class="build-card-identity-item">
-                  <span>Service</span>
+                  <span>${escapeHtml(appT("build.detail.service"))}</span>
                   <strong class="detail-code detail-code-compact" title="${safeServiceLabel}">${compactServiceLabel}</strong>
                 </div>
               </div>
             </div>
             <div class="build-card-status">
-              <span class="directory-signal operating">Operating</span>
-              <span class="directory-signal ${project.serviceEndpoint ? "recruiting" : "building"}">${project.serviceEndpoint ? "Endpoint Live" : "Endpoint Pending"}</span>
+              <span class="directory-signal operating">${escapeHtml(appT("market.detail.operating"))}</span>
+              <span class="directory-signal ${project.serviceEndpoint ? "recruiting" : "building"}">${project.serviceEndpoint ? escapeHtml(appT("market.detail.endpointLive")) : escapeHtml(appT("market.detail.endpointPending"))}</span>
             </div>
           </div>
-          <p class="build-card-summary">${escapeHtml(project.summary || "No summary provided.")}</p>
+          <p class="build-card-summary">${escapeHtml(project.summary || appT("build.detail.noSummary"))}</p>
           <div class="build-card-signal-grid">
             <div class="build-card-signal">
-              <span>Operating</span>
-              <strong>${project.serviceEndpoint ? "Endpoint Live" : "Endpoint Pending"}</strong>
-              <p>${escapeHtml(project.serviceEndpoint ? "Service endpoint is available for direct usage entry." : "This project is already treated as operating, but the endpoint is still being finalized.")}</p>
+              <span>${escapeHtml(appT("market.detail.operating"))}</span>
+              <strong>${project.serviceEndpoint ? escapeHtml(appT("market.detail.endpointLive")) : escapeHtml(appT("market.detail.endpointPending"))}</strong>
+              <p>${escapeHtml(project.serviceEndpoint ? appT("market.detail.operatingLiveNote") : appT("market.detail.operatingPendingNote"))}</p>
             </div>
             <div class="build-card-signal">
-              <span>Access</span>
+              <span>${escapeHtml(appT("market.detail.access"))}</span>
               <strong>${accessModel}</strong>
               <p>${escapeHtml(clampDirectionalCopy(accessNote))}</p>
             </div>
             <div class="build-card-signal">
-              <span>Usage Entry</span>
-              <strong>${project.serviceEndpoint ? "Service + Project" : "Project Page Only"}</strong>
+              <span>${escapeHtml(appT("market.detail.usageEntry"))}</span>
+              <strong>${project.serviceEndpoint ? escapeHtml(appT("market.detail.serviceAndProject")) : escapeHtml(appT("market.detail.projectOnly"))}</strong>
               <p>${escapeHtml(clampDirectionalCopy(usageNote))}</p>
             </div>
           </div>
           <div class="build-card-meta">
             <div class="build-meta-item build-meta-item-activity">
-              <span>Latest Delivery</span>
+              <span>${escapeHtml(appT("build.detail.latestDelivery"))}</span>
               <strong>${safeLatestRunAction}</strong>
               <p>${safeLatestRunNote}</p>
             </div>
             <div class="build-meta-item">
-              <span>Signal</span>
+              <span>${escapeHtml(appT("build.detail.signal"))}</span>
               <strong>${marketSignal}</strong>
             </div>
           </div>
@@ -8050,60 +8433,60 @@ function renderMarketProjects(projects) {
         <div class="build-directory-detail-grid">
           <div class="build-directory-detail-block">
             <div class="summary-row">
-              <strong>Operating Snapshot</strong>
-              <span>${escapeHtml(project.repoName || "Source project")}</span>
+              <strong>${escapeHtml(appT("market.detail.operatingSnapshot"))}</strong>
+              <span>${escapeHtml(project.repoName || appT("market.detail.sourceProject"))}</span>
             </div>
             <div class="detail-grid compact">
-              <div class="detail-item detail-item-wide"><span>Source Project</span><strong class="detail-code">${safeRepoLabel}</strong></div>
-              <div class="detail-item detail-item-wide"><span>Service Endpoint</span><strong class="detail-code">${safeServiceLabel}</strong></div>
-              <div class="detail-item"><span>Heat</span><strong>${project.heat || 0}</strong></div>
-              <div class="detail-item"><span>Rating</span><strong>${project.rating || 0}</strong></div>
-              <div class="detail-item"><span>Latest Run</span><strong>${escapeHtml(latestRun?.action || "none")}</strong></div>
-              <div class="detail-item"><span>Latest Run At</span><strong>${latestRun ? formatTimestamp(latestRun.generatedAt) : "-"}</strong></div>
+              <div class="detail-item detail-item-wide"><span>${escapeHtml(appT("market.detail.sourceProject"))}</span><strong class="detail-code">${safeRepoLabel}</strong></div>
+              <div class="detail-item detail-item-wide"><span>${escapeHtml(appT("build.detail.serviceEndpoint"))}</span><strong class="detail-code">${safeServiceLabel}</strong></div>
+              <div class="detail-item"><span>${escapeHtml(appT("build.detail.heat"))}</span><strong>${project.heat || 0}</strong></div>
+              <div class="detail-item"><span>${escapeHtml(appT("build.detail.rating"))}</span><strong>${project.rating || 0}</strong></div>
+              <div class="detail-item"><span>${escapeHtml(appT("market.detail.latestRun"))}</span><strong>${escapeHtml(latestRun?.action || "none")}</strong></div>
+              <div class="detail-item"><span>${escapeHtml(appT("build.detail.latestRunAt"))}</span><strong>${latestRun ? formatTimestamp(latestRun.generatedAt) : "-"}</strong></div>
             </div>
           </div>
           <div class="build-directory-detail-block">
             <div class="summary-row">
-              <strong>Access Model</strong>
+              <strong>${escapeHtml(appT("market.detail.accessModel"))}</strong>
               <span>${accessModel}</span>
             </div>
             ${renderBoundedNoteList([
-              { label: "Pricing", value: project.pricingNote || "ELO protocol plugin" },
-              { label: "Usage", value: usageNote },
-              { label: "Workspace Entry", value: "Operator context, members, and delivery history stay attached to the project page." }
+              { label: appT("market.detail.pricing"), value: project.pricingNote || "ELO protocol plugin" },
+              { label: appT("market.detail.usage"), value: usageNote },
+              { label: appT("build.detail.workspaceEntry"), value: appT("market.detail.workspaceEntryNote") }
             ])}
           </div>
         </div>
         <div class="build-directory-actions">
           <div class="directory-action-group directory-action-group-primary">
             <div class="directory-action-copy">
-              <span class="directory-action-label">Project Workspace Entry</span>
-              <p>Operator context, members, and delivery history stay attached to the project page.</p>
+              <span class="directory-action-label">${escapeHtml(appT("market.detail.workspaceEntryTitle"))}</span>
+              <p>${escapeHtml(appT("market.detail.workspaceEntryNote"))}</p>
             </div>
             <div class="directory-action-primary">
-              <button type="button" class="topbar-button secondary open-workspace-button" data-project-open="${project.projectId}">Open Project Workspace</button>
+              <button type="button" class="topbar-button secondary open-workspace-button" data-project-open="${project.projectId}">${escapeHtml(appT("action.openProjectWorkspace"))}</button>
             </div>
           </div>
           <div class="directory-action-group">
             <div class="directory-action-copy">
-              <span class="directory-action-label">Usage Surfaces</span>
-              <p>Live service and source links stay separate from the operator entry path.</p>
+              <span class="directory-action-label">${escapeHtml(appT("market.detail.usageSurfaces"))}</span>
+              <p>${escapeHtml(appT("market.detail.usageSurfacesNote"))}</p>
             </div>
             <div class="directory-action-secondary">
               ${renderDirectoryExternalLinks(
                 [
                   {
-                    label: "Live Service",
+                    label: appT("action.liveService"),
                     href: serviceHref,
-                    missingMessage: "Live service publishes after the operating endpoint is available."
+                    missingMessage: appT("market.detail.liveServiceMissing")
                   },
                   {
-                    label: "Source Repo",
+                    label: appT("action.sourceRepo"),
                     href: repoHref,
-                    missingMessage: "Source repo publishes after the source surface is connected."
+                    missingMessage: appT("market.detail.sourceRepoMissing")
                   }
                 ],
-                "Usage links publish after the live endpoint or source repo is available."
+                appT("market.detail.linksMissing")
               )}
             </div>
           </div>
