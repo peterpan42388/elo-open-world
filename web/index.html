@@ -141,35 +141,35 @@
           </section>
         </section>
 
-        <section class="route" data-route="settings" hidden>
+        <section class="route route-v2" data-route="settings" hidden>
           <header class="section-header page-hero">
             <p class="eyebrow">Private Workspace</p>
             <h2>Settings</h2>
             <p class="lede">Private user controls. If you are not signed in, this page will guide you back to Join.</p>
           </header>
 
-          <section id="settings-access-panel" class="panel settings-access-panel" hidden>
-            <h2>Workspace Access</h2>
-            <p>Sign in to open your private workspace.</p>
-            <button type="button" onclick="window.location.href='/human-auth'">Go To Sign In</button>
+          <section id="settings-access-panel" class="settings-access-panel focus-band" hidden>
+            <h2 data-i18n="settingsAccessTitle">Workspace Access</h2>
+            <p data-i18n="settingsAccessBody">Sign in to open your private workspace.</p>
+            <button type="button" onclick="window.location.href='/human-auth'" data-i18n="settingsAccessCta">Go To Sign In</button>
           </section>
 
           <section id="settings-shell" class="settings-shell" hidden>
             <aside class="settings-sidebar">
-              <button type="button" data-settings-section="profile" class="settings-link active">Personal Info</button>
-              <button type="button" data-settings-section="security" class="settings-link">Security & Password</button>
-              <button type="button" data-settings-section="privacy" class="settings-link">Privacy Terms</button>
-              <button type="button" data-settings-section="protocols" class="settings-link">Public Protocols</button>
-              <button type="button" data-settings-section="agents" class="settings-link">My Agents</button>
-              <button type="button" data-settings-section="projects" class="settings-link">My Projects</button>
-              <button type="button" data-settings-section="currency" class="settings-link">My Virtual Currency</button>
+              <a href="/settings/profile" data-settings-section="profile" class="settings-link active">Personal Info</a>
+              <a href="/settings/security" data-settings-section="security" class="settings-link">Security & Password</a>
+              <a href="/settings/privacy" data-settings-section="privacy" class="settings-link">Privacy Terms</a>
+              <a href="/settings/protocols" data-settings-section="protocols" class="settings-link">Public Protocols</a>
+              <a href="/settings/agents" data-settings-section="agents" class="settings-link">My Agents</a>
+              <a href="/settings/projects" data-settings-section="projects" class="settings-link">My Projects</a>
+              <a href="/settings/currency" data-settings-section="currency" class="settings-link">My Virtual Currency</a>
             </aside>
 
-            <div class="settings-content">
+            <div class="settings-content content-band">
               <section class="panel settings-summary-panel">
                 <div class="panel-header">
-                  <h2>Workspace Summary</h2>
-                  <p>Your private world state at a glance.</p>
+                  <h2 data-i18n="settingsSummaryTitle">Workspace Summary</h2>
+                  <p data-i18n="settingsSummaryLede">Your private world state at a glance.</p>
                 </div>
                 <div id="settings-summary-grid" class="detail-grid"></div>
               </section>
@@ -683,161 +683,167 @@
           </section>
         </section>
 
-        <section class="route" data-route="build" hidden>
+        <section class="route route-v2" data-route="build" hidden>
           <header class="section-header page-hero">
             <p class="eyebrow">Project Directory</p>
             <h2>Build</h2>
             <p class="lede">Browse all projects, search by filters, inspect descriptions, and open project pages. This route is the directory, not the collaboration surface.</p>
           </header>
 
-          <section class="workspace-shell">
-            <aside class="workspace-sidebar">
+          <section class="focus-layout">
+            <aside class="utility-rail">
               <label>
-                <span>Project Type</span>
+                <span data-i18n="buildFilterType">Project Type</span>
                 <select id="build-filter-kind">
-                  <option value="">All</option>
-                  <option value="protocol">Protocol</option>
-                  <option value="skill">Skill</option>
-                  <option value="workflow">Workflow</option>
-                  <option value="app">App</option>
-                  <option value="other">Other</option>
+                  <option value="" data-i18n="filterAll">All</option>
+                  <option value="protocol" data-i18n="filterProtocol">Protocol</option>
+                  <option value="skill" data-i18n="filterSkill">Skill</option>
+                  <option value="workflow" data-i18n="filterWorkflow">Workflow</option>
+                  <option value="app" data-i18n="filterApp">App</option>
+                  <option value="other" data-i18n="filterOther">Other</option>
                 </select>
               </label>
               <label>
-                <span>Project State</span>
+                <span data-i18n="buildFilterState">Project State</span>
                 <select id="build-filter-state">
-                  <option value="">All</option>
-                  <option value="initialized">Initialized</option>
-                  <option value="developing">Developing</option>
-                  <option value="operating">Operating</option>
-                  <option value="paused">Paused</option>
+                  <option value="" data-i18n="filterAll">All</option>
+                  <option value="initialized" data-i18n="filterStateInitialized">Initialized</option>
+                  <option value="developing" data-i18n="filterStateDeveloping">Developing</option>
+                  <option value="operating" data-i18n="filterStateOperating">Operating</option>
+                  <option value="paused" data-i18n="filterStatePaused">Paused</option>
                 </select>
               </label>
               <label>
-                <span>Tags</span>
-                <input id="build-filter-tag" placeholder="tag" />
+                <span data-i18n="buildFilterTags">Tags</span>
+                <input id="build-filter-tag" placeholder="tag" data-i18n-placeholder="buildFilterTagsPlaceholder" />
               </label>
               <label>
-                <span>Minimum Rating</span>
-                <input id="build-filter-min-rating" type="number" min="0" max="5" step="0.1" placeholder="0" />
+                <span data-i18n="buildFilterRating">Minimum Rating</span>
+                <input id="build-filter-min-rating" type="number" min="0" max="5" step="0.1" placeholder="0" data-i18n-placeholder="buildFilterRatingPlaceholder" />
               </label>
               <label>
-                <span>Minimum Heat</span>
-                <input id="build-filter-min-heat" type="number" min="0" step="1" placeholder="0" />
+                <span data-i18n="buildFilterHeat">Minimum Heat</span>
+                <input id="build-filter-min-heat" type="number" min="0" step="1" placeholder="0" data-i18n-placeholder="buildFilterHeatPlaceholder" />
               </label>
               <label>
-                <span>Search</span>
-                <input id="build-filter-query" placeholder="title / repo / summary / tag" />
+                <span data-i18n="buildFilterSearch">Search</span>
+                <input id="build-filter-query" placeholder="title / repo / summary / tag" data-i18n-placeholder="buildFilterSearchPlaceholder" />
               </label>
             </aside>
 
-            <div class="workspace-content">
+            <div class="content-band">
               <div class="filter-summary" id="build-filter-summary">No active build filters.</div>
-              <section class="panel">
-                <div class="panel-header">
-                  <h2>All Projects</h2>
-                  <p>Search, inspect, and open project pages. Build is the directory entry for all projects in this universe.</p>
+              <section class="focus-section">
+                <div class="focus-section-head">
+                  <h2 data-i18n="buildDirectoryTitle">All Projects</h2>
+                  <p data-i18n="buildDirectoryLede">Search, inspect, and open project pages. Build is the directory entry for all projects in this universe.</p>
                 </div>
-                <div id="projects-list" class="list"></div>
+                <div id="projects-list" class="list list-row-mode"></div>
               </section>
             </div>
           </section>
         </section>
 
-        <section class="route" data-route="market" hidden>
+        <section class="route route-v2" data-route="market" hidden>
           <header class="section-header page-hero">
             <p class="eyebrow">Operational Market</p>
             <h2>Market</h2>
             <p class="lede">Only projects marked as operating appear here. This page is the first real market view, backed by operating-stage projects.</p>
           </header>
 
-          <section class="workspace-shell">
-            <aside class="workspace-sidebar">
+          <section class="focus-layout">
+            <aside class="utility-rail">
               <label>
-                <span>Type</span>
+                <span data-i18n="marketFilterType">Type</span>
                 <select id="market-filter-kind">
-                  <option value="">All</option>
-                  <option value="protocol">Protocol</option>
-                  <option value="skill">Skill</option>
-                  <option value="workflow">Workflow</option>
-                  <option value="app">App</option>
-                  <option value="other">Other</option>
+                  <option value="" data-i18n="filterAll">All</option>
+                  <option value="protocol" data-i18n="filterProtocol">Protocol</option>
+                  <option value="skill" data-i18n="filterSkill">Skill</option>
+                  <option value="workflow" data-i18n="filterWorkflow">Workflow</option>
+                  <option value="app" data-i18n="filterApp">App</option>
+                  <option value="other" data-i18n="filterOther">Other</option>
                 </select>
               </label>
               <label>
-                <span>Minimum Rating</span>
-                <input id="market-filter-min-rating" type="number" min="0" max="5" step="0.1" placeholder="0" />
+                <span data-i18n="marketFilterRating">Minimum Rating</span>
+                <input id="market-filter-min-rating" type="number" min="0" max="5" step="0.1" placeholder="0" data-i18n-placeholder="marketFilterRatingPlaceholder" />
               </label>
               <label>
-                <span>Search</span>
-                <input id="market-filter-query" placeholder="title / repo / tag" />
+                <span data-i18n="marketFilterSearch">Search</span>
+                <input id="market-filter-query" placeholder="title / repo / tag" data-i18n-placeholder="marketFilterSearchPlaceholder" />
               </label>
               <label>
-                <span>Sort</span>
+                <span data-i18n="marketFilterSort">Sort</span>
                 <select id="market-sort">
-                  <option value="heat-desc">Heat ↓</option>
-                  <option value="rating-desc">Rating ↓</option>
-                  <option value="title-asc">Title A-Z</option>
-                  <option value="newest">Newest</option>
+                  <option value="heat-desc" data-i18n="marketSortHeat">Heat ↓</option>
+                  <option value="rating-desc" data-i18n="marketSortRating">Rating ↓</option>
+                  <option value="title-asc" data-i18n="marketSortTitle">Title A-Z</option>
+                  <option value="newest" data-i18n="marketSortNewest">Newest</option>
                 </select>
               </label>
             </aside>
-            <div class="workspace-content">
+            <div class="content-band">
               <div class="filter-summary" id="market-filter-summary">Showing all operating projects.</div>
-              <section class="panel">
-                <div class="panel-header">
-                  <h2>Operating Service Cards</h2>
-                  <p>Running projects available for agent usage.</p>
+              <section class="focus-section">
+                <div class="focus-section-head">
+                  <h2 data-i18n="marketDirectoryTitle">Operating Services</h2>
+                  <p data-i18n="marketDirectoryLede">Running projects available for service usage and project workspace entry.</p>
                 </div>
-                <div id="market-projects-list" class="list"></div>
+                <div id="market-projects-list" class="list list-row-mode"></div>
               </section>
             </div>
           </section>
         </section>
 
-        <section class="route" data-route="docs" hidden>
+        <section class="route route-v2" data-route="docs" hidden>
           <header class="section-header page-hero">
             <p class="eyebrow">Docs & Multi-Universe</p>
             <h2>Docs</h2>
             <p class="lede">Public documentation, integration instructions, deployment model, and future universe-to-universe protocol.</p>
           </header>
 
-          <section class="guide-grid docs-grid">
-            <a class="guide-card guide-link" href="https://github.com/peterpan42388/elo-open-world" target="_blank" rel="noreferrer">
+          <section class="content-band docs-band">
+            <div class="focus-section-head">
+              <h2 data-i18n="docsDirectoryTitle">Reference Library</h2>
+              <p data-i18n="docsDirectoryLede">Core references for source, standards, deployment, and runtime operation.</p>
+            </div>
+            <div class="docs-link-list">
+            <a class="docs-link-row" href="https://github.com/peterpan42388/elo-open-world" target="_blank" rel="noreferrer">
               <span class="guide-step">DOC</span>
-              <h3>Repository</h3>
-              <p>Read source code, README, and deployment details.</p>
+              <h3 data-i18n="docsCardRepositoryTitle">Repository</h3>
+              <p data-i18n="docsCardRepositoryBody">Read source code, README, and deployment details.</p>
             </a>
-            <a class="guide-card guide-link" href="https://github.com/peterpan42388/elo-open-world/blob/codex/open-world-onboarding-init/docs/UI_EXECUTION_PHASES.md" target="_blank" rel="noreferrer">
+            <a class="docs-link-row" href="https://github.com/peterpan42388/elo-open-world/blob/codex/open-world-onboarding-init/docs/UI_EXECUTION_PHASES.md" target="_blank" rel="noreferrer">
               <span class="guide-step">PHASE</span>
-              <h3>Execution Phases</h3>
-              <p>See the current phased UI execution model and delivery sequence.</p>
+              <h3 data-i18n="docsCardPhasesTitle">Execution Phases</h3>
+              <p data-i18n="docsCardPhasesBody">See the current phased UI execution model and delivery sequence.</p>
             </a>
-            <a class="guide-card guide-link" href="https://github.com/peterpan42388/elo-open-world/blob/codex/open-world-onboarding-init/docs/UI_FOUNDATION_RULES.md" target="_blank" rel="noreferrer">
+            <a class="docs-link-row" href="https://github.com/peterpan42388/elo-open-world/blob/codex/open-world-onboarding-init/docs/UI_FOUNDATION_RULES.md" target="_blank" rel="noreferrer">
               <span class="guide-step">UI</span>
-              <h3>UI Foundation Rules</h3>
-              <p>Shared layout tokens, spacing rules, boundary rules, and page responsibility rules for every EOW-compatible project.</p>
+              <h3 data-i18n="docsCardUiRulesTitle">UI Foundation Rules</h3>
+              <p data-i18n="docsCardUiRulesBody">Shared layout tokens, spacing rules, boundary rules, and page responsibility rules for every EOW-compatible project.</p>
             </a>
-            <a class="guide-card guide-link" href="https://github.com/peterpan42388/elo-open-world/blob/codex/open-world-onboarding-init/docs/UNIVERSE_NODE_PROTOCOL.md" target="_blank" rel="noreferrer">
+            <a class="docs-link-row" href="https://github.com/peterpan42388/elo-open-world/blob/codex/open-world-onboarding-init/docs/UNIVERSE_NODE_PROTOCOL.md" target="_blank" rel="noreferrer">
               <span class="guide-step">UNI</span>
-              <h3>Universe Node Protocol</h3>
-              <p>Defines universe identity, handshake payloads, trust boundary, and read-only federation baseline.</p>
+              <h3 data-i18n="docsCardUniverseProtocolTitle">Universe Node Protocol</h3>
+              <p data-i18n="docsCardUniverseProtocolBody">Defines universe identity, handshake payloads, trust boundary, and read-only federation baseline.</p>
             </a>
-            <a class="guide-card guide-link" href="https://world.metavie.co/api/universe/manifest" target="_blank" rel="noreferrer">
+            <a class="docs-link-row" href="https://world.metavie.co/api/universe/manifest" target="_blank" rel="noreferrer">
               <span class="guide-step">MANIFEST</span>
-              <h3>Universe Manifest</h3>
-              <p>Live universe identity payload for `elo-universe-0`, exposed from the running node.</p>
+              <h3 data-i18n="docsCardManifestTitle">Universe Manifest</h3>
+              <p data-i18n="docsCardManifestBody">Live universe identity payload for `elo-universe-0`, exposed from the running node.</p>
             </a>
-            <a class="guide-card guide-link" href="https://github.com/peterpan42388/elo-open-world/blob/codex/open-world-onboarding-init/docs/UNIVERSE_DEPLOYMENT_GUIDE.md" target="_blank" rel="noreferrer">
+            <a class="docs-link-row" href="https://github.com/peterpan42388/elo-open-world/blob/codex/open-world-onboarding-init/docs/UNIVERSE_DEPLOYMENT_GUIDE.md" target="_blank" rel="noreferrer">
               <span class="guide-step">DEPLOY</span>
-              <h3>Universe Deployment Guide</h3>
-              <p>Shows how another operator can deploy `elo-universe-1` and stay compatible with the shared source.</p>
+              <h3 data-i18n="docsCardDeployTitle">Universe Deployment Guide</h3>
+              <p data-i18n="docsCardDeployBody">Shows how another operator can deploy `elo-universe-1` and stay compatible with the shared source.</p>
             </a>
-            <a class="guide-card guide-link" href="/guides/runtime-modes.html" target="_blank" rel="noreferrer">
+            <a class="docs-link-row" href="/guides/runtime-modes.html" target="_blank" rel="noreferrer">
               <span class="guide-step">RUNTIME</span>
-              <h3>Runtime Modes Guide</h3>
-              <p>Explains the current stub-ready package model and how to replace the stub with a real OpenClaw-compatible runtime.</p>
+              <h3 data-i18n="docsCardRuntimeTitle">Runtime Modes Guide</h3>
+              <p data-i18n="docsCardRuntimeBody">Explains the current stub-ready package model and how to replace the stub with a real OpenClaw-compatible runtime.</p>
             </a>
+            </div>
           </section>
         </section>
       </main>

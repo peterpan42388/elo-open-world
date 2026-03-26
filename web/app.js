@@ -76,7 +76,75 @@ const APP_I18N = {
     settingsNavProtocols: "Public Protocols",
     settingsNavAgents: "My Agents",
     settingsNavProjects: "My Projects",
-    settingsNavCurrency: "My Virtual Currency"
+    settingsNavCurrency: "My Virtual Currency",
+    settingsAccessTitle: "Workspace Access",
+    settingsAccessBody: "Sign in to open your private workspace.",
+    settingsAccessCta: "Go To Sign In",
+    settingsSummaryTitle: "Workspace Summary",
+    settingsSummaryLede: "Your private world state at a glance.",
+    settingsGuestTitle: "No Active User",
+    settingsGuestBody: "You are not signed in. Create or select a human identity first.",
+    settingsSyncTitle: "Syncing Workspace",
+    settingsSyncBody: "Your session is active. The workspace is refreshing your private identity state now.",
+    settingsVerifyTitle: "Verify Your Email",
+    settingsVerifyBody: "Your workspace is active, but this account should complete email verification before long-term use.",
+    settingsVerifyCta: "Send Verification Email",
+    filterAll: "All",
+    filterProtocol: "Protocol",
+    filterSkill: "Skill",
+    filterWorkflow: "Workflow",
+    filterApp: "App",
+    filterOther: "Other",
+    filterStateInitialized: "Initialized",
+    filterStateDeveloping: "Developing",
+    filterStateOperating: "Operating",
+    filterStatePaused: "Paused",
+    buildFilterType: "Project Type",
+    buildFilterState: "Project State",
+    buildFilterTags: "Tags",
+    buildFilterTagsPlaceholder: "tag",
+    buildFilterRating: "Minimum Rating",
+    buildFilterRatingPlaceholder: "0",
+    buildFilterHeat: "Minimum Heat",
+    buildFilterHeatPlaceholder: "0",
+    buildFilterSearch: "Search",
+    buildFilterSearchPlaceholder: "title / repo / summary / tag",
+    buildDirectoryTitle: "All Projects",
+    buildDirectoryLede: "Search, inspect, and open project pages. Build is the directory entry for all projects in this universe.",
+    buildFilterNone: "No active build filters.",
+    buildFilterActivePrefix: "Active filters",
+    buildNoProjects: "No projects match the current filter.",
+    marketFilterType: "Type",
+    marketFilterRating: "Minimum Rating",
+    marketFilterRatingPlaceholder: "0",
+    marketFilterSearch: "Search",
+    marketFilterSearchPlaceholder: "title / repo / tag",
+    marketFilterSort: "Sort",
+    marketSortHeat: "Heat ↓",
+    marketSortRating: "Rating ↓",
+    marketSortTitle: "Title A-Z",
+    marketSortNewest: "Newest",
+    marketDirectoryTitle: "Operating Services",
+    marketDirectoryLede: "Running projects available for service usage and project workspace entry.",
+    marketFilterNone: "Showing all operating projects.",
+    marketFilterActivePrefix: "Active filters",
+    marketNoProjects: "No operating projects match the current market filter.",
+    docsDirectoryTitle: "Reference Library",
+    docsDirectoryLede: "Core references for source, standards, deployment, and runtime operation.",
+    docsCardRepositoryTitle: "Repository",
+    docsCardRepositoryBody: "Read source code, README, and deployment details.",
+    docsCardPhasesTitle: "Execution Phases",
+    docsCardPhasesBody: "See the current phased UI execution model and delivery sequence.",
+    docsCardUiRulesTitle: "UI Foundation Rules",
+    docsCardUiRulesBody: "Shared layout tokens, spacing rules, boundary rules, and page responsibility rules for every EOW-compatible project.",
+    docsCardUniverseProtocolTitle: "Universe Node Protocol",
+    docsCardUniverseProtocolBody: "Defines universe identity, handshake payloads, trust boundary, and read-only federation baseline.",
+    docsCardManifestTitle: "Universe Manifest",
+    docsCardManifestBody: "Live universe identity payload for `elo-universe-0`, exposed from the running node.",
+    docsCardDeployTitle: "Universe Deployment Guide",
+    docsCardDeployBody: "Shows how another operator can deploy `elo-universe-1` and stay compatible with the shared source.",
+    docsCardRuntimeTitle: "Runtime Modes Guide",
+    docsCardRuntimeBody: "Explains the current stub-ready package model and how to replace the stub with a real OpenClaw-compatible runtime."
   },
   zh: {
     langLabel: "语言",
@@ -141,7 +209,75 @@ const APP_I18N = {
     settingsNavProtocols: "公开协议",
     settingsNavAgents: "我的 Agent",
     settingsNavProjects: "我的项目",
-    settingsNavCurrency: "我的虚拟货币"
+    settingsNavCurrency: "我的虚拟货币",
+    settingsAccessTitle: "工作区访问",
+    settingsAccessBody: "请先登录后进入你的私有工作区。",
+    settingsAccessCta: "前往登录",
+    settingsSummaryTitle: "工作区概览",
+    settingsSummaryLede: "你的私有世界状态一览。",
+    settingsGuestTitle: "当前无激活用户",
+    settingsGuestBody: "你尚未登录，请先创建或选择人类身份。",
+    settingsSyncTitle: "工作区同步中",
+    settingsSyncBody: "会话已激活，正在刷新你的私有身份数据。",
+    settingsVerifyTitle: "请验证邮箱",
+    settingsVerifyBody: "工作区已可用，但建议先完成邮箱验证以便长期使用。",
+    settingsVerifyCta: "发送验证邮件",
+    filterAll: "全部",
+    filterProtocol: "协议",
+    filterSkill: "技能",
+    filterWorkflow: "工作流",
+    filterApp: "应用",
+    filterOther: "其他",
+    filterStateInitialized: "已初始化",
+    filterStateDeveloping: "开发中",
+    filterStateOperating: "运营中",
+    filterStatePaused: "暂停",
+    buildFilterType: "项目类型",
+    buildFilterState: "项目状态",
+    buildFilterTags: "标签",
+    buildFilterTagsPlaceholder: "标签",
+    buildFilterRating: "最低评分",
+    buildFilterRatingPlaceholder: "0",
+    buildFilterHeat: "最低热度",
+    buildFilterHeatPlaceholder: "0",
+    buildFilterSearch: "搜索",
+    buildFilterSearchPlaceholder: "标题 / 仓库 / 摘要 / 标签",
+    buildDirectoryTitle: "全部项目",
+    buildDirectoryLede: "检索、查看并进入项目页面。Build 是世界项目目录入口。",
+    buildFilterNone: "当前没有启用筛选条件。",
+    buildFilterActivePrefix: "当前筛选",
+    buildNoProjects: "没有符合当前筛选条件的项目。",
+    marketFilterType: "类型",
+    marketFilterRating: "最低评分",
+    marketFilterRatingPlaceholder: "0",
+    marketFilterSearch: "搜索",
+    marketFilterSearchPlaceholder: "标题 / 仓库 / 标签",
+    marketFilterSort: "排序",
+    marketSortHeat: "热度 ↓",
+    marketSortRating: "评分 ↓",
+    marketSortTitle: "标题 A-Z",
+    marketSortNewest: "最新",
+    marketDirectoryTitle: "运营服务",
+    marketDirectoryLede: "展示可使用服务与可进入项目工作区的运营中项目。",
+    marketFilterNone: "当前显示全部运营中项目。",
+    marketFilterActivePrefix: "当前筛选",
+    marketNoProjects: "没有符合当前筛选条件的运营项目。",
+    docsDirectoryTitle: "参考资料库",
+    docsDirectoryLede: "源码、标准、部署和运行方式的核心参考入口。",
+    docsCardRepositoryTitle: "仓库",
+    docsCardRepositoryBody: "查看源码、README 与部署说明。",
+    docsCardPhasesTitle: "执行阶段",
+    docsCardPhasesBody: "查看当前 UI 分阶段执行模型与交付顺序。",
+    docsCardUiRulesTitle: "UI 基础规则",
+    docsCardUiRulesBody: "EOW 兼容项目共享的布局 token、间距规则、边界规则与页面职责规则。",
+    docsCardUniverseProtocolTitle: "Universe Node 协议",
+    docsCardUniverseProtocolBody: "定义 Universe 身份、握手载荷、信任边界与只读联邦基线。",
+    docsCardManifestTitle: "Universe Manifest",
+    docsCardManifestBody: "`elo-universe-0` 的实时节点身份载荷。",
+    docsCardDeployTitle: "Universe 部署指南",
+    docsCardDeployBody: "说明其他操作者如何部署 `elo-universe-1` 并保持兼容。",
+    docsCardRuntimeTitle: "Runtime 模式指南",
+    docsCardRuntimeBody: "解释当前 stub-ready 包模式与替换为真实 OpenClaw 兼容 runtime 的方式。"
   },
   es: {
     langLabel: "Idioma",
@@ -206,7 +342,75 @@ const APP_I18N = {
     settingsNavProtocols: "Protocolos públicos",
     settingsNavAgents: "Mis agentes",
     settingsNavProjects: "Mis proyectos",
-    settingsNavCurrency: "Mi moneda virtual"
+    settingsNavCurrency: "Mi moneda virtual",
+    settingsAccessTitle: "Acceso al espacio",
+    settingsAccessBody: "Inicia sesión para abrir tu espacio privado.",
+    settingsAccessCta: "Ir a iniciar sesión",
+    settingsSummaryTitle: "Resumen del espacio",
+    settingsSummaryLede: "Vista rápida de tu estado privado.",
+    settingsGuestTitle: "Sin usuario activo",
+    settingsGuestBody: "No has iniciado sesión. Crea o selecciona una identidad humana primero.",
+    settingsSyncTitle: "Sincronizando espacio",
+    settingsSyncBody: "Tu sesión está activa. Estamos sincronizando tu estado privado.",
+    settingsVerifyTitle: "Verifica tu correo",
+    settingsVerifyBody: "Tu espacio está activo, pero esta cuenta debe verificar el correo para uso prolongado.",
+    settingsVerifyCta: "Enviar correo de verificación",
+    filterAll: "Todos",
+    filterProtocol: "Protocolo",
+    filterSkill: "Skill",
+    filterWorkflow: "Workflow",
+    filterApp: "App",
+    filterOther: "Otro",
+    filterStateInitialized: "Inicializado",
+    filterStateDeveloping: "En desarrollo",
+    filterStateOperating: "Operativo",
+    filterStatePaused: "Pausado",
+    buildFilterType: "Tipo de proyecto",
+    buildFilterState: "Estado del proyecto",
+    buildFilterTags: "Etiquetas",
+    buildFilterTagsPlaceholder: "etiqueta",
+    buildFilterRating: "Rating mínimo",
+    buildFilterRatingPlaceholder: "0",
+    buildFilterHeat: "Heat mínimo",
+    buildFilterHeatPlaceholder: "0",
+    buildFilterSearch: "Buscar",
+    buildFilterSearchPlaceholder: "título / repo / resumen / etiqueta",
+    buildDirectoryTitle: "Todos los proyectos",
+    buildDirectoryLede: "Busca, inspecciona y abre páginas de proyecto. Build es el directorio del universo.",
+    buildFilterNone: "Sin filtros activos de Build.",
+    buildFilterActivePrefix: "Filtros activos",
+    buildNoProjects: "Ningún proyecto coincide con el filtro actual.",
+    marketFilterType: "Tipo",
+    marketFilterRating: "Rating mínimo",
+    marketFilterRatingPlaceholder: "0",
+    marketFilterSearch: "Buscar",
+    marketFilterSearchPlaceholder: "título / repo / etiqueta",
+    marketFilterSort: "Ordenar",
+    marketSortHeat: "Heat ↓",
+    marketSortRating: "Rating ↓",
+    marketSortTitle: "Título A-Z",
+    marketSortNewest: "Más nuevo",
+    marketDirectoryTitle: "Servicios operativos",
+    marketDirectoryLede: "Proyectos en ejecución disponibles para uso de servicio y entrada al workspace.",
+    marketFilterNone: "Mostrando todos los proyectos operativos.",
+    marketFilterActivePrefix: "Filtros activos",
+    marketNoProjects: "Ningún proyecto operativo coincide con el filtro.",
+    docsDirectoryTitle: "Biblioteca de referencia",
+    docsDirectoryLede: "Referencias clave de código, estándares, despliegue y runtime.",
+    docsCardRepositoryTitle: "Repositorio",
+    docsCardRepositoryBody: "Lee el código fuente, README y detalles de despliegue.",
+    docsCardPhasesTitle: "Fases de ejecución",
+    docsCardPhasesBody: "Consulta el modelo de ejecución UI por fases y su secuencia.",
+    docsCardUiRulesTitle: "Reglas base de UI",
+    docsCardUiRulesBody: "Tokens de layout, reglas de espaciado, límites y responsabilidades de página para proyectos compatibles con EOW.",
+    docsCardUniverseProtocolTitle: "Protocolo Universe Node",
+    docsCardUniverseProtocolBody: "Define identidad del universo, payload de handshake y baseline federado de solo lectura.",
+    docsCardManifestTitle: "Universe Manifest",
+    docsCardManifestBody: "Payload de identidad en vivo de `elo-universe-0`.",
+    docsCardDeployTitle: "Guía de despliegue de Universe",
+    docsCardDeployBody: "Cómo desplegar `elo-universe-1` manteniendo compatibilidad de fuente compartida.",
+    docsCardRuntimeTitle: "Guía de modos runtime",
+    docsCardRuntimeBody: "Explica el modelo stub-ready actual y cómo pasar a un runtime OpenClaw real."
   },
   ja: {
     langLabel: "言語",
@@ -271,7 +475,75 @@ const APP_I18N = {
     settingsNavProtocols: "公開プロトコル",
     settingsNavAgents: "マイ Agent",
     settingsNavProjects: "マイプロジェクト",
-    settingsNavCurrency: "マイ仮想通貨"
+    settingsNavCurrency: "マイ仮想通貨",
+    settingsAccessTitle: "ワークスペースアクセス",
+    settingsAccessBody: "プライベートワークスペースを開くにはサインインしてください。",
+    settingsAccessCta: "サインインへ",
+    settingsSummaryTitle: "ワークスペース概要",
+    settingsSummaryLede: "あなたのプライベート状態を一覧で確認できます。",
+    settingsGuestTitle: "アクティブユーザーなし",
+    settingsGuestBody: "サインインしていません。先に人間 ID を作成または選択してください。",
+    settingsSyncTitle: "ワークスペース同期中",
+    settingsSyncBody: "セッションは有効です。プライベート状態を同期しています。",
+    settingsVerifyTitle: "メール認証が必要です",
+    settingsVerifyBody: "ワークスペースは利用可能ですが、長期利用前にメール認証を完了してください。",
+    settingsVerifyCta: "認証メールを送信",
+    filterAll: "すべて",
+    filterProtocol: "プロトコル",
+    filterSkill: "スキル",
+    filterWorkflow: "ワークフロー",
+    filterApp: "アプリ",
+    filterOther: "その他",
+    filterStateInitialized: "初期化済み",
+    filterStateDeveloping: "開発中",
+    filterStateOperating: "運用中",
+    filterStatePaused: "一時停止",
+    buildFilterType: "プロジェクト種別",
+    buildFilterState: "プロジェクト状態",
+    buildFilterTags: "タグ",
+    buildFilterTagsPlaceholder: "タグ",
+    buildFilterRating: "最低評価",
+    buildFilterRatingPlaceholder: "0",
+    buildFilterHeat: "最低ヒート",
+    buildFilterHeatPlaceholder: "0",
+    buildFilterSearch: "検索",
+    buildFilterSearchPlaceholder: "タイトル / リポジトリ / 概要 / タグ",
+    buildDirectoryTitle: "すべてのプロジェクト",
+    buildDirectoryLede: "検索・確認してプロジェクトページを開きます。Build は世界のディレクトリ入口です。",
+    buildFilterNone: "Build フィルターは未設定です。",
+    buildFilterActivePrefix: "適用中のフィルター",
+    buildNoProjects: "現在の条件に一致するプロジェクトはありません。",
+    marketFilterType: "種別",
+    marketFilterRating: "最低評価",
+    marketFilterRatingPlaceholder: "0",
+    marketFilterSearch: "検索",
+    marketFilterSearchPlaceholder: "タイトル / リポジトリ / タグ",
+    marketFilterSort: "並び替え",
+    marketSortHeat: "ヒート ↓",
+    marketSortRating: "評価 ↓",
+    marketSortTitle: "タイトル A-Z",
+    marketSortNewest: "新しい順",
+    marketDirectoryTitle: "運用サービス",
+    marketDirectoryLede: "サービス利用とプロジェクトワークスペース入口を持つ運用中プロジェクトを表示します。",
+    marketFilterNone: "すべての運用中プロジェクトを表示しています。",
+    marketFilterActivePrefix: "適用中のフィルター",
+    marketNoProjects: "条件に一致する運用中プロジェクトはありません。",
+    docsDirectoryTitle: "リファレンスライブラリ",
+    docsDirectoryLede: "ソース、標準、デプロイ、ランタイム運用の主要リファレンス。",
+    docsCardRepositoryTitle: "リポジトリ",
+    docsCardRepositoryBody: "ソースコード、README、デプロイ詳細を確認します。",
+    docsCardPhasesTitle: "実行フェーズ",
+    docsCardPhasesBody: "現在の UI フェーズ実行モデルと順序を確認します。",
+    docsCardUiRulesTitle: "UI 基礎ルール",
+    docsCardUiRulesBody: "EOW 互換プロジェクト向けのレイアウト token、間隔、境界、責務ルールです。",
+    docsCardUniverseProtocolTitle: "Universe Node プロトコル",
+    docsCardUniverseProtocolBody: "Universe 識別、ハンドシェイク payload、信頼境界、読み取り専用フェデレーション基線を定義します。",
+    docsCardManifestTitle: "Universe Manifest",
+    docsCardManifestBody: "`elo-universe-0` のライブ識別 payload です。",
+    docsCardDeployTitle: "Universe デプロイガイド",
+    docsCardDeployBody: "`elo-universe-1` を互換性を保ってデプロイする方法を示します。",
+    docsCardRuntimeTitle: "ランタイムモードガイド",
+    docsCardRuntimeBody: "現在の stub-ready モデルと実運用 OpenClaw 互換 runtime への移行方法を説明します。"
   }
 };
 const APP_STATIC_TEXT_BINDINGS = [
@@ -557,11 +829,30 @@ function setNodeText(selector, text) {
   node.textContent = text;
 }
 
+function applyDataI18nBindings() {
+  document.querySelectorAll("[data-i18n]").forEach((node) => {
+    const key = node.getAttribute("data-i18n");
+    if (!key) return;
+    node.textContent = appT(key);
+  });
+  document.querySelectorAll("[data-i18n-placeholder]").forEach((node) => {
+    const key = node.getAttribute("data-i18n-placeholder");
+    if (!key) return;
+    node.setAttribute("placeholder", appT(key));
+  });
+  document.querySelectorAll("[data-i18n-title]").forEach((node) => {
+    const key = node.getAttribute("data-i18n-title");
+    if (!key) return;
+    node.setAttribute("title", appT(key));
+  });
+}
+
 function applyAppLocaleToStaticText() {
   document.documentElement.lang = state.locale === "zh" ? "zh-CN" : state.locale;
   APP_STATIC_TEXT_BINDINGS.forEach(([selector, key]) => {
     setNodeText(selector, appT(key));
   });
+  applyDataI18nBindings();
   const localeSelect = $("app-locale-select");
   if (localeSelect && localeSelect.value !== state.locale) {
     localeSelect.value = state.locale;
@@ -6594,7 +6885,7 @@ function renderProjects(projects) {
   const human = currentHuman();
   const myProjectIds = currentHumanProjectIds();
   if (!filtered.length) {
-    root.innerHTML = '<div class="empty">No projects match the current filter.</div>';
+    root.innerHTML = `<div class="empty">${escapeHtml(appT("buildNoProjects"))}</div>`;
     return;
   }
   root.innerHTML = filtered.map((project) => {
@@ -7644,24 +7935,24 @@ function renderBuildFilterSummary() {
   const node = $("build-filter-summary");
   if (!node) return;
   const parts = [];
-  if (state.buildFilters.kind) parts.push(`type: ${projectTypeLabel(state.buildFilters.kind)}`);
-  if (state.buildFilters.status) parts.push(`state: ${projectStateLabel(state.buildFilters.status)}`);
-  if (state.buildFilters.tag.trim()) parts.push(`tag: ${state.buildFilters.tag.trim()}`);
-  if (Number(state.buildFilters.minRating || 0) > 0) parts.push(`min rating: ${state.buildFilters.minRating}`);
-  if (Number(state.buildFilters.minHeat || 0) > 0) parts.push(`min heat: ${state.buildFilters.minHeat}`);
-  if (state.buildFilters.query.trim()) parts.push(`query: ${state.buildFilters.query.trim()}`);
-  node.textContent = parts.length ? `Active filters -> ${parts.join(" | ")}` : "No active build filters.";
+  if (state.buildFilters.kind) parts.push(`${appT("buildFilterType")}: ${projectTypeLabel(state.buildFilters.kind)}`);
+  if (state.buildFilters.status) parts.push(`${appT("buildFilterState")}: ${projectStateLabel(state.buildFilters.status)}`);
+  if (state.buildFilters.tag.trim()) parts.push(`${appT("buildFilterTags")}: ${state.buildFilters.tag.trim()}`);
+  if (Number(state.buildFilters.minRating || 0) > 0) parts.push(`${appT("buildFilterRating")}: ${state.buildFilters.minRating}`);
+  if (Number(state.buildFilters.minHeat || 0) > 0) parts.push(`${appT("buildFilterHeat")}: ${state.buildFilters.minHeat}`);
+  if (state.buildFilters.query.trim()) parts.push(`${appT("buildFilterSearch")}: ${state.buildFilters.query.trim()}`);
+  node.textContent = parts.length ? `${appT("buildFilterActivePrefix")} -> ${parts.join(" | ")}` : appT("buildFilterNone");
 }
 
 function renderMarketFilterSummary() {
   const node = $("market-filter-summary");
   if (!node) return;
   const parts = [];
-  if (state.marketFilters.kind) parts.push(`type: ${projectTypeLabel(state.marketFilters.kind)}`);
-  if (Number(state.marketFilters.minRating || 0) > 0) parts.push(`min rating: ${state.marketFilters.minRating}`);
-  if (state.marketFilters.query.trim()) parts.push(`query: ${state.marketFilters.query.trim()}`);
-  if (state.marketFilters.sort) parts.push(`sort: ${state.marketFilters.sort}`);
-  node.textContent = parts.length ? `Active market filters -> ${parts.join(" | ")}` : "Showing all operating projects.";
+  if (state.marketFilters.kind) parts.push(`${appT("marketFilterType")}: ${projectTypeLabel(state.marketFilters.kind)}`);
+  if (Number(state.marketFilters.minRating || 0) > 0) parts.push(`${appT("marketFilterRating")}: ${state.marketFilters.minRating}`);
+  if (state.marketFilters.query.trim()) parts.push(`${appT("marketFilterSearch")}: ${state.marketFilters.query.trim()}`);
+  if (state.marketFilters.sort) parts.push(`${appT("marketFilterSort")}: ${state.marketFilters.sort}`);
+  node.textContent = parts.length ? `${appT("marketFilterActivePrefix")} -> ${parts.join(" | ")}` : appT("marketFilterNone");
 }
 
 function renderMarketProjects(projects) {
@@ -7669,7 +7960,7 @@ function renderMarketProjects(projects) {
   if (!root) return;
   const filtered = applyMarketFiltersToProjects(projects);
   if (!filtered.length) {
-    root.innerHTML = '<div class="empty">No operating projects match the current market filter.</div>';
+    root.innerHTML = `<div class="empty">${escapeHtml(appT("marketNoProjects"))}</div>`;
     return;
   }
   root.innerHTML = filtered.map((project) => {
@@ -7854,22 +8145,22 @@ function renderSettingsShell() {
   if (accessMode === "guest") {
     accessPanel.hidden = false;
     accessPanel.innerHTML = `
-      <h2>No Active User</h2>
-      <p>You are not signed in. Create or select a human identity first.</p>
-      <button type="button" data-route-target="join">Go To Join</button>
+      <h2>${escapeHtml(appT("settingsGuestTitle"))}</h2>
+      <p>${escapeHtml(appT("settingsGuestBody"))}</p>
+      <button type="button" data-route-target="join">${escapeHtml(appT("settingsAccessCta"))}</button>
     `;
   } else if (accessMode === "syncing") {
     accessPanel.hidden = false;
     accessPanel.innerHTML = `
-      <h2>Syncing Workspace</h2>
-      <p>Your session is active. The workspace is refreshing your private identity state now.</p>
+      <h2>${escapeHtml(appT("settingsSyncTitle"))}</h2>
+      <p>${escapeHtml(appT("settingsSyncBody"))}</p>
     `;
   } else if (accessMode === "verify") {
     accessPanel.hidden = false;
     accessPanel.innerHTML = `
-      <h2>Verify Your Email</h2>
-      <p>Your workspace is active, but this account should complete email verification before long-term use.</p>
-      <button type="button" id="settings-access-verify">Send Verification Email</button>
+      <h2>${escapeHtml(appT("settingsVerifyTitle"))}</h2>
+      <p>${escapeHtml(appT("settingsVerifyBody"))}</p>
+      <button type="button" id="settings-access-verify">${escapeHtml(appT("settingsVerifyCta"))}</button>
     `;
     $("settings-access-verify")?.addEventListener("click", async () => {
       try {
@@ -8341,7 +8632,8 @@ $("app-locale-select")?.addEventListener("change", (event) => {
 });
 
 document.querySelectorAll("[data-settings-section]").forEach((node) => {
-  node.addEventListener("click", () => {
+  node.addEventListener("click", (event) => {
+    event.preventDefault();
     const section = String(node.dataset.settingsSection || "").toLowerCase();
     goToRoute("settings", { settingsSection: section });
   });
