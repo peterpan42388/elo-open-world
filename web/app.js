@@ -275,6 +275,18 @@ function startInstallerDownload(targetOs = "macos") {
   setStatus(`Installer download started for ${safeOs}.`, "ok");
 }
 
+function scrollToOnboarderDownloadAnchor(root) {
+  if (!root) return;
+  const anchor = root.querySelector('[data-onboarder-anchor="download-top"]');
+  if (!anchor) return;
+  anchor.scrollIntoView({ behavior: "smooth", block: "start" });
+  const targets = root.querySelectorAll(".onb-download-button");
+  targets.forEach((node) => node.classList.add("is-attention"));
+  window.setTimeout(() => {
+    targets.forEach((node) => node.classList.remove("is-attention"));
+  }, 900);
+}
+
 function renderOnboarderLanding() {
   const root = $("onboarder-landing-root");
   if (!root) return;
@@ -283,39 +295,119 @@ function renderOnboarderLanding() {
   const billing = state.onboarderBillingReadiness || {};
   const globalReady = Boolean(billing.configured);
   const checkoutState = state.pendingOnboarderCheckout?.status || "";
+  const features = [
+    {
+      title: "零安装门槛",
+      description: "全流程图形化引导，不会命令行也能完成安装配置。",
+      hue: "gold"
+    },
+    {
+      title: "无隐私泄漏",
+      description: "API Key 仅本地写入，不上传、不存储、不传输到服务器。",
+      hue: "green"
+    },
+    {
+      title: "预算可控",
+      description: "配套本地 Dashboard，查看调用次数与费用估算。",
+      hue: "blue"
+    }
+  ];
+  const steps = [
+    {
+      id: "01",
+      title: "下载并启动安装器",
+      description: "选择系统版本，双击打开安装器即可开始。"
+    },
+    {
+      id: "02",
+      title: "登录授权 + 选择套餐",
+      description: "按向导填写 Agent 信息、模型配置和聊天绑定。"
+    },
+    {
+      id: "03",
+      title: "支付并自动安装",
+      description: "支付在安装器内完成，安装结束后直接进入使用阶段。"
+    }
+  ];
+  const faqs = [
+    {
+      q: "我不会命令行可以使用吗？",
+      a: "可以。安装器是普通用户流程，你只需要按页面提示点击下一步。"
+    },
+    {
+      q: "支持哪些系统？",
+      a: "当前支持 macOS 和 Windows。"
+    },
+    {
+      q: "API Key 会上传到服务器吗？",
+      a: "不会。API Key 只在本地写入配置文件，不上传 EOW。"
+    },
+    {
+      q: "安装后下一步做什么？",
+      a: "打开本地 Dashboard，按引导补全高级 Keys 并查看用量与费用估算。"
+    }
+  ];
   root.innerHTML = `
-    <section class="onboarder-hero">
-      <div class="onboarder-hero-copy">
-        <span class="guide-step">No CLI Needed</span>
-        <h3>Install OpenClaw with ELO Claw Installer</h3>
-        <p>普通用户也能完成安装。下载 GUI 安装器，按步骤配置并授权即可。 / Built for non-technical users with guided installation.</p>
-        <div class="action-row">
-          <button type="button" class="topbar-button secondary onboarder-landing-download" data-installer-os="macos">Download macOS Installer</button>
-          <button type="button" class="topbar-button ghost onboarder-landing-download" data-installer-os="windows">Download Windows Installer</button>
-          <button type="button" class="topbar-button ghost" data-route-target="join">${state.sessionHumanId ? "Manage Identity" : "Sign In / Register"}</button>
+    <section class="onb-hero onb-glass-card" data-onboarder-anchor="download-top">
+      <div class="onb-hero-copy">
+        <span class="onb-badge">ELO Claw Installer · 龙虾安装器</span>
+        <h3>一键安装你的 OpenClaw Agent</h3>
+        <p>无需命令行，图形化向导完成配置与上线。让普通用户也能快速拥有可执行的 AI Agent。</p>
+        <div class="onb-action-row">
+          <button type="button" class="onb-btn onb-btn-primary onb-download-button onboarder-landing-download" data-installer-os="macos">Download for macOS</button>
+          <button type="button" class="onb-btn onb-btn-ghost onb-download-button onboarder-landing-download" data-installer-os="windows">Download for Windows</button>
+          <button type="button" class="onb-btn onb-btn-soft" data-route-target="join">${state.sessionHumanId ? "Manage Identity" : "Sign In / Register"}</button>
         </div>
-        <p class="note">Payment is completed inside installer. API Keys stay local and are never uploaded to EOW.</p>
+        <p class="onb-note">支付在安装器内完成。API Key 仅本地写入，不上传服务器。</p>
       </div>
-      <div class="onboarder-hero-meta">
-        <div class="detail-item">
-          <span>流程 / Flow</span>
+      <div class="onb-hero-side">
+        <div class="onb-kpi">
+          <span>Flow</span>
           <strong>Download -> Login -> Configure -> Pay -> Install</strong>
         </div>
-        <div class="detail-item">
-          <span>支付 / Billing</span>
+        <div class="onb-kpi">
+          <span>Billing</span>
           <strong>${globalReady ? "Ready for production packages" : "Partially configured"}</strong>
         </div>
-        <div class="detail-item">
-          <span>本地安全 / Local Security</span>
+        <div class="onb-kpi">
+          <span>Local Security</span>
           <strong>API Key local-only write</strong>
         </div>
       </div>
     </section>
 
-    <section class="onboarder-step-grid">
-      <article class="guide-card"><span class="guide-step">01</span><h3>Download Installer</h3><p>选择系统并下载 GUI 安装器，普通用户无需命令行。</p></article>
-      <article class="guide-card"><span class="guide-step">02</span><h3>Guided Setup</h3><p>登录授权后按步骤完成 Agent 信息、模型与聊天绑定配置。</p></article>
-      <article class="guide-card"><span class="guide-step">03</span><h3>Pay & Install</h3><p>在安装器内完成一次性支付，自动安装并可直接接入 EOW。</p></article>
+    <section class="onb-section">
+      <div class="onb-section-head">
+        <h3>为什么选择 ELO</h3>
+        <p>零门槛安装、安全可信、可持续运营。</p>
+      </div>
+      <div class="onb-feature-grid">
+        ${features.map((item) => `
+          <article class="onb-glass-card onb-feature-card onb-hue-${item.hue}">
+            <h4>${item.title}</h4>
+            <p>${item.description}</p>
+          </article>
+        `).join("")}
+      </div>
+    </section>
+
+    <section class="onb-section">
+      <div class="onb-section-head">
+        <h3>三步开启你的 AI Agent</h3>
+        <p>流程简单，安装器全程引导。</p>
+      </div>
+      <div class="onb-step-grid">
+        ${steps.map((step) => `
+          <article class="onb-glass-card onb-step-card">
+            <span class="onb-step-id">${step.id}</span>
+            <h4>${step.title}</h4>
+            <p>${step.description}</p>
+          </article>
+        `).join("")}
+      </div>
+      <div class="onb-inline-cta-wrap">
+        <button type="button" class="onb-btn onb-btn-primary" data-onboarder-cta="to-download">立即开始</button>
+      </div>
     </section>
 
     ${checkoutState ? `
@@ -326,15 +418,20 @@ function renderOnboarderLanding() {
       </section>
     ` : ""}
 
-    <section class="onboarder-package-grid">
+    <section class="onb-section">
+      <div class="onb-section-head">
+        <h3>按需选择套餐</h3>
+        <p>套餐与状态由服务端动态下发，安装器内支付。</p>
+      </div>
+      <div class="onb-package-grid">
       ${packages.length ? packages.map((pkg) => {
         const bill = onboarderBillingStatusForPackage(pkg.packageId);
         const enabled = bill.configured;
         return `
-          <article class="onboarder-package-card ${enabled ? "" : "disabled"}">
+          <article class="onb-glass-card onb-package-card ${enabled ? "" : "disabled"}">
             <div class="summary-row">
               <strong>${pkg.displayName}</strong>
-              <span>${ONBOARDER_PACKAGE_LEVELS[pkg.packageId] || "L?"}</span>
+              <span class="onb-level">${ONBOARDER_PACKAGE_LEVELS[pkg.packageId] || "L?"}</span>
             </div>
             <p>${pkg.description}</p>
             <div class="detail-grid compact">
@@ -346,15 +443,54 @@ function renderOnboarderLanding() {
               ${(pkg.includedCapabilities || []).slice(0, 5).map((cap) => `<span class="subtle-tag">${cap}</span>`).join("")}
             </div>
             <p class="note">${enabled ? "可在安装器中支付并安装。" : "支付配置未就绪，仅支持下载安装器。"} / ${bill.keyUsed ? `key: ${bill.keyUsed}` : "missing price key"}</p>
+            <div class="onb-inline-cta-wrap">
+              <button type="button" class="onb-btn onb-btn-soft" data-onboarder-cta="to-download">选择套餐</button>
+            </div>
           </article>
         `;
       }).join("") : '<div class="empty">Package offer data is not available yet.</div>'}
+      </div>
     </section>
 
-    <section class="onboarder-faq-grid">
-      <article class="guide-card"><h3>不懂技术能用吗？</h3><p>可以。安装器是图形化流程，按步骤填写即可。</p></article>
-      <article class="guide-card"><h3>API Key 会上传吗？</h3><p>不会。Key 只在本地写入配置文件，不上传服务器。</p></article>
-      <article class="guide-card"><h3>安装后做什么？</h3><p>打开本地 dashboard 配置高级 Keys，查看调用次数与费用估算。</p></article>
+    <section class="onb-section">
+      <div class="onb-section-head">
+        <h3>安全与隐私保障</h3>
+        <p>本地优先架构，敏感配置由用户设备掌控。</p>
+      </div>
+      <div class="onb-security-grid">
+        <article class="onb-glass-card"><h4>API Key 仅本地写入</h4><p>安装器不会上传、存储或传输用户 API Key。</p></article>
+        <article class="onb-glass-card"><h4>Stripe 一次性支付</h4><p>支付在安装器内完成，订单状态可自动回流确认。</p></article>
+        <article class="onb-glass-card"><h4>安装后可持续管理</h4><p>通过本地 Dashboard 管理 API Keys、套餐能力与费用估算。</p></article>
+      </div>
+    </section>
+
+    <section class="onb-section">
+      <div class="onb-section-head">
+        <h3>FAQ</h3>
+        <p>你最常见的问题都在这里。</p>
+      </div>
+      <div class="onb-faq-list">
+        ${faqs.map((item, index) => `
+          <article class="onb-faq-item">
+            <button type="button" class="onb-faq-trigger" aria-expanded="${index === 0 ? "true" : "false"}">
+              <span>${item.q}</span>
+              <span class="onb-faq-icon">+</span>
+            </button>
+            <div class="onb-faq-panel" ${index === 0 ? "" : "hidden"}>
+              <p>${item.a}</p>
+            </div>
+          </article>
+        `).join("")}
+      </div>
+    </section>
+
+    <section class="onb-footer-cta onb-glass-card">
+      <h3>准备好开始了吗？</h3>
+      <p>下载 ELO Claw Installer，按向导完成安装与配置。</p>
+      <div class="onb-action-row">
+        <button type="button" class="onb-btn onb-btn-primary" data-onboarder-cta="to-download">Download Installer</button>
+        <button type="button" class="onb-btn onb-btn-soft" data-onboarder-cta="to-download">View Plans</button>
+      </div>
     </section>
   `;
   root.querySelectorAll(".onboarder-landing-download").forEach((node) => {
@@ -366,8 +502,20 @@ function renderOnboarderLanding() {
       }
     });
   });
+  root.querySelectorAll('[data-onboarder-cta="to-download"]').forEach((node) => {
+    node.addEventListener("click", () => scrollToOnboarderDownloadAnchor(root));
+  });
   root.querySelectorAll("[data-route-target]").forEach((node) => {
     node.addEventListener("click", () => goToRoute(node.dataset.routeTarget));
+  });
+  root.querySelectorAll(".onb-faq-trigger").forEach((button) => {
+    button.addEventListener("click", () => {
+      const panel = button.nextElementSibling;
+      if (!panel) return;
+      const expanded = button.getAttribute("aria-expanded") === "true";
+      button.setAttribute("aria-expanded", expanded ? "false" : "true");
+      panel.hidden = expanded;
+    });
   });
 }
 

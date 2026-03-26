@@ -16,6 +16,24 @@ This document defines the baseline UI framework for ELO Open World and any proje
 - Panels, cards, and sidebars must always render on bounded surfaces with visible borders.
 - Avoid raw white surfaces and flat full-screen sections.
 
+## ELO 炫酷风 (Elo Cool Style)
+- Name: `elo炫酷风` (CSS namespace: `.elo-cool`).
+- Purpose: high-conversion product marketing surfaces such as `/onboarder`.
+- Token rule:
+  - Use namespaced style tokens only (`--cool-*`) under `.elo-cool`.
+  - Do not override global `:root` tokens from inside `.elo-cool`.
+- Primitive set:
+  - `onb-glass-card`
+  - `onb-btn` (`primary`, `soft`, `ghost`)
+  - `onb-badge`
+  - section headers + grid cards + FAQ panels
+- Boundary rule:
+  - Enable route-level first (example: `/onboarder` root container).
+  - Do not apply `.elo-cool` to the whole app until each route is validated.
+- Interaction rule:
+  - CTA behavior must be deterministic and consistent.
+  - For onboarding pages, guidance CTAs can scroll to a single download anchor.
+
 ## Layout Rules
 - Every flex/grid child that can shrink must include `min-width: 0`.
 - Primary page shells must separate navigation from content:
