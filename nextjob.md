@@ -98,6 +98,16 @@ After every execution cycle, update this file with:
 - any new blockers
 
 ## Last Completed
+- Completed `EOW Production Refactor - Phase 2` and deployed to production:
+  - rebuilt `Build / Market / Docs / Settings` route shells toward `elo炫酷风 v2` focus layout (de-card page skeleton with utility rail + content band)
+  - upgraded settings sidebar to path-based section links (`/settings/:section`) while preserving route-driven section visibility
+  - added app-level `data-i18n` binding support in `web/app.js` (text + placeholder + title attributes)
+  - expanded app dictionary for Build/Market/Docs/Settings filtering and docs reference copy across `en/zh/es/ja`
+  - localized standalone auth surfaces:
+    - `web/human-auth.html`
+    - `web/oauth-consent.html`
+    with locale switch, persisted language memory, and query-param aware redirects
+  - local checks passed (`node --check`, `npm test`) and production container returned healthy after rebuild
 - Completed `EOW Production Refactor - Phase 1` and deployed to production:
   - implemented path-first route core in `web/app.js` with legacy hash migration (`/#settings` -> `/settings/profile`, `/#world` -> `/world`, etc.)
   - updated server route handling in `src/server/apiServer.js` so deep-link refresh works for `/settings/:section`, `/world`, `/build`, `/market`, `/docs`
