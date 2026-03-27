@@ -3029,8 +3029,8 @@ body.elo-cool-v2 {
   --v2-bg-3: #1f0f3a;
   --v2-surface: rgba(15, 18, 34, 0.34);
   --v2-surface-strong: rgba(16, 20, 38, 0.62);
-  --v2-line: rgba(153, 188, 234, 0.1);
-  --v2-line-strong: rgba(176, 120, 255, 0.24);
+  --v2-line: rgba(153, 188, 234, 0.075);
+  --v2-line-strong: rgba(176, 120, 255, 0.18);
   --v2-text: #f6f6ff;
   --v2-muted: rgba(224, 233, 255, 0.72);
   --v2-accent: #c285ff;
@@ -3045,7 +3045,7 @@ body.elo-cool-v2 {
 }
 
 body.elo-cool-v2 .page {
-  width: min(1320px, calc(100vw - clamp(20px, 4vw, 88px)));
+  width: min(1240px, calc(100vw - clamp(28px, 6vw, 120px)));
   padding: 14px 0 72px;
 }
 
@@ -3101,13 +3101,13 @@ body.elo-cool-v2 .topbar-button.ghost {
 
 body.elo-cool-v2 .route {
   display: grid;
-  gap: 24px;
+  gap: 20px;
   min-width: 0;
 }
 
 body.elo-cool-v2 main > .route > * {
-  padding-left: clamp(14px, 2.4vw, 34px);
-  padding-right: clamp(14px, 2.4vw, 34px);
+  padding-left: clamp(16px, 2.8vw, 38px);
+  padding-right: clamp(16px, 2.8vw, 38px);
 }
 
 body.elo-cool-v2 .hero,
@@ -3116,7 +3116,7 @@ body.elo-cool-v2 .section-header.page-hero {
   border-radius: 0;
   box-shadow: none;
   background: transparent;
-  padding: clamp(30px, 5vw, 48px) clamp(14px, 2.4vw, 34px) 24px;
+  padding: clamp(32px, 5.2vw, 52px) clamp(16px, 2.8vw, 38px) 22px;
   border-top: 1px solid var(--v2-line-strong);
   border-bottom: 1px solid var(--v2-line);
 }
@@ -3152,7 +3152,7 @@ body.elo-cool-v2 .utility-rail {
 }
 
 body.elo-cool-v2 .panel {
-  padding: 18px clamp(8px, 1.5vw, 14px);
+  padding: 16px clamp(8px, 1.3vw, 12px);
 }
 
 body.elo-cool-v2 .panel-header {
@@ -3178,7 +3178,7 @@ body.elo-cool-v2 .quickstart-panel,
 body.elo-cool-v2 .infrastructure,
 body.elo-cool-v2 .world-graph-panel,
 body.elo-cool-v2 .world-insights-panel {
-  padding: 20px clamp(8px, 1.5vw, 14px);
+  padding: 18px clamp(8px, 1.3vw, 12px);
 }
 
 body.elo-cool-v2 .guide-grid {
@@ -3194,7 +3194,7 @@ body.elo-cool-v2 .guide-card {
   box-shadow: none;
   padding: 14px 0 16px 12px;
   border-bottom: 1px solid var(--v2-line);
-  border-left: 1px solid rgba(180, 136, 255, 0.18);
+  border-left: 1px solid rgba(180, 136, 255, 0.12);
 }
 
 body.elo-cool-v2 .guide-card p {
@@ -3213,7 +3213,7 @@ body.elo-cool-v2 .focus-layout {
 body.elo-cool-v2 .utility-rail,
 body.elo-cool-v2 .content-band,
 body.elo-cool-v2 .focus-band {
-  padding: 14px clamp(8px, 1.5vw, 14px);
+  padding: 12px clamp(8px, 1.3vw, 12px);
 }
 
 body.elo-cool-v2 .utility-rail {
@@ -3250,7 +3250,7 @@ body.elo-cool-v2 .list-row-mode .expand-body {
 
 body.elo-cool-v2 .docs-link-row {
   padding: 12px 0 12px 10px;
-  border-left: 1px solid rgba(120, 198, 255, 0.16);
+  border-left: 1px solid rgba(120, 198, 255, 0.1);
 }
 
 body.elo-cool-v2 .docs-link-row:hover {
@@ -3267,7 +3267,7 @@ body.elo-cool-v2 .settings-shell {
 
 body.elo-cool-v2 .settings-sidebar {
   border: 0;
-  border-right: 1px solid rgba(153, 188, 234, 0.12);
+  border-right: 1px solid rgba(153, 188, 234, 0.08);
   border-radius: 0;
   padding: 8px 14px 12px 0;
   background: transparent;
@@ -3299,6 +3299,76 @@ body.elo-cool-v2 .settings-section .panel {
   border-right: 0;
   border-radius: 0;
   padding: 16px 0;
+}
+
+/* Phase: fine-tune only world/build surfaces */
+body.elo-cool-v2 section[data-route="build"] .focus-layout {
+  gap: 20px;
+}
+
+body.elo-cool-v2 section[data-route="build"] .focus-section {
+  padding-top: 12px;
+}
+
+body.elo-cool-v2 section[data-route="build"] .list-row-mode .expand-card {
+  padding: 10px 0;
+}
+
+body.elo-cool-v2 section[data-route="build"] .list-row-mode .expand-body {
+  padding: 10px 0 0;
+}
+
+body.elo-cool-v2 section[data-route="build"] .utility-rail,
+body.elo-cool-v2 section[data-route="build"] .content-band {
+  background: rgba(15, 18, 34, 0.28);
+}
+
+body.elo-cool-v2 section[data-route="world"] .section-header.page-hero {
+  padding-bottom: 18px;
+}
+
+body.elo-cool-v2 section[data-route="world"] .world-graph-panel,
+body.elo-cool-v2 section[data-route="world"] .world-insights-panel {
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+
+body.elo-cool-v2 section[data-route="world"] .world-graph-shell {
+  gap: 14px;
+}
+
+body.elo-cool-v2 section[data-route="world"] .graph-legend {
+  border-color: rgba(111, 132, 161, 0.11);
+  box-shadow: none;
+}
+
+body.elo-cool-v2 section[data-route="world"] .project-graph-frame {
+  border-color: rgba(111, 132, 161, 0.1);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.02),
+    inset 0 -44px 90px rgba(0, 0, 0, 0.14),
+    0 18px 48px rgba(0, 0, 0, 0.22);
+}
+
+body.elo-cool-v2 section[data-route="world"] .world-insight-card,
+body.elo-cool-v2 section[data-route="world"] .world-insight-list-item,
+body.elo-cool-v2 section[data-route="world"] .world-insight-meta span,
+body.elo-cool-v2 section[data-route="world"] .world-insight-chip,
+body.elo-cool-v2 section[data-route="world"] .world-project-chip {
+  border-color: rgba(111, 132, 161, 0.1);
+  box-shadow: none;
+}
+
+body.elo-cool-v2 section[data-route="world"] .world-info-pill {
+  border-color: rgba(111, 132, 161, 0.14);
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.2);
+}
+
+body.elo-cool-v2 section[data-route="world"] .world-dock-cluster,
+body.elo-cool-v2 section[data-route="world"] .world-dock-button,
+body.elo-cool-v2 section[data-route="world"] .world-dock-caption {
+  border-color: rgba(111, 132, 161, 0.1);
+  box-shadow: none;
 }
 
 body.elo-cool-v2 .creation-shell,

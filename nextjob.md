@@ -98,6 +98,9 @@ After every execution cycle, update this file with:
 - any new blockers
 
 ## Last Completed
+- Recorded visual baseline for three-page polish:
+  - baseline commit for this refinement round: `f0e5c1d`
+  - scope lock: `/world`, `/build`, `/onboarder` style-only tuning (spacing + softer boundaries + alignment rhythm)
 - Completed `EOW elo炫酷风 v2` polish pass (spacing + softer boundaries + nav/world copy cleanup):
   - restored horizontal gutter and centered alignment rhythm across route sections in `web/app.css`
   - reduced visual boundary intensity by lowering default line contrast and nested border emphasis
