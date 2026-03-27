@@ -98,6 +98,18 @@ After every execution cycle, update this file with:
 - any new blockers
 
 ## Last Completed
+- Recorded `/onboarder` Figma alignment rollback anchor:
+  - git baseline commit: `46b42ee`
+  - local rollback tag: `onboarder-ui-baseline-46b42ee`
+- Completed `/onboarder` independent visual pass with isolated marketing theme (`elo炫酷营销风`):
+  - switched page shell from `elo-cool-v2` to isolated `elo-cool-marketing` in `web/onboarder.html`
+  - rebuilt onboarding landing structure for marketing rhythm (hero, feature band, 3-step flow, package lane, trust, FAQ, bottom CTA)
+  - replaced onboarder-only style layer in `web/onboarder.css` with Figma-aligned gradient, glow, spacing, and motion primitives
+  - kept product behavior unchanged:
+    - marketing CTAs still scroll to download anchor
+    - only download buttons trigger installer download
+    - dynamic package rendering continues from `public-offer` + billing readiness
+  - updated `web/onboarder.js` rendering hooks for new markup classes and added lightweight reveal animation binding
 - Recorded visual baseline for three-page polish:
   - baseline commit for this refinement round: `f0e5c1d`
   - scope lock: `/world`, `/build`, `/onboarder` style-only tuning (spacing + softer boundaries + alignment rhythm)

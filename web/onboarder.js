@@ -515,17 +515,21 @@ function renderPackages(offer) {
     const features = resolvePackageFeatures(offer, pkg.packageId, pkg.includedCapabilities || []).slice(0, 5);
 
     return `
-      <article class="glass-card pricing-card ${enabled ? "" : "is-disabled"}">
-        <div class="title-row">
+      <article class="mk-pricing-card ${enabled ? "" : "is-disabled"}">
+        <div class="mk-pricing-head">
           <h3>${escapeHtml(pkg.displayName)}</h3>
           <span class="level">${escapeHtml(levelLabel(pkg.packageId))}</span>
         </div>
-        <p>${escapeHtml(pkg.description || "")}</p>
-        <div class="price">$${escapeHtml(pkg.displayPriceUsd)}</div>
-        <ul>
-          ${features.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}
-        </ul>
-        <button type="button" class="btn btn-ghost" data-scroll-download>${escapeHtml(t("planChoose"))}</button>
+        <div class="mk-price-col">
+          <div class="mk-price">$${escapeHtml(pkg.displayPriceUsd)}</div>
+          <p class="mk-price-desc">${escapeHtml(pkg.description || "")}</p>
+        </div>
+        <div>
+          <ul>
+            ${features.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}
+          </ul>
+        </div>
+        <button type="button" class="mk-btn mk-btn-ghost" data-scroll-download>${escapeHtml(t("planChoose"))}</button>
       </article>
     `;
   }).join("");
@@ -542,7 +546,7 @@ function renderCheckoutBanner() {
     return;
   }
   banner.hidden = false;
-  banner.className = `banner ${state === "success" ? "success" : "warn"}`;
+  banner.className = `mk-banner ${state === "success" ? "success" : "warn"}`;
   banner.textContent = state === "success" ? t("bannerSuccess") : t("bannerCancel");
 }
 
@@ -594,7 +598,7 @@ function bindScrollCtas(root = document) {
 }
 
 function bindFaq() {
-  document.querySelectorAll(".faq-trigger").forEach((node) => {
+  document.querySelectorAll(".mk-faq-trigger").forEach((node) => {
     if (node.dataset.boundClick === "1") return;
     node.dataset.boundClick = "1";
     node.addEventListener("click", () => {
@@ -605,6 +609,34 @@ function bindFaq() {
       panel.hidden = expanded;
     });
   });
+}
+
+function bindRevealMotion() {
+  const revealNodes = Array.from(document.querySelectorAll(".mk-reveal"));
+  if (!revealNodes.length) return;
+  revealNodes[0].classList.add("is-visible");
+
+  if (!("IntersectionObserver" in window)) {
+    revealNodes.forEach((node) => node.classList.add("is-visible"));
+    return;
+  }
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add("is-visible");
+        observer.unobserve(entry.target);
+      });
+    },
+    {
+      root: null,
+      rootMargin: "0px 0px -8% 0px",
+      threshold: 0.12
+    }
+  );
+
+  revealNodes.forEach((node) => observer.observe(node));
 }
 
 function bindLanguageSwitcher() {
@@ -623,6 +655,7 @@ async function main() {
   bindScrollCtas();
   bindFaq();
   bindLanguageSwitcher();
+  bindRevealMotion();
 
   currentOffer = await loadOffer();
   renderCheckoutBanner();
