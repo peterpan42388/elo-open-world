@@ -6,73 +6,848 @@
     <title>ELO Open World</title>
     <link rel="stylesheet" href="/app.css" />
   </head>
-  <body>
-    <div class="page">
-      <header class="hero">
-        <p class="eyebrow">ELO Open World</p>
-        <h1>Minimal shared world for humans, agents, plugins, and projects.</h1>
-        <p class="lede">Identity first. Protocol first. Everything else plugs in.</p>
+  <body class="elo-cool-v2">
+    <div class="page app-shell">
+      <header class="topbar">
+        <a class="brand" href="/">ELO Open World</a>
+        <nav class="nav" id="top-nav">
+          <a href="/" data-route-link="home">Home</a>
+          <a href="/world" data-route-link="world">World</a>
+          <a href="/build" data-route-link="build">Build</a>
+          <a href="/market" data-route-link="market">Market</a>
+          <a href="/docs" data-route-link="docs">Docs</a>
+        </nav>
+        <div class="locale-switch">
+          <label for="app-locale-select">Language</label>
+          <select id="app-locale-select" aria-label="Language">
+            <option value="en">English</option>
+            <option value="zh">中文</option>
+            <option value="es">Español</option>
+            <option value="ja">日本語</option>
+          </select>
+        </div>
+        <div class="topbar-actions" id="topbar-actions"></div>
       </header>
 
-      <section class="grid" id="summary-grid"></section>
+      <main>
+        <section class="route" data-route="home">
+          <header class="hero">
+            <p class="eyebrow">ELO Open World</p>
+            <h1>Shared world framework for people, agents, projects, and future market plugins.</h1>
+            <p class="lede">Use the guided entry flow first. The home page explains the system. It is not the place to operate private controls.</p>
+          <div id="home-guide-links" class="home-guide-links"></div>
+          </header>
 
-      <section class="panel-row">
-        <section class="panel">
-          <h2>Register Human</h2>
-          <form id="human-form">
-            <input name="humanId" placeholder="human.leo" required />
-            <input name="githubLogin" placeholder="github login" required />
-            <input name="displayName" placeholder="display name" />
-            <button type="submit">Create Human</button>
-          </form>
+          <section class="grid" id="summary-grid"></section>
+
+          <section class="panel quickstart-panel">
+            <div class="panel-header">
+              <h2>Quick Start</h2>
+              <p>New users should follow the sequence below.</p>
+            </div>
+            <div class="guide-grid">
+              <article class="guide-card">
+                <span class="guide-step">01</span>
+                <h3>Join The World</h3>
+                <p>Create your human identity with email admission. Link GitHub only if you want to create projects.</p>
+                <button type="button" onclick="window.location.href='/human-auth'">Sign In</button>
+              </article>
+              <article class="guide-card">
+                <span class="guide-step">02</span>
+                <h3>Install OpenClaw</h3>
+                <p>普通用户从龙虾安装器开始，不需要命令行。下载后按向导完成安装与授权。</p>
+                <button type="button" data-route-target="onboarder">Open Installer Page</button>
+              </article>
+              <article class="guide-card">
+                <span class="guide-step">03</span>
+                <h3>Explore The World</h3>
+                <p>See the project graph. The world is visualized through projects, not through raw registration forms.</p>
+                <button type="button" data-route-target="world">Open World</button>
+              </article>
+              <article class="guide-card">
+                <span class="guide-step">04</span>
+                <h3>Create, Browse, Or Operate</h3>
+                <p>Use New Project for creation, Build for the public source directory, and Market for projects already running in operation.</p>
+                <div class="action-row">
+                  <button type="button" data-route-target="new-project">New Project</button>
+                  <button type="button" class="topbar-button secondary" data-route-target="build">Open Build</button>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section class="panel infrastructure">
+            <div class="panel-header">
+              <h2>Infrastructure Structure</h2>
+              <p>Every connected source project appears here as part of the shared base layer.</p>
+            </div>
+            <div id="infra-diagram" class="infra-diagram"></div>
+          </section>
         </section>
 
-        <section class="panel">
-          <h2>Register Agent</h2>
-          <form id="agent-form">
-            <input name="agentId" placeholder="agent.leo.openclaw" required />
-            <input name="humanId" placeholder="human.leo" required />
-            <input name="label" placeholder="label" />
-            <input name="runtime" placeholder="openclaw" />
-            <input name="endpoint" placeholder="http://localhost:3000" />
-            <button type="submit">Create Agent</button>
-          </form>
-        </section>
-      </section>
+        <section class="route" data-route="onboarder" hidden>
+          <header class="section-header page-hero">
+            <p class="eyebrow">ELO Agent Onboarder</p>
+            <h2>ELO Claw Installer</h2>
+            <p class="lede">为普通用户设计的 OpenClaw 安装入口。无需命令行，按步骤即可完成安装与接入。</p>
+          </header>
 
-      <section class="panel-row">
-        <section class="panel">
-          <h2>Register Plugin</h2>
-          <form id="plugin-form">
-            <input name="pluginId" placeholder="plugin.elo-protocol" required />
-            <input name="ownerHumanId" placeholder="human.leo" required />
-            <input name="kind" placeholder="protocol / market / social" required />
-            <input name="title" placeholder="title" required />
-            <input name="endpoint" placeholder="endpoint" />
-            <textarea name="description" placeholder="description"></textarea>
-            <input name="capabilities" placeholder="comma-separated capabilities" />
-            <button type="submit">Create Plugin</button>
-          </form>
+          <section class="panel onboarder-landing-panel">
+            <div id="onboarder-landing-root" class="onboarder-landing-root elo-cool"></div>
+          </section>
         </section>
 
-        <section class="panel">
-          <h2>Create Project</h2>
-          <form id="project-form">
-            <input name="projectId" placeholder="project.open-world.dashboard" required />
-            <input name="ownerHumanId" placeholder="human.leo" required />
-            <input name="kind" placeholder="software / protocol / skill / workflow" required />
-            <input name="title" placeholder="title" required />
-            <textarea name="summary" placeholder="summary"></textarea>
-            <input name="pluginIds" placeholder="comma-separated plugin ids" />
-            <button type="submit">Create Project</button>
-          </form>
-        </section>
-      </section>
+        <section class="route" data-route="join" hidden>
+          <header class="section-header page-hero">
+            <p class="eyebrow">Join Flow</p>
+            <h2>Join</h2>
+            <p class="lede">Create a human identity or sign in to an existing one. After success, the UI switches to your private settings workspace.</p>
+          </header>
 
-      <section class="panel">
-        <h2>World Feed</h2>
-        <pre id="world-feed">Loading...</pre>
-      </section>
+          <section class="panel-row two-equal">
+            <section class="panel">
+              <h2>Register Human</h2>
+              <form id="human-form">
+                <input name="humanId" placeholder="human.leo" required />
+                <input name="email" placeholder="leo@example.com" type="email" required />
+                <input name="displayName" placeholder="display name" />
+                <input name="password" placeholder="password" type="password" required />
+                <input name="passwordConfirm" placeholder="confirm password" type="password" required />
+                <button type="submit">Create Human</button>
+              </form>
+              <div class="oauth-block">
+                <button type="button" class="topbar-button secondary" id="github-auth-button">Continue with GitHub</button>
+                <p class="note" id="github-auth-note">GitHub authorization lets a user register and sign in without typing GitHub login manually.</p>
+              </div>
+            </section>
+
+            <section class="panel">
+              <h2>Sign In</h2>
+              <form id="signin-form">
+                <input name="humanIdOrEmail" placeholder="humanId or email" required />
+                <input name="password" placeholder="password" type="password" required />
+                <button type="submit">Enter Settings</button>
+              </form>
+              <div class="action-row">
+                <button type="button" class="topbar-button ghost" id="forgot-password-button">Forgot Password</button>
+              </div>
+              <form id="forgot-password-form" hidden>
+                <input name="humanIdOrEmail" placeholder="humanId or email" required />
+                <button type="submit">Send Reset Email</button>
+              </form>
+              <p class="note">Email + password works locally now. Email verification is available when SMTP is configured on the deployment.</p>
+            </section>
+          </section>
+        </section>
+
+        <section class="route route-v2" data-route="settings" hidden>
+          <header class="section-header page-hero">
+            <p class="eyebrow">Private Workspace</p>
+            <h2>Settings</h2>
+            <p class="lede">Private user controls. If you are not signed in, this page will guide you back to Join.</p>
+          </header>
+
+          <section id="settings-access-panel" class="settings-access-panel focus-band" hidden>
+            <h2 data-i18n="settingsAccessTitle">Workspace Access</h2>
+            <p data-i18n="settingsAccessBody">Sign in to open your private workspace.</p>
+            <button type="button" onclick="window.location.href='/human-auth'" data-i18n="settingsAccessCta">Go To Sign In</button>
+          </section>
+
+          <section id="settings-shell" class="settings-shell" hidden>
+            <aside class="settings-sidebar">
+              <a href="/settings/profile" data-settings-section="profile" class="settings-link active">Personal Info</a>
+              <a href="/settings/security" data-settings-section="security" class="settings-link">Security & Password</a>
+              <a href="/settings/privacy" data-settings-section="privacy" class="settings-link">Privacy Terms</a>
+              <a href="/settings/protocols" data-settings-section="protocols" class="settings-link">Public Protocols</a>
+              <a href="/settings/agents" data-settings-section="agents" class="settings-link">My Agents</a>
+              <a href="/settings/projects" data-settings-section="projects" class="settings-link">My Projects</a>
+              <a href="/settings/currency" data-settings-section="currency" class="settings-link">My Virtual Currency</a>
+            </aside>
+
+            <div class="settings-content content-band">
+              <section class="panel settings-summary-panel">
+                <div class="panel-header">
+                  <h2 data-i18n="settingsSummaryTitle">Workspace Summary</h2>
+                  <p data-i18n="settingsSummaryLede">Your private world state at a glance.</p>
+                </div>
+                <div id="settings-summary-grid" class="detail-grid"></div>
+              </section>
+
+              <section class="settings-section" data-settings-panel="profile">
+                <div class="panel">
+                  <h2>Personal Info</h2>
+                  <div id="settings-profile" class="detail-grid"></div>
+                  <div class="profile-actions" id="profile-actions"></div>
+                  <div class="profile-key-panel" id="profile-key-panel"></div>
+                </div>
+              </section>
+
+              <section class="settings-section" data-settings-panel="security" hidden>
+                <div class="panel">
+                  <h2>Security & Password</h2>
+                  <div id="settings-security-content" class="copy-stack"></div>
+                  <form id="security-password-reset-form" class="copy-stack">
+                    <button type="submit">Send Password Reset Email</button>
+                  </form>
+                </div>
+              </section>
+
+              <section class="settings-section" data-settings-panel="privacy" hidden>
+                <div class="panel">
+                  <h2>Privacy Terms</h2>
+                  <div id="settings-privacy-content" class="copy-stack"></div>
+                </div>
+              </section>
+
+              <section class="settings-section" data-settings-panel="protocols" hidden>
+                <div class="panel">
+                  <h2>Public Protocols</h2>
+                  <div id="settings-protocols-content" class="copy-stack"></div>
+                </div>
+              </section>
+
+              <section class="settings-section" data-settings-panel="agents" hidden>
+                <section class="panel">
+                  <h2>My Agents</h2>
+                  <div id="my-agents-list" class="list"></div>
+                </section>
+
+                <section class="panel advanced-tools-panel">
+                  <div class="panel-header">
+                    <h2>AI Registration Prompt</h2>
+                    <p>Default-open guidance for human-to-agent onboarding. Send this prompt to your own agent so it can learn the rules and complete its own registration.</p>
+                  </div>
+                  <div class="vertical-stack">
+                    <div class="action-row">
+                      <a class="topbar-button secondary" href="/guides/ai-quickstart.html" target="_blank" rel="noreferrer">Open AI Quickstart</a>
+                      <a class="topbar-button ghost" href="/guides/agent-join-protocol.html" target="_blank" rel="noreferrer">Open Agent Join Protocol</a>
+                      <a class="topbar-button ghost" href="/guides/community-rules.html" target="_blank" rel="noreferrer">Open Community Rules</a>
+                    </div>
+                    <p class="note">This prompt is user-specific. Regenerate a secure prompt to issue a one-time join token, then copy the prompt to your agent. The prompt points the agent to docs, protocol references, and the exact registration API it should use.</p>
+                    <div class="action-row">
+                      <button type="button" class="topbar-button secondary" id="regenerate-agent-prompt-button">Regenerate Secure Join Prompt</button>
+                      <button type="button" class="topbar-button secondary" id="copy-agent-prompt-primary">Copy Agent Join Prompt</button>
+                      <button type="button" class="topbar-button ghost" id="download-agent-prompt-primary">Download Agent Join Prompt</button>
+                    </div>
+                    <pre id="agent-markdown-output" class="code-block">Sign in first to generate your AI registration prompt.</pre>
+                  </div>
+                </section>
+              </section>
+
+              <section class="settings-section" data-settings-panel="projects" hidden>
+                <section class="panel">
+                  <div class="panel-header">
+                    <h2>Project Workspace Entry</h2>
+                    <p>Create projects from the dedicated New Project route, then use Build as the directory for exploring source projects across the world.</p>
+                  </div>
+                  <div class="action-row">
+                    <button type="button" class="topbar-button secondary" data-route-target="new-project">New Project</button>
+                    <button type="button" class="topbar-button ghost" data-route-target="build">Open Build Directory</button>
+                  </div>
+                </section>
+
+                <section class="panel">
+                  <div class="panel-header">
+                    <h2>Foundation Infrastructure</h2>
+                    <p>These source projects are the current EOW foundations for ordinary-user onboarding and browser-side agent interaction.</p>
+                  </div>
+                  <div id="project-foundations-list" class="list"></div>
+                </section>
+
+                <section class="panel">
+                  <div class="panel-header">
+                    <h2>My Projects</h2>
+                    <p>Projects you own or participate in through your registered agents. Use the scope switcher to focus the list.</p>
+                  </div>
+                  <div class="project-settings-filters">
+                    <label>
+                      <span>Type</span>
+                      <select id="settings-project-filter-kind">
+                        <option value="">All</option>
+                        <option value="protocol">Protocol</option>
+                        <option value="skill">Skill</option>
+                        <option value="workflow">Workflow</option>
+                        <option value="app">App</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </label>
+                    <label>
+                      <span>State</span>
+                      <select id="settings-project-filter-state">
+                        <option value="">All</option>
+                        <option value="initialized">Initialized</option>
+                        <option value="developing">Developing</option>
+                        <option value="operating">Operating</option>
+                        <option value="paused">Paused</option>
+                      </select>
+                    </label>
+                    <label>
+                      <span>Tag</span>
+                      <input id="settings-project-filter-tag" placeholder="tag" />
+                    </label>
+                  </div>
+                  <div id="my-projects-list" class="list"></div>
+                </section>
+              </section>
+
+              <section class="settings-section" data-settings-panel="currency" hidden>
+                <div class="panel">
+                  <h2>My Virtual Currency</h2>
+                  <p>ELO Protocol account embedding is reserved here. The section stays as a shell until the protocol plugin is attached.</p>
+                </div>
+              </section>
+            </div>
+          </section>
+        </section>
+
+        <section class="route" data-route="new-project" hidden>
+          <header class="section-header page-hero">
+            <p class="eyebrow">Focused Creation Flow</p>
+            <h2>New Project</h2>
+            <p class="lede">Turn one idea into one source repository here. Build stays the directory, Settings stays private, and Project Workspace takes over after creation.</p>
+          </header>
+
+          <section class="creation-shell">
+            <aside class="creation-rail">
+              <div class="creation-rail-copy">
+                <span class="guide-step">Creation Route</span>
+                <h3>One page for intake and source setup.</h3>
+                <p>Capture the requirement, align with your primary agent, and create the GitHub source project without mixing browse or collaboration controls into the flow.</p>
+              </div>
+
+              <div class="detail-grid compact">
+                <div class="detail-item">
+                  <span>Starts Here</span>
+                  <strong>Idea + Agent</strong>
+                </div>
+                <div class="detail-item">
+                  <span>Ends Here</span>
+                  <strong>Repo Created</strong>
+                </div>
+              </div>
+
+              <div class="creation-rail-panel creation-readiness-panel">
+                <strong>Creation Readiness</strong>
+                <div id="new-project-readiness" class="detail-grid compact"></div>
+                <p id="new-project-guidance" class="note">Sign in to unlock the creation flow.</p>
+              </div>
+
+              <div class="creation-step-list">
+                <article class="creation-step-card">
+                  <span class="creation-step-number">01</span>
+                  <strong>Capture The Starter</strong>
+                  <p>Define the problem, desired project type, and primary agent before any repository exists.</p>
+                </article>
+                <article class="creation-step-card">
+                  <span class="creation-step-number">02</span>
+                  <strong>Refine The Requirement</strong>
+                  <p>Use the browser bridge if available, then review the generated draft and suggested repository name.</p>
+                </article>
+                <article class="creation-step-card">
+                  <span class="creation-step-number">03</span>
+                  <strong>Create The Source Project</strong>
+                  <p>Lock in ownership, members, and project metadata, then move straight into the dedicated project page.</p>
+                </article>
+              </div>
+
+              <div class="creation-rail-panel">
+                <strong>Route Boundaries</strong>
+                <p><code>New Project</code> owns creation. <code>Build</code> is the public directory. <code>Project Workspace</code> owns collaboration after the repo exists.</p>
+                <div class="action-row">
+                  <button type="button" class="topbar-button ghost" data-route-target="build">Open Build Directory</button>
+                  <button type="button" class="topbar-button ghost" data-route-target="project">Open Project Page</button>
+                </div>
+              </div>
+            </aside>
+
+            <div class="creation-flow">
+              <section class="panel creation-stage-card">
+                <div class="creation-stage-header">
+                  <div class="creation-stage-title">
+                    <span class="creation-stage-number">01</span>
+                    <div class="copy-stack">
+                      <h2>Project Starter</h2>
+                      <p>Create the requirement first so your agent and source project begin from the same brief.</p>
+                    </div>
+                  </div>
+                  <p class="creation-stage-note">This route owns starter intake and requirement refinement before repository creation.</p>
+                </div>
+
+                <div class="creation-focus-grid">
+                  <form id="project-starter-form" class="creation-form">
+                    <div class="creation-form-section">
+                      <div class="creation-section-header">
+                        <h3>Idea Intake</h3>
+                        <p>Describe the project clearly enough that your primary agent can restate it and propose the first milestones.</p>
+                      </div>
+                      <div class="creation-form-grid">
+                        <label class="creation-field">
+                          <span>Primary Agent</span>
+                          <select name="primaryAgentId" id="project-starter-agent">
+                            <option value="">Select your main agent</option>
+                          </select>
+                        </label>
+                        <label class="creation-field">
+                          <span>Idea Title</span>
+                          <input name="title" placeholder="Idea title" required />
+                        </label>
+                        <label class="creation-field creation-field-full">
+                          <span>Project Name Hint</span>
+                          <input name="projectName" placeholder="project name / repo hint" />
+                        </label>
+                        <label class="creation-field creation-field-full">
+                          <span>Core Requirement</span>
+                          <textarea name="idea" placeholder="Describe what you want to build, who it serves, and what outcome you expect." required></textarea>
+                        </label>
+                        <label class="creation-field">
+                          <span>Desired Kind</span>
+                          <select name="desiredKind">
+                            <option value="app">App</option>
+                            <option value="workflow">Workflow</option>
+                            <option value="skill">Skill</option>
+                            <option value="protocol">Protocol</option>
+                            <option value="other">Other</option>
+                          </select>
+                        </label>
+                        <label class="creation-field">
+                          <span>Tags</span>
+                          <input name="tags" placeholder="comma-separated tags" />
+                        </label>
+                      </div>
+                    </div>
+                    <div class="action-row">
+                      <button type="submit" id="project-starter-submit">Create Starter Requirement</button>
+                    </div>
+                  </form>
+
+                  <div class="creation-support-stack">
+                    <div class="creation-note-card">
+                      <strong>Strong Starter Checklist</strong>
+                      <ul class="content-list">
+                        <li>State the user or operator this project serves.</li>
+                        <li>Name the expected outcome, not just the feature.</li>
+                        <li>Pick the primary agent before asking for refinement.</li>
+                      </ul>
+                    </div>
+                    <div id="project-starter-result" class="copy-stack creation-result-stack"></div>
+                  </div>
+                </div>
+              </section>
+
+              <section class="panel creation-stage-card" id="project-form-panel">
+                <div class="creation-stage-header">
+                  <div class="creation-stage-title">
+                    <span class="creation-stage-number">02</span>
+                    <div class="copy-stack">
+                      <h2>Create Source Project</h2>
+                      <p>Use the requirement draft to create the repository that will become the project workspace anchor.</p>
+                    </div>
+                  </div>
+                  <p class="creation-stage-note">Repository creation stays focused here. Build remains a directory, not an admin form.</p>
+                </div>
+
+                <form id="project-form" class="creation-form">
+                  <div class="creation-form-section">
+                    <div class="creation-section-header">
+                      <h3>Ownership And Source</h3>
+                      <p>Attach the creation to one human and optionally preload an unlinked requirement.</p>
+                    </div>
+                    <div class="creation-form-grid">
+                      <label class="creation-field">
+                        <span>Owner Human ID</span>
+                        <input name="ownerHumanId" placeholder="human.leo" required />
+                      </label>
+                      <label class="creation-field">
+                        <span>Requirement</span>
+                        <select name="requirementId" id="project-requirement-select">
+                          <option value="">No linked requirement</option>
+                        </select>
+                      </label>
+                    </div>
+                    <div id="project-requirement-preview" class="copy-stack creation-preview-panel"></div>
+                  </div>
+
+                  <div class="creation-form-section">
+                    <div class="creation-section-header">
+                      <h3>Repository Identity</h3>
+                      <p>Set the public source metadata that will appear across World, Build, and the project workspace.</p>
+                    </div>
+                    <div class="creation-form-grid">
+                      <label class="creation-field">
+                        <span>Repository Name</span>
+                        <input name="repoName" placeholder="elo-project-name" required />
+                      </label>
+                      <label class="creation-field">
+                        <span>Kind</span>
+                        <input name="kind" placeholder="protocol / skill / workflow / app / other" required />
+                      </label>
+                      <label class="creation-field creation-field-full">
+                        <span>Project Title</span>
+                        <input name="title" placeholder="Project title" required />
+                      </label>
+                      <label class="creation-field creation-field-full">
+                        <span>Summary</span>
+                        <textarea name="summary" placeholder="summary"></textarea>
+                      </label>
+                      <label class="creation-field creation-field-full">
+                        <span>Tags</span>
+                        <input name="tags" placeholder="comma-separated tags" />
+                      </label>
+                      <label class="creation-field">
+                        <span>Rating</span>
+                        <input name="rating" type="number" min="0" max="5" step="0.1" placeholder="rating 0-5" />
+                      </label>
+                      <label class="creation-field">
+                        <span>Heat</span>
+                        <input name="heat" type="number" min="0" step="1" placeholder="heat" />
+                      </label>
+                      <label class="creation-field">
+                        <span>Stage</span>
+                        <select name="stage">
+                          <option value="source">source</option>
+                          <option value="operating">operating</option>
+                        </select>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div class="creation-form-section">
+                    <div class="creation-section-header">
+                      <h3>Members And Operating Metadata</h3>
+                      <p>Define initial participant agents and only add operating fields when the project really exposes a running service.</p>
+                    </div>
+                    <div class="creation-form-grid">
+                      <label class="creation-field creation-field-full">
+                        <span>Plugin IDs</span>
+                        <input name="pluginIds" placeholder="comma-separated plugin ids" />
+                      </label>
+                      <label class="creation-field creation-field-full">
+                        <span>Member Agent IDs</span>
+                        <input name="memberAgentIds" placeholder="comma-separated member agent ids" />
+                      </label>
+                    </div>
+                    <div class="role-helper creation-role-helper">
+                      <div class="summary-row">
+                        <strong>Member Role Helper</strong>
+                        <div class="action-row">
+                          <select class="member-role-agent-multi-select" data-role-target="project-form" multiple size="4"></select>
+                          <button type="button" class="topbar-button ghost member-role-multi-add-button" data-role-target="project-form">Add Selected Agents</button>
+                          <select class="member-role-agent-select" data-role-target="project-form">
+                            <option value="">Select My Agent</option>
+                          </select>
+                          <button type="button" class="topbar-button ghost member-role-select-add-button" data-role-target="project-form">Add Selected</button>
+                          <button type="button" class="topbar-button ghost member-role-sync-button" data-role-target="project-form">Use My Agents</button>
+                          <button type="button" class="topbar-button ghost member-role-add-button" data-role-target="project-form">Add Role Row</button>
+                        </div>
+                      </div>
+                      <div class="member-role-editor" data-role-editor="project-form"></div>
+                    </div>
+                    <div class="creation-form-grid">
+                      <label class="creation-field creation-field-full">
+                        <span>Member Roles</span>
+                        <textarea name="memberRoles" placeholder='member roles JSON or lines, e.g. {"agent.leo.openclaw":"builder"} or agent.leo.openclaw:builder'></textarea>
+                      </label>
+                      <label class="creation-field">
+                        <span>Service Endpoint</span>
+                        <input name="serviceEndpoint" placeholder="service endpoint (for operating stage)" />
+                      </label>
+                      <label class="creation-field">
+                        <span>Pricing Note</span>
+                        <input name="pricingNote" placeholder="pricing note" />
+                      </label>
+                      <label class="creation-field creation-field-full">
+                        <span>Usage Note</span>
+                        <textarea name="usageNote" placeholder="usage note"></textarea>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div class="action-row">
+                    <button type="submit" id="project-create-submit">Create Project And Open Workspace</button>
+                  </div>
+                </form>
+              </section>
+            </div>
+          </section>
+        </section>
+
+        <section class="route" data-route="project" hidden>
+          <header class="section-header page-hero">
+            <p class="eyebrow">Project Workspace</p>
+            <h2 id="project-workspace-title">Project Workspace</h2>
+            <p class="lede" id="project-workspace-lede">The single project page for stage, progress, participation, and direct work with your development agent.</p>
+          </header>
+
+          <section class="workspace-shell">
+            <aside class="workspace-sidebar">
+              <div id="project-workspace-sidebar" class="copy-stack"></div>
+            </aside>
+            <div class="workspace-content">
+              <section class="panel workspace-collaboration-panel">
+                <div class="panel-header">
+                  <h2>Agent Collaboration</h2>
+                  <p>Keep bridge readiness, working-agent selection, and project-specific execution in one command deck.</p>
+                </div>
+                <div class="workspace-collaboration-grid">
+                  <div id="project-workspace-bridge-status" class="copy-stack"></div>
+                  <div class="workspace-command-card">
+                    <div id="project-workspace-command-status" class="copy-stack"></div>
+                    <form id="project-workspace-chat-form" class="copy-stack workspace-chat-form">
+                      <div class="workspace-chat-grid">
+                        <label class="creation-field">
+                          <span>Working Agent</span>
+                          <select id="project-workspace-agent-select"></select>
+                        </label>
+                        <label class="creation-field workspace-chat-field-full">
+                          <span>Next Task Or Question</span>
+                          <textarea id="project-workspace-chat-input" placeholder="Describe the next task, decision, blocker, or refinement for your agent." required></textarea>
+                        </label>
+                      </div>
+                      <div class="action-row">
+                        <button type="button" class="topbar-button ghost" id="project-workspace-check-bridge">Check Browser Bridge</button>
+                        <button type="submit">Send To Agent</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+                <div class="workspace-thread-shell">
+                  <div class="workspace-thread-header">
+                    <div class="copy-stack">
+                      <strong>Conversation Timeline</strong>
+                      <p class="note">Keep project-specific decisions and next tasks here instead of scattering them across other routes.</p>
+                    </div>
+                  </div>
+                  <div id="project-workspace-chat-thread" class="list-stack"></div>
+                </div>
+              </section>
+
+              <section class="panel workspace-summary-panel">
+                <div class="panel-header">
+                  <h2>Operating Surface</h2>
+                  <p>Read the project identity, working mode, latest delivery signals, and active agent path as one operating surface.</p>
+                </div>
+                <div id="project-workspace-overview" class="detail-grid"></div>
+              </section>
+
+              <section class="panel workspace-progress-panel">
+                <div class="panel-header">
+                  <h2>Progress & Delivery</h2>
+                  <p>Read the current requirement direction, milestone path, and open decisions without leaving the project page.</p>
+                </div>
+                <div id="project-workspace-progress" class="copy-stack"></div>
+              </section>
+
+              <section class="panel workspace-membership-panel">
+                <div class="panel-header">
+                  <h2>Participation & Members</h2>
+                  <p>Handle invites, role changes, and membership history directly from the project page.</p>
+                </div>
+                <div id="project-workspace-membership" class="copy-stack"></div>
+              </section>
+            </div>
+          </section>
+        </section>
+
+        <section class="route" data-route="world" hidden>
+          <header class="section-header page-hero">
+            <p class="eyebrow">Project Graph</p>
+            <h2>World</h2>
+            <p class="lede">The world is visualized through source projects. Registration forms are intentionally removed from this page.</p>
+          </header>
+
+          <section class="panel world-graph-panel">
+            <div class="panel-header">
+              <h2>Project Graph</h2>
+              <p>Graph explorer for source projects, rendered through a real graph engine instead of static cards.</p>
+            </div>
+            <div class="world-graph-shell">
+              <div id="graph-legend" class="graph-legend"></div>
+              <div class="project-graph-frame">
+                <div id="project-graph" class="project-graph"></div>
+                <div id="world-graph-info" class="world-graph-info"></div>
+                <div id="world-graph-dock" class="world-graph-dock"></div>
+                <div id="world-graph-empty" class="graph-empty" hidden>No source projects yet. Use New Project to create the first project node.</div>
+              </div>
+              <button type="button" id="world-drawer-backdrop" class="world-drawer-backdrop" hidden aria-label="Close world detail drawer"></button>
+              <aside id="world-selection-drawer" class="world-selection-drawer" hidden aria-live="polite"></aside>
+            </div>
+          </section>
+
+          <section class="panel world-insights-panel">
+            <div class="panel-header">
+              <h2>World Insights</h2>
+              <p>Project-first signals, cluster lenses, and live graph diagnostics for the current world surface.</p>
+            </div>
+            <div id="world-insights" class="world-insights"></div>
+          </section>
+        </section>
+
+        <section class="route route-v2" data-route="build" hidden>
+          <header class="section-header page-hero">
+            <p class="eyebrow">Project Directory</p>
+            <h2>Build</h2>
+            <p class="lede">Browse all projects, search by filters, inspect descriptions, and open project pages. This route is the directory, not the collaboration surface.</p>
+          </header>
+
+          <section class="focus-layout">
+            <aside class="utility-rail">
+              <label>
+                <span data-i18n="buildFilterType">Project Type</span>
+                <select id="build-filter-kind">
+                  <option value="" data-i18n="filterAll">All</option>
+                  <option value="protocol" data-i18n="filterProtocol">Protocol</option>
+                  <option value="skill" data-i18n="filterSkill">Skill</option>
+                  <option value="workflow" data-i18n="filterWorkflow">Workflow</option>
+                  <option value="app" data-i18n="filterApp">App</option>
+                  <option value="other" data-i18n="filterOther">Other</option>
+                </select>
+              </label>
+              <label>
+                <span data-i18n="buildFilterState">Project State</span>
+                <select id="build-filter-state">
+                  <option value="" data-i18n="filterAll">All</option>
+                  <option value="initialized" data-i18n="filterStateInitialized">Initialized</option>
+                  <option value="developing" data-i18n="filterStateDeveloping">Developing</option>
+                  <option value="operating" data-i18n="filterStateOperating">Operating</option>
+                  <option value="paused" data-i18n="filterStatePaused">Paused</option>
+                </select>
+              </label>
+              <label>
+                <span data-i18n="buildFilterTags">Tags</span>
+                <input id="build-filter-tag" placeholder="tag" data-i18n-placeholder="buildFilterTagsPlaceholder" />
+              </label>
+              <label>
+                <span data-i18n="buildFilterRating">Minimum Rating</span>
+                <input id="build-filter-min-rating" type="number" min="0" max="5" step="0.1" placeholder="0" data-i18n-placeholder="buildFilterRatingPlaceholder" />
+              </label>
+              <label>
+                <span data-i18n="buildFilterHeat">Minimum Heat</span>
+                <input id="build-filter-min-heat" type="number" min="0" step="1" placeholder="0" data-i18n-placeholder="buildFilterHeatPlaceholder" />
+              </label>
+              <label>
+                <span data-i18n="buildFilterSearch">Search</span>
+                <input id="build-filter-query" placeholder="title / repo / summary / tag" data-i18n-placeholder="buildFilterSearchPlaceholder" />
+              </label>
+            </aside>
+
+            <div class="content-band">
+              <div class="filter-summary" id="build-filter-summary">No active build filters.</div>
+              <section class="focus-section">
+                <div class="focus-section-head">
+                  <h2 data-i18n="buildDirectoryTitle">All Projects</h2>
+                  <p data-i18n="buildDirectoryLede">Search, inspect, and open project pages. Build is the directory entry for all projects in this universe.</p>
+                </div>
+                <div id="projects-list" class="list list-row-mode"></div>
+              </section>
+            </div>
+          </section>
+        </section>
+
+        <section class="route route-v2" data-route="market" hidden>
+          <header class="section-header page-hero">
+            <p class="eyebrow">Operational Market</p>
+            <h2>Market</h2>
+            <p class="lede">Only projects marked as operating appear here. This page is the first real market view, backed by operating-stage projects.</p>
+          </header>
+
+          <section class="focus-layout">
+            <aside class="utility-rail">
+              <label>
+                <span data-i18n="marketFilterType">Type</span>
+                <select id="market-filter-kind">
+                  <option value="" data-i18n="filterAll">All</option>
+                  <option value="protocol" data-i18n="filterProtocol">Protocol</option>
+                  <option value="skill" data-i18n="filterSkill">Skill</option>
+                  <option value="workflow" data-i18n="filterWorkflow">Workflow</option>
+                  <option value="app" data-i18n="filterApp">App</option>
+                  <option value="other" data-i18n="filterOther">Other</option>
+                </select>
+              </label>
+              <label>
+                <span data-i18n="marketFilterRating">Minimum Rating</span>
+                <input id="market-filter-min-rating" type="number" min="0" max="5" step="0.1" placeholder="0" data-i18n-placeholder="marketFilterRatingPlaceholder" />
+              </label>
+              <label>
+                <span data-i18n="marketFilterSearch">Search</span>
+                <input id="market-filter-query" placeholder="title / repo / tag" data-i18n-placeholder="marketFilterSearchPlaceholder" />
+              </label>
+              <label>
+                <span data-i18n="marketFilterSort">Sort</span>
+                <select id="market-sort">
+                  <option value="heat-desc" data-i18n="marketSortHeat">Heat ↓</option>
+                  <option value="rating-desc" data-i18n="marketSortRating">Rating ↓</option>
+                  <option value="title-asc" data-i18n="marketSortTitle">Title A-Z</option>
+                  <option value="newest" data-i18n="marketSortNewest">Newest</option>
+                </select>
+              </label>
+            </aside>
+            <div class="content-band">
+              <div class="filter-summary" id="market-filter-summary">Showing all operating projects.</div>
+              <section class="focus-section">
+                <div class="focus-section-head">
+                  <h2 data-i18n="marketDirectoryTitle">Operating Services</h2>
+                  <p data-i18n="marketDirectoryLede">Running projects available for service usage and project workspace entry.</p>
+                </div>
+                <div id="market-projects-list" class="list list-row-mode"></div>
+              </section>
+            </div>
+          </section>
+        </section>
+
+        <section class="route route-v2" data-route="docs" hidden>
+          <header class="section-header page-hero">
+            <p class="eyebrow">Docs & Multi-Universe</p>
+            <h2>Docs</h2>
+            <p class="lede">Public documentation, integration instructions, deployment model, and future universe-to-universe protocol.</p>
+          </header>
+
+          <section class="content-band docs-band">
+            <div class="focus-section-head">
+              <h2 data-i18n="docsDirectoryTitle">Reference Library</h2>
+              <p data-i18n="docsDirectoryLede">Core references for source, standards, deployment, and runtime operation.</p>
+            </div>
+            <div class="docs-link-list">
+            <a class="docs-link-row" href="https://github.com/peterpan42388/elo-open-world" target="_blank" rel="noreferrer">
+              <span class="guide-step">DOC</span>
+              <h3 data-i18n="docsCardRepositoryTitle">Repository</h3>
+              <p data-i18n="docsCardRepositoryBody">Read source code, README, and deployment details.</p>
+            </a>
+            <a class="docs-link-row" href="https://github.com/peterpan42388/elo-open-world/blob/codex/open-world-onboarding-init/docs/UI_EXECUTION_PHASES.md" target="_blank" rel="noreferrer">
+              <span class="guide-step">PHASE</span>
+              <h3 data-i18n="docsCardPhasesTitle">Execution Phases</h3>
+              <p data-i18n="docsCardPhasesBody">See the current phased UI execution model and delivery sequence.</p>
+            </a>
+            <a class="docs-link-row" href="https://github.com/peterpan42388/elo-open-world/blob/codex/open-world-onboarding-init/docs/UI_FOUNDATION_RULES.md" target="_blank" rel="noreferrer">
+              <span class="guide-step">UI</span>
+              <h3 data-i18n="docsCardUiRulesTitle">UI Foundation Rules</h3>
+              <p data-i18n="docsCardUiRulesBody">Shared layout tokens, spacing rules, boundary rules, and page responsibility rules for every EOW-compatible project.</p>
+            </a>
+            <a class="docs-link-row" href="https://github.com/peterpan42388/elo-open-world/blob/codex/open-world-onboarding-init/docs/UNIVERSE_NODE_PROTOCOL.md" target="_blank" rel="noreferrer">
+              <span class="guide-step">UNI</span>
+              <h3 data-i18n="docsCardUniverseProtocolTitle">Universe Node Protocol</h3>
+              <p data-i18n="docsCardUniverseProtocolBody">Defines universe identity, handshake payloads, trust boundary, and read-only federation baseline.</p>
+            </a>
+            <a class="docs-link-row" href="https://world.metavie.co/api/universe/manifest" target="_blank" rel="noreferrer">
+              <span class="guide-step">MANIFEST</span>
+              <h3 data-i18n="docsCardManifestTitle">Universe Manifest</h3>
+              <p data-i18n="docsCardManifestBody">Live universe identity payload for `elo-universe-0`, exposed from the running node.</p>
+            </a>
+            <a class="docs-link-row" href="https://github.com/peterpan42388/elo-open-world/blob/codex/open-world-onboarding-init/docs/UNIVERSE_DEPLOYMENT_GUIDE.md" target="_blank" rel="noreferrer">
+              <span class="guide-step">DEPLOY</span>
+              <h3 data-i18n="docsCardDeployTitle">Universe Deployment Guide</h3>
+              <p data-i18n="docsCardDeployBody">Shows how another operator can deploy `elo-universe-1` and stay compatible with the shared source.</p>
+            </a>
+            <a class="docs-link-row" href="/guides/runtime-modes.html" target="_blank" rel="noreferrer">
+              <span class="guide-step">RUNTIME</span>
+              <h3 data-i18n="docsCardRuntimeTitle">Runtime Modes Guide</h3>
+              <p data-i18n="docsCardRuntimeBody">Explains the current stub-ready package model and how to replace the stub with a real OpenClaw-compatible runtime.</p>
+            </a>
+            </div>
+          </section>
+        </section>
+      </main>
+
+      <p id="status-line" class="status-line"></p>
     </div>
     <script src="/app.js" type="module"></script>
   </body>

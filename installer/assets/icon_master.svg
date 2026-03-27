@@ -1,0 +1,49 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="80" y1="70" x2="950" y2="970" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7E3BFF"/>
+      <stop offset="1" stop-color="#2D1269"/>
+    </linearGradient>
+    <linearGradient id="lob" x1="312" y1="180" x2="721" y2="783" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF5C7B"/>
+      <stop offset="1" stop-color="#E11A4D"/>
+    </linearGradient>
+    <linearGradient id="pc" x1="235" y1="294" x2="818" y2="738" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E4D8FF" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#BCA2FF" stop-opacity="0.74"/>
+    </linearGradient>
+    <filter id="glow" x="120" y="120" width="780" height="780" filterUnits="userSpaceOnUse">
+      <feGaussianBlur stdDeviation="16" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <rect x="64" y="64" width="896" height="896" rx="208" fill="url(#bg)"/>
+
+  <g opacity="0.28">
+    <circle cx="237" cy="243" r="102" fill="#B37BFF"/>
+    <circle cx="811" cy="726" r="152" fill="#5E2BD1"/>
+  </g>
+
+  <g filter="url(#glow)">
+    <rect x="236" y="288" width="552" height="460" rx="84" fill="url(#pc)"/>
+    <rect x="286" y="347" width="452" height="294" rx="58" fill="#311B69" fill-opacity="0.35"/>
+    <rect x="468" y="780" width="86" height="62" rx="28" fill="#CFBAFF" fill-opacity="0.8"/>
+  </g>
+
+  <g transform="translate(300 182)">
+    <path d="M152 294C152 220 210 162 284 162C358 162 416 220 416 294V364C416 450 346 520 260 520H236C150 520 80 450 80 364V294C80 220 138 162 212 162C230 162 246 165 260 172C274 165 290 162 308 162" fill="url(#lob)"/>
+    <rect x="194" y="334" width="132" height="198" rx="64" fill="#C91242"/>
+
+    <path d="M100 222L16 182C3 176 -4 161 0 147C5 133 20 125 33 129L132 164" fill="#FF7A93"/>
+    <path d="M402 222L486 182C499 176 506 161 502 147C497 133 482 125 469 129L370 164" fill="#FF7A93"/>
+
+    <path d="M126 256L42 242C26 240 14 226 16 211C18 196 32 186 48 188L138 204" fill="#FF6D89"/>
+    <path d="M376 256L460 242C476 240 488 226 486 211C484 196 470 186 454 188L364 204" fill="#FF6D89"/>
+
+    <circle cx="228" cy="290" r="15" fill="#FFCCD8"/>
+    <circle cx="292" cy="290" r="15" fill="#FFCCD8"/>
+  </g>
+
+  <rect x="84" y="84" width="856" height="856" rx="186" stroke="white" stroke-opacity="0.16" stroke-width="20"/>
+</svg>

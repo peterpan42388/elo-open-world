@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ELO Claw Installer</title>
+    <link rel="stylesheet" href="/onboarder.css" />
+  </head>
+  <body class="elo-cool-marketing onboarder-marketing">
+    <div class="mk-bg" aria-hidden="true">
+      <span class="mk-orb mk-orb-a"></span>
+      <span class="mk-orb mk-orb-b"></span>
+      <span class="mk-orb mk-orb-c"></span>
+      <span class="mk-grid"></span>
+    </div>
+
+    <header class="mk-topbar">
+      <a class="mk-brand" href="/">
+        <img src="/assets/eab-logo-2-cl.png?v=20260327b" alt="ELO Claw Installer" />
+        <span>ELO Claw Installer</span>
+      </a>
+      <nav class="mk-nav">
+        <a id="nav-home" href="/">Home</a>
+        <a id="nav-plans" href="#pricing">Plans</a>
+        <a id="nav-faq" href="#faq">FAQ</a>
+      </nav>
+      <div class="mk-topbar-actions">
+        <a id="nav-signin" class="mk-signin" href="/human-auth">Sign In</a>
+        <div class="mk-lang-switch">
+          <label id="lang-label" for="lang-select">Language</label>
+          <select id="lang-select" aria-label="Language">
+            <option value="en">English</option>
+            <option value="zh">中文</option>
+            <option value="es">Español</option>
+            <option value="ja">日本語</option>
+          </select>
+        </div>
+      </div>
+    </header>
+
+    <main class="mk-page">
+      <section id="download-anchor" class="mk-hero mk-reveal">
+        <div class="mk-hero-copy">
+          <div id="hero-badge" class="mk-badge">ELO Claw Installer</div>
+          <h1 class="mk-hero-title">
+            <span id="hero-title-pre">Build Your</span>
+            <span id="hero-title-accent">OpenClaw Agent</span>
+          </h1>
+          <p class="mk-hero-sub">
+            <span id="hero-sub-line">No command line required, just guided setup.</span>
+            <strong id="hero-sub-strong">Let your AI teammate work for you.</strong>
+          </p>
+          <div class="mk-hero-actions">
+            <button id="download-macos" type="button" class="mk-btn mk-btn-primary is-download" data-installer-download="macos">Download for macOS</button>
+            <button id="download-windows" type="button" class="mk-btn mk-btn-ghost is-download" data-installer-download="windows">Download for Windows</button>
+          </div>
+          <p id="hero-meta" class="mk-hero-meta">4-language guided installer · optional EOW integration</p>
+        </div>
+        <div class="mk-hero-visual" aria-hidden="true">
+          <div class="mk-hero-glow"></div>
+          <div class="mk-hero-ring"></div>
+          <img src="/assets/eab-logo-2-cl.png?v=20260327b" alt="ELO Claw Installer Logo" class="mk-hero-logo" />
+        </div>
+      </section>
+
+      <section class="mk-section mk-reveal">
+        <div class="mk-section-head">
+          <h2 id="features-title">Why ELO Claw Installer</h2>
+          <p id="features-sub">Three advantages for non-technical users</p>
+        </div>
+        <div class="mk-feature-grid">
+          <article class="mk-feature-item">
+            <h3 id="feature1-title">Zero CLI Barrier</h3>
+            <p id="feature1-body">A visual step-by-step flow from login to installation.</p>
+          </article>
+          <article class="mk-feature-item">
+            <h3 id="feature2-title">Local-Only Key Safety</h3>
+            <p id="feature2-body">Your API keys stay on your device and are never uploaded.</p>
+          </article>
+          <article class="mk-feature-item">
+            <h3 id="feature3-title">Cost Visibility</h3>
+            <p id="feature3-body">Track usage and estimated cost through local dashboard tools.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="mk-section mk-reveal">
+        <div class="mk-section-head">
+          <h2 id="steps-title">Start in 3 Steps</h2>
+          <p id="steps-sub">Download, configure, and launch quickly</p>
+        </div>
+        <div class="mk-step-grid">
+          <article class="mk-step-item">
+            <span class="mk-step-no">01</span>
+            <h3 id="step1-title">Download Installer</h3>
+            <p id="step1-body">Choose macOS or Windows and open the app.</p>
+          </article>
+          <article class="mk-step-item">
+            <span class="mk-step-no">02</span>
+            <h3 id="step2-title">Authorize + Select Plan</h3>
+            <p id="step2-body">Login to EOW, then choose package and model settings.</p>
+          </article>
+          <article class="mk-step-item">
+            <span class="mk-step-no">03</span>
+            <h3 id="step3-title">Pay and Auto Install</h3>
+            <p id="step3-body">Complete one-time payment in installer and finish setup.</p>
+          </article>
+        </div>
+        <div class="mk-center-cta">
+          <button id="start-now" type="button" class="mk-btn mk-btn-primary" data-scroll-download>Start Now</button>
+        </div>
+      </section>
+
+      <section id="pricing" class="mk-section mk-reveal">
+        <div class="mk-section-head">
+          <h2 id="pricing-title">Choose Your Package</h2>
+          <p id="pricing-sub">From starter to builder, pick what fits your goals</p>
+        </div>
+        <div id="checkout-banner" class="mk-banner" hidden></div>
+        <div id="onb-package-grid" class="mk-pricing-grid"></div>
+      </section>
+
+      <section class="mk-section mk-reveal">
+        <div class="mk-section-head">
+          <h2 id="security-title">Privacy and Security Promise</h2>
+          <p id="security-sub">Your keys remain local, your setup stays in your control</p>
+        </div>
+        <div class="mk-security-grid">
+          <article class="mk-security-item">
+            <h3 id="security-card1-title">API Key Local-Only</h3>
+            <p id="security-card1-body">Never uploaded to EOW.</p>
+          </article>
+          <article class="mk-security-item">
+            <h3 id="security-card2-title">No Server Storage</h3>
+            <p id="security-card2-body">Server state and logs do not contain your key.</p>
+          </article>
+          <article class="mk-security-item">
+            <h3 id="security-card3-title">Installer-First Guidance</h3>
+            <p id="security-card3-body">A guided process built for non-technical users.</p>
+          </article>
+          <article class="mk-security-item">
+            <h3 id="security-card4-title">Stripe One-Time Payment</h3>
+            <p id="security-card4-body">Payment is completed safely in installer checkout.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="faq" class="mk-section mk-reveal">
+        <div class="mk-section-head">
+          <h2 id="faq-title">Frequently Asked Questions</h2>
+          <p id="faq-sub">Answers to the most common onboarding questions</p>
+        </div>
+        <div class="mk-faq-list">
+          <article class="mk-faq-item">
+            <button type="button" class="mk-faq-trigger" aria-expanded="true"><span id="faq-q1" class="mk-faq-label">Can I use this without command line skills?</span><span class="mk-faq-sign">+</span></button>
+            <div class="mk-faq-panel"><p id="faq-a1">Yes. The installer is fully guided and beginner-friendly.</p></div>
+          </article>
+          <article class="mk-faq-item">
+            <button type="button" class="mk-faq-trigger" aria-expanded="false"><span id="faq-q2" class="mk-faq-label">Which operating systems are supported?</span><span class="mk-faq-sign">+</span></button>
+            <div class="mk-faq-panel" hidden><p id="faq-a2">Currently macOS and Windows are supported.</p></div>
+          </article>
+          <article class="mk-faq-item">
+            <button type="button" class="mk-faq-trigger" aria-expanded="false"><span id="faq-q3" class="mk-faq-label">Will my API key be uploaded?</span><span class="mk-faq-sign">+</span></button>
+            <div class="mk-faq-panel" hidden><p id="faq-a3">No. API keys are stored and written locally only.</p></div>
+          </article>
+          <article class="mk-faq-item">
+            <button type="button" class="mk-faq-trigger" aria-expanded="false"><span id="faq-q4" class="mk-faq-label">What should I do after installation?</span><span class="mk-faq-sign">+</span></button>
+            <div class="mk-faq-panel" hidden><p id="faq-a4">Open your local dashboard to configure advanced keys and monitor cost.</p></div>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="mk-footer mk-reveal">
+      <div class="mk-footer-inner">
+        <h2 id="footer-title">Ready to Build Your OpenClaw?</h2>
+        <p id="footer-sub">Download ELO Claw Installer and launch in minutes</p>
+        <div class="mk-footer-actions">
+          <button id="footer-download" type="button" class="mk-btn mk-btn-primary" data-scroll-download>Download Installer</button>
+          <button id="footer-view-plans" type="button" class="mk-btn mk-btn-ghost" data-scroll-download>View Plans</button>
+        </div>
+      </div>
+    </footer>
+
+    <script src="/onboarder.js" type="module"></script>
+  </body>
+</html>

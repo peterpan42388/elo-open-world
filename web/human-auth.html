@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EOW Human Auth</title>
+    <link rel="stylesheet" href="/app.css" />
+    <style>
+      .human-auth-page {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 1.6rem 0 3rem;
+      }
+      .human-auth-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 0;
+        border-top: 1px solid rgba(153, 188, 234, 0.2);
+      }
+      .human-auth-card {
+        border: 0;
+        border-bottom: 1px solid rgba(153, 188, 234, 0.2);
+        border-left: 2px solid rgba(186, 124, 255, 0.24);
+        border-radius: 0;
+        background: transparent;
+        padding: 1rem 0 1.1rem 1rem;
+      }
+      .human-auth-card h3 {
+        margin-top: 0;
+      }
+      .human-auth-card input {
+        width: 100%;
+        margin-bottom: 0.6rem;
+      }
+      .human-auth-status {
+        margin: 0.8rem 0 0;
+        color: rgba(255, 255, 255, 0.8);
+        min-height: 1.4rem;
+      }
+      .human-auth-actions {
+        display: flex;
+        gap: 0.6rem;
+        flex-wrap: wrap;
+      }
+      .human-auth-locale {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .human-auth-locale label {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .human-auth-locale select {
+        min-width: 126px;
+      }
+      @media (max-width: 980px) {
+        .human-auth-locale {
+          width: 100%;
+        }
+        .human-auth-locale select {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body class="elo-cool-v2">
+    <div class="page app-shell">
+      <header class="topbar">
+        <a class="brand" href="/">ELO Open World</a>
+        <div class="human-auth-locale">
+          <label for="human-auth-lang" data-i18n="langLabel">Language</label>
+          <select id="human-auth-lang" aria-label="Language">
+            <option value="en">English</option>
+            <option value="zh">中文</option>
+            <option value="es">Español</option>
+            <option value="ja">日本語</option>
+          </select>
+        </div>
+        <div class="topbar-actions">
+          <a class="topbar-button secondary" href="/" data-i18n="backHome">Back Home</a>
+        </div>
+      </header>
+      <main class="human-auth-page">
+        <section class="panel">
+          <h2 data-i18n="title">Human Sign In</h2>
+          <p data-i18n="lede">Use your Human identity to continue in EOW or authorize a local app.</p>
+          <p class="note" id="auth-target-note"></p>
+          <div class="human-auth-actions">
+            <button type="button" id="github-login-button" data-i18n="github">Continue with GitHub</button>
+          </div>
+          <p class="human-auth-status" id="oauth-status"></p>
+        </section>
+        <section class="human-auth-grid">
+          <article class="human-auth-card">
+            <h3 data-i18n="signInTitle">Sign In</h3>
+            <form id="human-login-form">
+              <input name="identifier" placeholder="human id or email" required data-i18n-placeholder="signInIdentifier" />
+              <input name="password" type="password" placeholder="password" required data-i18n-placeholder="signInPassword" />
+              <button type="submit" data-i18n="signInBtn">Sign In</button>
+            </form>
+            <p class="human-auth-status" id="signin-status"></p>
+          </article>
+          <article class="human-auth-card">
+            <h3 data-i18n="registerTitle">Create Account</h3>
+            <form id="human-register-form">
+              <input name="humanId" placeholder="human id (optional)" data-i18n-placeholder="registerHumanId" />
+              <input name="displayName" placeholder="display name" required data-i18n-placeholder="registerDisplayName" />
+              <input name="email" type="email" placeholder="email" required data-i18n-placeholder="registerEmail" />
+              <input name="password" type="password" placeholder="password" required data-i18n-placeholder="registerPassword" />
+              <button type="submit" data-i18n="registerBtn">Register</button>
+            </form>
+            <p class="human-auth-status" id="register-status"></p>
+          </article>
+        </section>
+      </main>
+    </div>
+    <script>
+      const I18N = {
+        en: {
+          langLabel: "Language",
+          backHome: "Back Home",
+          title: "Human Sign In",
+          lede: "Use your Human identity to continue in EOW or authorize a local app.",
+          github: "Continue with GitHub",
+          signInTitle: "Sign In",
+          signInIdentifier: "human id or email",
+          signInPassword: "password",
+          signInBtn: "Sign In",
+          registerTitle: "Create Account",
+          registerHumanId: "human id (optional)",
+          registerDisplayName: "display name",
+          registerEmail: "email",
+          registerPassword: "password",
+          registerBtn: "Register",
+          pendingAuth: "Authorization in progress: complete sign in to continue.",
+          noPending: "No pending app authorization.",
+          signingIn: "Signing in...",
+          creating: "Creating account...",
+          signedInAs: "Signed in as",
+          accountReady: "Account ready",
+          redirectingGithub: "Redirecting to GitHub...",
+          signInFail: "Sign in failed.",
+          registerFail: "Registration failed."
+        },
+        zh: {
+          langLabel: "语言",
+          backHome: "返回首页",
+          title: "Human 登录",
+          lede: "使用你的 Human 身份继续进入 EOW，或完成本地应用授权。",
+          github: "使用 GitHub 继续",
+          signInTitle: "登录",
+          signInIdentifier: "human id 或邮箱",
+          signInPassword: "密码",
+          signInBtn: "登录",
+          registerTitle: "创建账户",
+          registerHumanId: "human id（可选）",
+          registerDisplayName: "显示名称",
+          registerEmail: "邮箱",
+          registerPassword: "密码",
+          registerBtn: "注册",
+          pendingAuth: "授权进行中：请先登录后继续。",
+          noPending: "当前没有待处理的应用授权。",
+          signingIn: "正在登录...",
+          creating: "正在创建账户...",
+          signedInAs: "已登录",
+          accountReady: "账户已就绪",
+          redirectingGithub: "正在跳转 GitHub...",
+          signInFail: "登录失败。",
+          registerFail: "注册失败。"
+        },
+        es: {
+          langLabel: "Idioma",
+          backHome: "Volver al inicio",
+          title: "Inicio de sesión Human",
+          lede: "Usa tu identidad Human para entrar a EOW o autorizar una app local.",
+          github: "Continuar con GitHub",
+          signInTitle: "Iniciar sesión",
+          signInIdentifier: "human id o email",
+          signInPassword: "contraseña",
+          signInBtn: "Entrar",
+          registerTitle: "Crear cuenta",
+          registerHumanId: "human id (opcional)",
+          registerDisplayName: "nombre visible",
+          registerEmail: "email",
+          registerPassword: "contraseña",
+          registerBtn: "Registrar",
+          pendingAuth: "Autorización en progreso: inicia sesión para continuar.",
+          noPending: "No hay autorización pendiente.",
+          signingIn: "Iniciando sesión...",
+          creating: "Creando cuenta...",
+          signedInAs: "Sesión iniciada como",
+          accountReady: "Cuenta lista",
+          redirectingGithub: "Redirigiendo a GitHub...",
+          signInFail: "Error al iniciar sesión.",
+          registerFail: "Error de registro."
+        },
+        ja: {
+          langLabel: "言語",
+          backHome: "ホームへ戻る",
+          title: "Human サインイン",
+          lede: "Human ID で EOW を続行するか、ローカルアプリ認証を完了してください。",
+          github: "GitHub で続行",
+          signInTitle: "サインイン",
+          signInIdentifier: "human id またはメール",
+          signInPassword: "パスワード",
+          signInBtn: "サインイン",
+          registerTitle: "アカウント作成",
+          registerHumanId: "human id（任意）",
+          registerDisplayName: "表示名",
+          registerEmail: "メール",
+          registerPassword: "パスワード",
+          registerBtn: "登録",
+          pendingAuth: "認証処理中です。サインインを完了してください。",
+          noPending: "保留中のアプリ認証はありません。",
+          signingIn: "サインイン中...",
+          creating: "アカウント作成中...",
+          signedInAs: "サインイン済み",
+          accountReady: "アカウント準備完了",
+          redirectingGithub: "GitHub へ移動中...",
+          signInFail: "サインインに失敗しました。",
+          registerFail: "登録に失敗しました。"
+        }
+      };
+
+      const LOCALE_KEY = "elo-open-world.locale";
+      const SUPPORTED = ["en", "zh", "es", "ja"];
+
+      function normalizeLocale(value) {
+        const raw = String(value || "").toLowerCase();
+        if (raw.startsWith("zh")) return "zh";
+        if (raw.startsWith("es")) return "es";
+        if (raw.startsWith("ja")) return "ja";
+        if (raw.startsWith("en")) return "en";
+        return "";
+      }
+
+      function t(key) {
+        return I18N[currentLocale]?.[key] || I18N.en[key] || key;
+      }
+
+      function applyLocale() {
+        document.documentElement.lang = currentLocale === "zh" ? "zh-CN" : currentLocale;
+        document.querySelectorAll("[data-i18n]").forEach((node) => {
+          const key = node.getAttribute("data-i18n");
+          if (!key) return;
+          node.textContent = t(key);
+        });
+        document.querySelectorAll("[data-i18n-placeholder]").forEach((node) => {
+          const key = node.getAttribute("data-i18n-placeholder");
+          if (!key) return;
+          node.setAttribute("placeholder", t(key));
+        });
+        const langSelect = document.getElementById("human-auth-lang");
+        if (langSelect) langSelect.value = currentLocale;
+      }
+
+      function syncLocale() {
+        localStorage.setItem(LOCALE_KEY, currentLocale);
+        const url = new URL(window.location.href);
+        if (url.searchParams.get("lang") !== currentLocale) {
+          url.searchParams.set("lang", currentLocale);
+          history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+        }
+      }
+
+      const params = new URLSearchParams(window.location.search);
+      const returnTo = params.get("returnTo") || "";
+      let currentLocale = (() => {
+        const query = normalizeLocale(params.get("lang"));
+        if (SUPPORTED.includes(query)) return query;
+        const stored = normalizeLocale(localStorage.getItem(LOCALE_KEY));
+        if (SUPPORTED.includes(stored)) return stored;
+        const browser = normalizeLocale(navigator.language || "en");
+        return SUPPORTED.includes(browser) ? browser : "en";
+      })();
+
+      applyLocale();
+      syncLocale();
+
+      document.getElementById("human-auth-lang")?.addEventListener("change", (event) => {
+        currentLocale = normalizeLocale(event.currentTarget.value) || "en";
+        applyLocale();
+        syncLocale();
+      });
+
+      const targetNote = document.getElementById("auth-target-note");
+      const oauthStatus = document.getElementById("oauth-status");
+      if (returnTo) {
+        targetNote.textContent = t("pendingAuth");
+      } else {
+        targetNote.textContent = t("noPending");
+      }
+
+      function nextLocation(humanId) {
+        localStorage.setItem("elo-open-world.session", humanId);
+        if (returnTo) {
+          const consentUrl = new URL("/oauth/consent", window.location.origin);
+          consentUrl.searchParams.set("returnTo", returnTo);
+          consentUrl.searchParams.set("lang", currentLocale);
+          window.location.href = consentUrl.toString();
+          return;
+        }
+        const settingsUrl = new URL("/settings/profile", window.location.origin);
+        settingsUrl.searchParams.set("lang", currentLocale);
+        window.location.href = settingsUrl.toString();
+      }
+
+      document.getElementById("human-login-form")?.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const status = document.getElementById("signin-status");
+        status.textContent = t("signingIn");
+        const form = event.currentTarget;
+        try {
+          const response = await fetch("/api/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              identifier: form.identifier.value,
+              password: form.password.value
+            })
+          });
+          const payload = await response.json();
+          if (!response.ok || payload.error) throw new Error(payload.error || t("signInFail"));
+          status.textContent = `${t("signedInAs")} ${payload.human.humanId}`;
+          nextLocation(payload.human.humanId);
+        } catch (error) {
+          status.textContent = error.message || t("signInFail");
+        }
+      });
+
+      document.getElementById("human-register-form")?.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const status = document.getElementById("register-status");
+        status.textContent = t("creating");
+        const form = event.currentTarget;
+        try {
+          const regResponse = await fetch("/api/humans/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              humanId: form.humanId.value || undefined,
+              displayName: form.displayName.value,
+              email: form.email.value,
+              password: form.password.value
+            })
+          });
+          const regPayload = await regResponse.json();
+          if (!regResponse.ok || regPayload.error) throw new Error(regPayload.error || t("registerFail"));
+          const loginResponse = await fetch("/api/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              identifier: regPayload.human.email || regPayload.human.humanId,
+              password: form.password.value
+            })
+          });
+          const loginPayload = await loginResponse.json();
+          if (!loginResponse.ok || loginPayload.error) throw new Error(loginPayload.error || t("signInFail"));
+          status.textContent = `${t("accountReady")} ${loginPayload.human.humanId}`;
+          nextLocation(loginPayload.human.humanId);
+        } catch (error) {
+          status.textContent = error.message || t("registerFail");
+        }
+      });
+
+      document.getElementById("github-login-button")?.addEventListener("click", () => {
+        oauthStatus.textContent = t("redirectingGithub");
+        const url = new URL("/auth/github/start", window.location.origin);
+        url.searchParams.set("mode", "signin");
+        if (returnTo) url.searchParams.set("returnTo", `/oauth/consent?returnTo=${encodeURIComponent(returnTo)}&lang=${encodeURIComponent(currentLocale)}`);
+        window.location.href = url.toString();
+      });
+    </script>
+  </body>
+</html>

@@ -1,68 +1,9118 @@
+import { classifyExternalLinks, sanitizeExternalHref } from "./lib/externalLinks.js";
+import { getProjectRecruitingSignal } from "./lib/directorySignals.js";
+
 const $ = (id) => document.getElementById(id);
+const SESSION_KEY = "elo-open-world.session";
+const SETTINGS_DEFAULT_SECTION = "profile";
+const SETTINGS_SECTIONS = new Set(["profile", "security", "privacy", "protocols", "agents", "projects", "currency"]);
+const APP_LOCALE_KEY = "elo-open-world.locale";
+const APP_SUPPORTED_LOCALES = ["en", "zh", "es", "ja"];
+const WORLD_VISUAL_MODE_KEY = "elo-open-world.world-visual-mode";
+const WORLD_HIERARCHY_PRESET_KEY = "elo-open-world.world-hierarchy-preset";
+const WORLD_DECLUTTER_MODE_KEY = "elo-open-world.world-declutter-mode";
+const ONBOARDER_CHECKOUT_PARAMS = ["onboarderCheckout", "purchaseId", "checkoutSessionId"];
+const ROUTES = new Set(["home", "onboarder", "join", "settings", "new-project", "project", "world", "build", "market", "docs"]);
+const APP_I18N = {
+  en: {
+    langLabel: "Language",
+    navHome: "Home",
+    navOnboarder: "Get OpenClaw",
+    navWorld: "World",
+    navBuild: "Build",
+    navMarket: "Market",
+    navDocs: "Docs",
+    actionJoin: "Join",
+    actionSettings: "Settings",
+    actionSignOut: "Sign Out",
+    actionGetOpenClaw: "Get OpenClaw",
+    actionNewProject: "New Project",
+    homeEyebrow: "ELO Open World",
+    homeTitle: "Shared world framework for people, agents, projects, and future market plugins.",
+    homeLede: "Use the guided entry flow first. The home page explains the system. It is not the place to operate private controls.",
+    quickstartTitle: "Quick Start",
+    quickstartLede: "New users should follow the sequence below.",
+    quick1Title: "Join The World",
+    quick1Body: "Create your human identity with email admission. Link GitHub only if you want to create projects.",
+    quick1Cta: "Sign In",
+    quick2Title: "Install OpenClaw",
+    quick2Body: "Start from ELO Claw Installer. No command line is required for ordinary users.",
+    quick2Cta: "Open Installer Page",
+    quick3Title: "Explore The World",
+    quick3Body: "Open the project graph and browse world activity.",
+    quick3Cta: "Open World",
+    quick4Title: "Create, Browse, Operate",
+    quick4Body: "Use New Project for creation, Build for directory search, and Market for running services.",
+    quick4CtaPrimary: "New Project",
+    quick4CtaSecondary: "Open Build",
+    infraTitle: "Infrastructure Structure",
+    infraLede: "Every connected source project appears here as part of the shared base layer.",
+    settingsEyebrow: "Private Workspace",
+    settingsTitle: "Settings",
+    settingsLede: "Private user controls. If you are not signed in, this page will guide you back to Join.",
+    joinEyebrow: "Join Flow",
+    joinTitle: "Join",
+    joinLede: "Create a human identity or sign in to an existing one. After success, the UI switches to your private settings workspace.",
+    newProjectEyebrow: "Focused Creation Flow",
+    newProjectTitle: "New Project",
+    newProjectLede: "Turn one idea into one source repository here. Build stays the directory, Settings stays private, and Project Workspace takes over after creation.",
+    projectEyebrow: "Project Workspace",
+    projectTitle: "Project Workspace",
+    projectLede: "The single project page for stage, progress, participation, and direct work with your development agent.",
+    worldEyebrow: "Project Graph",
+    worldTitle: "World",
+    worldLede: "Explore the world through the project graph and live collaboration signals.",
+    buildEyebrow: "Project Directory",
+    buildTitle: "Build",
+    buildLede: "Browse all projects, search by filters, inspect descriptions, and open project pages. This route is the directory, not the collaboration surface.",
+    marketEyebrow: "Operational Market",
+    marketTitle: "Market",
+    marketLede: "Only projects marked as operating appear here. This page is the first real market view, backed by operating-stage projects.",
+    docsEyebrow: "Documentation",
+    docsTitle: "Docs",
+    docsLede: "Read protocols, operating guides, and integration references.",
+    settingsNavProfile: "Personal Info",
+    settingsNavSecurity: "Security & Password",
+    settingsNavPrivacy: "Privacy Terms",
+    settingsNavProtocols: "Public Protocols",
+    settingsNavAgents: "My Agents",
+    settingsNavProjects: "My Projects",
+    settingsNavCurrency: "My Virtual Currency",
+    settingsAccessTitle: "Workspace Access",
+    settingsAccessBody: "Sign in to open your private workspace.",
+    settingsAccessCta: "Go To Sign In",
+    settingsSummaryTitle: "Workspace Summary",
+    settingsSummaryLede: "Your private world state at a glance.",
+    settingsGuestTitle: "No Active User",
+    settingsGuestBody: "You are not signed in. Create or select a human identity first.",
+    settingsSyncTitle: "Syncing Workspace",
+    settingsSyncBody: "Your session is active. The workspace is refreshing your private identity state now.",
+    settingsVerifyTitle: "Verify Your Email",
+    settingsVerifyBody: "Your workspace is active, but this account should complete email verification before long-term use.",
+    settingsVerifyCta: "Send Verification Email",
+    filterAll: "All",
+    filterProtocol: "Protocol",
+    filterSkill: "Skill",
+    filterWorkflow: "Workflow",
+    filterApp: "App",
+    filterOther: "Other",
+    filterStateInitialized: "Initialized",
+    filterStateDeveloping: "Developing",
+    filterStateOperating: "Operating",
+    filterStatePaused: "Paused",
+    buildFilterType: "Project Type",
+    buildFilterState: "Project State",
+    buildFilterTags: "Tags",
+    buildFilterTagsPlaceholder: "tag",
+    buildFilterRating: "Minimum Rating",
+    buildFilterRatingPlaceholder: "0",
+    buildFilterHeat: "Minimum Heat",
+    buildFilterHeatPlaceholder: "0",
+    buildFilterSearch: "Search",
+    buildFilterSearchPlaceholder: "title / repo / summary / tag",
+    buildDirectoryTitle: "All Projects",
+    buildDirectoryLede: "Search, inspect, and open project pages. Build is the directory entry for all projects in this universe.",
+    buildFilterNone: "No active build filters.",
+    buildFilterActivePrefix: "Active filters",
+    buildNoProjects: "No projects match the current filter.",
+    marketFilterType: "Type",
+    marketFilterRating: "Minimum Rating",
+    marketFilterRatingPlaceholder: "0",
+    marketFilterSearch: "Search",
+    marketFilterSearchPlaceholder: "title / repo / tag",
+    marketFilterSort: "Sort",
+    marketSortHeat: "Heat ↓",
+    marketSortRating: "Rating ↓",
+    marketSortTitle: "Title A-Z",
+    marketSortNewest: "Newest",
+    marketDirectoryTitle: "Operating Services",
+    marketDirectoryLede: "Running projects available for service usage and project workspace entry.",
+    marketFilterNone: "Showing all operating projects.",
+    marketFilterActivePrefix: "Active filters",
+    marketNoProjects: "No operating projects match the current market filter.",
+    docsDirectoryTitle: "Reference Library",
+    docsDirectoryLede: "Core references for source, standards, deployment, and runtime operation.",
+    docsCardRepositoryTitle: "Repository",
+    docsCardRepositoryBody: "Read source code, README, and deployment details.",
+    docsCardPhasesTitle: "Execution Phases",
+    docsCardPhasesBody: "See the current phased UI execution model and delivery sequence.",
+    docsCardUiRulesTitle: "UI Foundation Rules",
+    docsCardUiRulesBody: "Shared layout tokens, spacing rules, boundary rules, and page responsibility rules for every EOW-compatible project.",
+    docsCardUniverseProtocolTitle: "Universe Node Protocol",
+    docsCardUniverseProtocolBody: "Defines universe identity, handshake payloads, trust boundary, and read-only federation baseline.",
+    docsCardManifestTitle: "Universe Manifest",
+    docsCardManifestBody: "Live universe identity payload for `elo-universe-0`, exposed from the running node.",
+    docsCardDeployTitle: "Universe Deployment Guide",
+    docsCardDeployBody: "Shows how another operator can deploy `elo-universe-1` and stay compatible with the shared source.",
+    docsCardRuntimeTitle: "Runtime Modes Guide",
+    docsCardRuntimeBody: "Explains the current stub-ready package model and how to replace the stub with a real OpenClaw-compatible runtime."
+  },
+  zh: {
+    langLabel: "语言",
+    navHome: "首页",
+    navOnboarder: "安装 OpenClaw",
+    navWorld: "世界图谱",
+    navBuild: "项目目录",
+    navMarket: "市场",
+    navDocs: "文档",
+    actionJoin: "加入",
+    actionSettings: "设置",
+    actionSignOut: "退出登录",
+    actionGetOpenClaw: "安装 OpenClaw",
+    actionNewProject: "新建项目",
+    homeEyebrow: "ELO Open World",
+    homeTitle: "面向人类与 Agent 协作的开放世界基础框架。",
+    homeLede: "先走引导流程。首页用于解释系统，不承载私有控制操作。",
+    quickstartTitle: "快速开始",
+    quickstartLede: "新用户建议按下面顺序完成。",
+    quick1Title: "加入世界",
+    quick1Body: "先创建人类身份。若要创建项目，再绑定 GitHub。",
+    quick1Cta: "登录",
+    quick2Title: "安装 OpenClaw",
+    quick2Body: "普通用户从龙虾安装器开始，无需命令行。",
+    quick2Cta: "打开安装页面",
+    quick3Title: "探索世界",
+    quick3Body: "打开项目图谱，浏览世界协作结构。",
+    quick3Cta: "打开 World",
+    quick4Title: "创建、浏览、运营",
+    quick4Body: "New Project 负责创建，Build 负责目录，Market 负责运行服务。",
+    quick4CtaPrimary: "新建项目",
+    quick4CtaSecondary: "打开 Build",
+    infraTitle: "基础设施结构",
+    infraLede: "所有接入的源项目都会在这里形成共享基础层。",
+    settingsEyebrow: "私有工作区",
+    settingsTitle: "设置",
+    settingsLede: "这里是你的私有控制台。未登录时会引导你先完成登录。",
+    joinEyebrow: "加入流程",
+    joinTitle: "加入",
+    joinLede: "创建人类身份或登录已有身份。成功后进入你的私有设置工作区。",
+    newProjectEyebrow: "专注创建流",
+    newProjectTitle: "新建项目",
+    newProjectLede: "在这里把想法转成仓库项目。Build 是目录，Settings 是私有入口，创建后进入项目工作区。",
+    projectEyebrow: "项目工作区",
+    projectTitle: "项目工作区",
+    projectLede: "在单一页面完成阶段、进度、成员协作与 Agent 执行。",
+    worldEyebrow: "项目图谱",
+    worldTitle: "World",
+    worldLede: "通过项目图谱与实时协作信号探索世界。",
+    buildEyebrow: "项目目录",
+    buildTitle: "Build",
+    buildLede: "浏览和检索全部项目，进入详情或申请参与。这里是目录，不是编辑面板。",
+    marketEyebrow: "运行中市场",
+    marketTitle: "Market",
+    marketLede: "仅展示 operating 状态项目。这里是运行服务的第一市场入口。",
+    docsEyebrow: "文档中心",
+    docsTitle: "Docs",
+    docsLede: "查看协议、部署指南与集成文档。",
+    settingsNavProfile: "个人信息",
+    settingsNavSecurity: "安全与密码",
+    settingsNavPrivacy: "隐私条款",
+    settingsNavProtocols: "公开协议",
+    settingsNavAgents: "我的 Agent",
+    settingsNavProjects: "我的项目",
+    settingsNavCurrency: "我的虚拟货币",
+    settingsAccessTitle: "工作区访问",
+    settingsAccessBody: "请先登录后进入你的私有工作区。",
+    settingsAccessCta: "前往登录",
+    settingsSummaryTitle: "工作区概览",
+    settingsSummaryLede: "你的私有世界状态一览。",
+    settingsGuestTitle: "当前无激活用户",
+    settingsGuestBody: "你尚未登录，请先创建或选择人类身份。",
+    settingsSyncTitle: "工作区同步中",
+    settingsSyncBody: "会话已激活，正在刷新你的私有身份数据。",
+    settingsVerifyTitle: "请验证邮箱",
+    settingsVerifyBody: "工作区已可用，但建议先完成邮箱验证以便长期使用。",
+    settingsVerifyCta: "发送验证邮件",
+    filterAll: "全部",
+    filterProtocol: "协议",
+    filterSkill: "技能",
+    filterWorkflow: "工作流",
+    filterApp: "应用",
+    filterOther: "其他",
+    filterStateInitialized: "已初始化",
+    filterStateDeveloping: "开发中",
+    filterStateOperating: "运营中",
+    filterStatePaused: "暂停",
+    buildFilterType: "项目类型",
+    buildFilterState: "项目状态",
+    buildFilterTags: "标签",
+    buildFilterTagsPlaceholder: "标签",
+    buildFilterRating: "最低评分",
+    buildFilterRatingPlaceholder: "0",
+    buildFilterHeat: "最低热度",
+    buildFilterHeatPlaceholder: "0",
+    buildFilterSearch: "搜索",
+    buildFilterSearchPlaceholder: "标题 / 仓库 / 摘要 / 标签",
+    buildDirectoryTitle: "全部项目",
+    buildDirectoryLede: "检索、查看并进入项目页面。Build 是世界项目目录入口。",
+    buildFilterNone: "当前没有启用筛选条件。",
+    buildFilterActivePrefix: "当前筛选",
+    buildNoProjects: "没有符合当前筛选条件的项目。",
+    marketFilterType: "类型",
+    marketFilterRating: "最低评分",
+    marketFilterRatingPlaceholder: "0",
+    marketFilterSearch: "搜索",
+    marketFilterSearchPlaceholder: "标题 / 仓库 / 标签",
+    marketFilterSort: "排序",
+    marketSortHeat: "热度 ↓",
+    marketSortRating: "评分 ↓",
+    marketSortTitle: "标题 A-Z",
+    marketSortNewest: "最新",
+    marketDirectoryTitle: "运营服务",
+    marketDirectoryLede: "展示可使用服务与可进入项目工作区的运营中项目。",
+    marketFilterNone: "当前显示全部运营中项目。",
+    marketFilterActivePrefix: "当前筛选",
+    marketNoProjects: "没有符合当前筛选条件的运营项目。",
+    docsDirectoryTitle: "参考资料库",
+    docsDirectoryLede: "源码、标准、部署和运行方式的核心参考入口。",
+    docsCardRepositoryTitle: "仓库",
+    docsCardRepositoryBody: "查看源码、README 与部署说明。",
+    docsCardPhasesTitle: "执行阶段",
+    docsCardPhasesBody: "查看当前 UI 分阶段执行模型与交付顺序。",
+    docsCardUiRulesTitle: "UI 基础规则",
+    docsCardUiRulesBody: "EOW 兼容项目共享的布局 token、间距规则、边界规则与页面职责规则。",
+    docsCardUniverseProtocolTitle: "Universe Node 协议",
+    docsCardUniverseProtocolBody: "定义 Universe 身份、握手载荷、信任边界与只读联邦基线。",
+    docsCardManifestTitle: "Universe Manifest",
+    docsCardManifestBody: "`elo-universe-0` 的实时节点身份载荷。",
+    docsCardDeployTitle: "Universe 部署指南",
+    docsCardDeployBody: "说明其他操作者如何部署 `elo-universe-1` 并保持兼容。",
+    docsCardRuntimeTitle: "Runtime 模式指南",
+    docsCardRuntimeBody: "解释当前 stub-ready 包模式与替换为真实 OpenClaw 兼容 runtime 的方式。"
+  },
+  es: {
+    langLabel: "Idioma",
+    navHome: "Inicio",
+    navOnboarder: "Instalar OpenClaw",
+    navWorld: "World",
+    navBuild: "Build",
+    navMarket: "Market",
+    navDocs: "Docs",
+    actionJoin: "Unirse",
+    actionSettings: "Ajustes",
+    actionSignOut: "Cerrar sesión",
+    actionGetOpenClaw: "Instalar OpenClaw",
+    actionNewProject: "Nuevo proyecto",
+    homeEyebrow: "ELO Open World",
+    homeTitle: "Marco de mundo abierto para personas, agentes y proyectos colaborativos.",
+    homeLede: "Sigue primero el flujo guiado. Esta página explica el sistema, no es un panel privado.",
+    quickstartTitle: "Inicio rápido",
+    quickstartLede: "Los nuevos usuarios deben seguir esta secuencia.",
+    quick1Title: "Únete al mundo",
+    quick1Body: "Crea tu identidad humana. Vincula GitHub solo si crearás proyectos.",
+    quick1Cta: "Iniciar sesión",
+    quick2Title: "Instalar OpenClaw",
+    quick2Body: "Comienza con ELO Claw Installer. No necesitas línea de comandos.",
+    quick2Cta: "Abrir instalador",
+    quick3Title: "Explorar World",
+    quick3Body: "Abre el grafo de proyectos para ver la actividad del ecosistema.",
+    quick3Cta: "Abrir World",
+    quick4Title: "Crear, buscar y operar",
+    quick4Body: "New Project crea, Build indexa y Market muestra servicios operativos.",
+    quick4CtaPrimary: "Nuevo proyecto",
+    quick4CtaSecondary: "Abrir Build",
+    infraTitle: "Estructura de infraestructura",
+    infraLede: "Cada proyecto conectado aparece como parte de la base compartida.",
+    settingsEyebrow: "Espacio privado",
+    settingsTitle: "Ajustes",
+    settingsLede: "Controles privados de usuario. Si no inicias sesión, serás redirigido al flujo de acceso.",
+    joinEyebrow: "Flujo de acceso",
+    joinTitle: "Join",
+    joinLede: "Crea una identidad humana o inicia sesión. Luego entra a tu espacio privado.",
+    newProjectEyebrow: "Flujo de creación",
+    newProjectTitle: "Nuevo proyecto",
+    newProjectLede: "Convierte una idea en un repositorio aquí. Build es directorio y Project es colaboración.",
+    projectEyebrow: "Espacio de proyecto",
+    projectTitle: "Project Workspace",
+    projectLede: "Una sola página para etapa, progreso y colaboración directa con agentes.",
+    worldEyebrow: "Grafo de proyectos",
+    worldTitle: "World",
+    worldLede: "Explora el mundo a través del grafo de proyectos y señales de colaboración en vivo.",
+    buildEyebrow: "Directorio de proyectos",
+    buildTitle: "Build",
+    buildLede: "Explora y busca proyectos. Build es un directorio público, no un panel de edición.",
+    marketEyebrow: "Mercado operativo",
+    marketTitle: "Market",
+    marketLede: "Aquí solo aparecen proyectos en estado operativo.",
+    docsEyebrow: "Documentación",
+    docsTitle: "Docs",
+    docsLede: "Consulta protocolos, guías operativas y referencias de integración.",
+    settingsNavProfile: "Información personal",
+    settingsNavSecurity: "Seguridad y contraseña",
+    settingsNavPrivacy: "Términos de privacidad",
+    settingsNavProtocols: "Protocolos públicos",
+    settingsNavAgents: "Mis agentes",
+    settingsNavProjects: "Mis proyectos",
+    settingsNavCurrency: "Mi moneda virtual",
+    settingsAccessTitle: "Acceso al espacio",
+    settingsAccessBody: "Inicia sesión para abrir tu espacio privado.",
+    settingsAccessCta: "Ir a iniciar sesión",
+    settingsSummaryTitle: "Resumen del espacio",
+    settingsSummaryLede: "Vista rápida de tu estado privado.",
+    settingsGuestTitle: "Sin usuario activo",
+    settingsGuestBody: "No has iniciado sesión. Crea o selecciona una identidad humana primero.",
+    settingsSyncTitle: "Sincronizando espacio",
+    settingsSyncBody: "Tu sesión está activa. Estamos sincronizando tu estado privado.",
+    settingsVerifyTitle: "Verifica tu correo",
+    settingsVerifyBody: "Tu espacio está activo, pero esta cuenta debe verificar el correo para uso prolongado.",
+    settingsVerifyCta: "Enviar correo de verificación",
+    filterAll: "Todos",
+    filterProtocol: "Protocolo",
+    filterSkill: "Skill",
+    filterWorkflow: "Workflow",
+    filterApp: "App",
+    filterOther: "Otro",
+    filterStateInitialized: "Inicializado",
+    filterStateDeveloping: "En desarrollo",
+    filterStateOperating: "Operativo",
+    filterStatePaused: "Pausado",
+    buildFilterType: "Tipo de proyecto",
+    buildFilterState: "Estado del proyecto",
+    buildFilterTags: "Etiquetas",
+    buildFilterTagsPlaceholder: "etiqueta",
+    buildFilterRating: "Rating mínimo",
+    buildFilterRatingPlaceholder: "0",
+    buildFilterHeat: "Heat mínimo",
+    buildFilterHeatPlaceholder: "0",
+    buildFilterSearch: "Buscar",
+    buildFilterSearchPlaceholder: "título / repo / resumen / etiqueta",
+    buildDirectoryTitle: "Todos los proyectos",
+    buildDirectoryLede: "Busca, inspecciona y abre páginas de proyecto. Build es el directorio del universo.",
+    buildFilterNone: "Sin filtros activos de Build.",
+    buildFilterActivePrefix: "Filtros activos",
+    buildNoProjects: "Ningún proyecto coincide con el filtro actual.",
+    marketFilterType: "Tipo",
+    marketFilterRating: "Rating mínimo",
+    marketFilterRatingPlaceholder: "0",
+    marketFilterSearch: "Buscar",
+    marketFilterSearchPlaceholder: "título / repo / etiqueta",
+    marketFilterSort: "Ordenar",
+    marketSortHeat: "Heat ↓",
+    marketSortRating: "Rating ↓",
+    marketSortTitle: "Título A-Z",
+    marketSortNewest: "Más nuevo",
+    marketDirectoryTitle: "Servicios operativos",
+    marketDirectoryLede: "Proyectos en ejecución disponibles para uso de servicio y entrada al workspace.",
+    marketFilterNone: "Mostrando todos los proyectos operativos.",
+    marketFilterActivePrefix: "Filtros activos",
+    marketNoProjects: "Ningún proyecto operativo coincide con el filtro.",
+    docsDirectoryTitle: "Biblioteca de referencia",
+    docsDirectoryLede: "Referencias clave de código, estándares, despliegue y runtime.",
+    docsCardRepositoryTitle: "Repositorio",
+    docsCardRepositoryBody: "Lee el código fuente, README y detalles de despliegue.",
+    docsCardPhasesTitle: "Fases de ejecución",
+    docsCardPhasesBody: "Consulta el modelo de ejecución UI por fases y su secuencia.",
+    docsCardUiRulesTitle: "Reglas base de UI",
+    docsCardUiRulesBody: "Tokens de layout, reglas de espaciado, límites y responsabilidades de página para proyectos compatibles con EOW.",
+    docsCardUniverseProtocolTitle: "Protocolo Universe Node",
+    docsCardUniverseProtocolBody: "Define identidad del universo, payload de handshake y baseline federado de solo lectura.",
+    docsCardManifestTitle: "Universe Manifest",
+    docsCardManifestBody: "Payload de identidad en vivo de `elo-universe-0`.",
+    docsCardDeployTitle: "Guía de despliegue de Universe",
+    docsCardDeployBody: "Cómo desplegar `elo-universe-1` manteniendo compatibilidad de fuente compartida.",
+    docsCardRuntimeTitle: "Guía de modos runtime",
+    docsCardRuntimeBody: "Explica el modelo stub-ready actual y cómo pasar a un runtime OpenClaw real."
+  },
+  ja: {
+    langLabel: "言語",
+    navHome: "ホーム",
+    navOnboarder: "OpenClaw を導入",
+    navWorld: "World",
+    navBuild: "Build",
+    navMarket: "Market",
+    navDocs: "Docs",
+    actionJoin: "参加",
+    actionSettings: "設定",
+    actionSignOut: "サインアウト",
+    actionGetOpenClaw: "OpenClaw を導入",
+    actionNewProject: "新規プロジェクト",
+    homeEyebrow: "ELO Open World",
+    homeTitle: "人と Agent が共創するためのオープンワールド基盤。",
+    homeLede: "まずはガイド導線を進めてください。ここは説明ページで、管理画面ではありません。",
+    quickstartTitle: "クイックスタート",
+    quickstartLede: "新規ユーザーは次の順序で進めることを推奨します。",
+    quick1Title: "世界に参加する",
+    quick1Body: "まず人間 ID を作成。プロジェクト作成時のみ GitHub を連携します。",
+    quick1Cta: "サインイン",
+    quick2Title: "OpenClaw を導入",
+    quick2Body: "ELO Claw Installer から開始。コマンドラインは不要です。",
+    quick2Cta: "インストーラーページ",
+    quick3Title: "World を探索",
+    quick3Body: "プロジェクトグラフで世界の活動を確認します。",
+    quick3Cta: "World を開く",
+    quick4Title: "作成・検索・運用",
+    quick4Body: "New Project で作成、Build で検索、Market で運用確認。",
+    quick4CtaPrimary: "新規プロジェクト",
+    quick4CtaSecondary: "Build を開く",
+    infraTitle: "インフラ構造",
+    infraLede: "接続済みソースプロジェクトは共有基盤としてここに表示されます。",
+    settingsEyebrow: "プライベートワークスペース",
+    settingsTitle: "設定",
+    settingsLede: "ユーザーの私有コントロールです。未ログインの場合は Join へ誘導されます。",
+    joinEyebrow: "参加フロー",
+    joinTitle: "Join",
+    joinLede: "人間 ID を作成するか既存 ID でログインし、私有設定へ進みます。",
+    newProjectEyebrow: "作成フロー",
+    newProjectTitle: "新規プロジェクト",
+    newProjectLede: "アイデアをソースリポジトリ化する専用ルートです。",
+    projectEyebrow: "プロジェクトワークスペース",
+    projectTitle: "Project Workspace",
+    projectLede: "進捗、メンバー、Agent 実行を一つのページで扱います。",
+    worldEyebrow: "プロジェクトグラフ",
+    worldTitle: "World",
+    worldLede: "World はプロジェクトグラフとライブ協働シグナルで探索します。",
+    buildEyebrow: "プロジェクトディレクトリ",
+    buildTitle: "Build",
+    buildLede: "全プロジェクトを検索・閲覧する公開ディレクトリです。",
+    marketEyebrow: "運用マーケット",
+    marketTitle: "Market",
+    marketLede: "運用中（operating）のプロジェクトのみ表示されます。",
+    docsEyebrow: "ドキュメント",
+    docsTitle: "Docs",
+    docsLede: "プロトコル、運用ガイド、統合リファレンスを確認できます。",
+    settingsNavProfile: "個人情報",
+    settingsNavSecurity: "セキュリティとパスワード",
+    settingsNavPrivacy: "プライバシー規約",
+    settingsNavProtocols: "公開プロトコル",
+    settingsNavAgents: "マイ Agent",
+    settingsNavProjects: "マイプロジェクト",
+    settingsNavCurrency: "マイ仮想通貨",
+    settingsAccessTitle: "ワークスペースアクセス",
+    settingsAccessBody: "プライベートワークスペースを開くにはサインインしてください。",
+    settingsAccessCta: "サインインへ",
+    settingsSummaryTitle: "ワークスペース概要",
+    settingsSummaryLede: "あなたのプライベート状態を一覧で確認できます。",
+    settingsGuestTitle: "アクティブユーザーなし",
+    settingsGuestBody: "サインインしていません。先に人間 ID を作成または選択してください。",
+    settingsSyncTitle: "ワークスペース同期中",
+    settingsSyncBody: "セッションは有効です。プライベート状態を同期しています。",
+    settingsVerifyTitle: "メール認証が必要です",
+    settingsVerifyBody: "ワークスペースは利用可能ですが、長期利用前にメール認証を完了してください。",
+    settingsVerifyCta: "認証メールを送信",
+    filterAll: "すべて",
+    filterProtocol: "プロトコル",
+    filterSkill: "スキル",
+    filterWorkflow: "ワークフロー",
+    filterApp: "アプリ",
+    filterOther: "その他",
+    filterStateInitialized: "初期化済み",
+    filterStateDeveloping: "開発中",
+    filterStateOperating: "運用中",
+    filterStatePaused: "一時停止",
+    buildFilterType: "プロジェクト種別",
+    buildFilterState: "プロジェクト状態",
+    buildFilterTags: "タグ",
+    buildFilterTagsPlaceholder: "タグ",
+    buildFilterRating: "最低評価",
+    buildFilterRatingPlaceholder: "0",
+    buildFilterHeat: "最低ヒート",
+    buildFilterHeatPlaceholder: "0",
+    buildFilterSearch: "検索",
+    buildFilterSearchPlaceholder: "タイトル / リポジトリ / 概要 / タグ",
+    buildDirectoryTitle: "すべてのプロジェクト",
+    buildDirectoryLede: "検索・確認してプロジェクトページを開きます。Build は世界のディレクトリ入口です。",
+    buildFilterNone: "Build フィルターは未設定です。",
+    buildFilterActivePrefix: "適用中のフィルター",
+    buildNoProjects: "現在の条件に一致するプロジェクトはありません。",
+    marketFilterType: "種別",
+    marketFilterRating: "最低評価",
+    marketFilterRatingPlaceholder: "0",
+    marketFilterSearch: "検索",
+    marketFilterSearchPlaceholder: "タイトル / リポジトリ / タグ",
+    marketFilterSort: "並び替え",
+    marketSortHeat: "ヒート ↓",
+    marketSortRating: "評価 ↓",
+    marketSortTitle: "タイトル A-Z",
+    marketSortNewest: "新しい順",
+    marketDirectoryTitle: "運用サービス",
+    marketDirectoryLede: "サービス利用とプロジェクトワークスペース入口を持つ運用中プロジェクトを表示します。",
+    marketFilterNone: "すべての運用中プロジェクトを表示しています。",
+    marketFilterActivePrefix: "適用中のフィルター",
+    marketNoProjects: "条件に一致する運用中プロジェクトはありません。",
+    docsDirectoryTitle: "リファレンスライブラリ",
+    docsDirectoryLede: "ソース、標準、デプロイ、ランタイム運用の主要リファレンス。",
+    docsCardRepositoryTitle: "リポジトリ",
+    docsCardRepositoryBody: "ソースコード、README、デプロイ詳細を確認します。",
+    docsCardPhasesTitle: "実行フェーズ",
+    docsCardPhasesBody: "現在の UI フェーズ実行モデルと順序を確認します。",
+    docsCardUiRulesTitle: "UI 基礎ルール",
+    docsCardUiRulesBody: "EOW 互換プロジェクト向けのレイアウト token、間隔、境界、責務ルールです。",
+    docsCardUniverseProtocolTitle: "Universe Node プロトコル",
+    docsCardUniverseProtocolBody: "Universe 識別、ハンドシェイク payload、信頼境界、読み取り専用フェデレーション基線を定義します。",
+    docsCardManifestTitle: "Universe Manifest",
+    docsCardManifestBody: "`elo-universe-0` のライブ識別 payload です。",
+    docsCardDeployTitle: "Universe デプロイガイド",
+    docsCardDeployBody: "`elo-universe-1` を互換性を保ってデプロイする方法を示します。",
+    docsCardRuntimeTitle: "ランタイムモードガイド",
+    docsCardRuntimeBody: "現在の stub-ready モデルと実運用 OpenClaw 互換 runtime への移行方法を説明します。"
+  }
+};
+const APP_DYNAMIC_I18N = {
+  en: {
+    "action.openProjectWorkspace": "Open Project Workspace",
+    "action.openProject": "Open Project",
+    "action.openInBuild": "Open In Build Directory",
+    "action.openGithubRepo": "Open GitHub Repo",
+    "action.openService": "Open Service",
+    "action.sourceRepo": "Source Repo",
+    "action.liveService": "Live Service",
+    "action.visualMockNode": "Visual Mock Node",
+    "action.focusCluster": "Focus Cluster",
+    "action.openProjectDirectory": "Open Project Directory",
+    "action.requestParticipation": "Request Participation",
+    "action.inviteMember": "Invite Member",
+    "action.changeRole": "Change Role",
+    "action.removeMember": "Remove Member",
+    "action.acceptInvite": "Accept Invite",
+    "action.acceptRequest": "Accept Request",
+    "action.rejectRequest": "Reject Request",
+    "status.openWorkspaceContext": "Open {title} in Project Workspace for participation and delivery context.",
+    "status.participationSubmitted": "Participation request submitted.",
+    "status.inviteCreated": "Invite created for {agentId}",
+    "status.roleUpdated": "Role updated for {agentId}",
+    "status.removedMember": "Removed {agentId} from project",
+    "status.inviteAccepted": "Invite accepted.",
+    "status.participationResolved": "Participation request {decision}.",
+    "status.noAgentAvailable": "No agent available. Create or register an agent first, then retry download.",
+    "status.deliveryContractDownloaded": "Delivery contract downloaded.",
+    "status.artifactBundleDownloaded": "Artifact bundle downloaded.",
+    "status.artifactZipDownloaded": "Artifact ZIP downloaded.",
+    "status.foundationJsonCopied": "Foundation artifact JSON copied.",
+    "status.artifactZipExportFailed": "Artifact zip export failed.",
+    "status.dynamicError": "{message}",
+    "build.detail.noRepoLinked": "No repo linked",
+    "build.detail.noSummary": "No summary provided.",
+    "build.detail.noRunYet": "No Run Yet",
+    "build.detail.workspaceUpdate": "Workspace Update",
+    "build.detail.repo": "Repo",
+    "build.detail.service": "Service",
+    "build.detail.operating": "Operating",
+    "build.detail.recruiting": "Recruiting",
+    "build.detail.workspaceEntry": "Workspace Entry",
+    "build.detail.requests": "Requests",
+    "build.detail.waiting": "Waiting",
+    "build.detail.reviewInWorkspace": "Review in Project Workspace.",
+    "build.detail.latestDelivery": "Latest Delivery",
+    "build.detail.signal": "Signal",
+    "build.detail.directorySnapshot": "Directory Snapshot",
+    "build.detail.owner": "Owner",
+    "build.detail.participants": "Participants",
+    "build.detail.stage": "Stage",
+    "build.detail.state": "State",
+    "build.detail.rating": "Rating",
+    "build.detail.heat": "Heat",
+    "build.detail.github": "GitHub",
+    "build.detail.operatingAndEntry": "Operating And Entry",
+    "build.detail.projectWorkspace": "Project Workspace",
+    "build.detail.entryRoute": "Entry Route",
+    "build.detail.participation": "Participation",
+    "build.detail.openRequests": "Open Requests",
+    "build.detail.directorySignal": "Directory Signal",
+    "build.detail.serviceEndpoint": "Service Endpoint",
+    "build.detail.notSet": "Not set",
+    "build.detail.latestRunAt": "Latest Run At",
+    "build.detail.operatingContext": "Operating Context",
+    "build.detail.recruitingPath": "Recruiting Path",
+    "build.detail.latestActivity": "Latest Activity",
+    "build.detail.workspaceEntryTitle": "Project Workspace Entry",
+    "build.detail.externalSurface": "External Surface",
+    "build.detail.externalSurfaceNote": "Source inspection stays separate from collaboration controls.",
+    "build.detail.repoLinkMissing": "Repository link publishes after the source surface is connected.",
+    "market.detail.noSourceRepo": "No source repo listed",
+    "market.detail.noServiceEndpoint": "Service endpoint not set",
+    "market.detail.foundationAccess": "Foundation Access",
+    "market.detail.projectAccess": "Project Access",
+    "market.detail.pricingDefault": "Usage still routes through the published project surface while protocol pricing stays lightweight.",
+    "market.detail.usageWithService": "Start with the service endpoint for live usage, then open the project page for operator context.",
+    "market.detail.usageWithoutService": "This project is marked operating, but the project page still carries the clearest operator context until the endpoint is published.",
+    "market.detail.projectUpdate": "Project Update",
+    "market.detail.sourceRepo": "Source Repo",
+    "market.detail.operating": "Operating",
+    "market.detail.endpointLive": "Endpoint Live",
+    "market.detail.endpointPending": "Endpoint Pending",
+    "market.detail.access": "Access",
+    "market.detail.usageEntry": "Usage Entry",
+    "market.detail.serviceAndProject": "Service + Project",
+    "market.detail.projectOnly": "Project Page Only",
+    "market.detail.operatingLiveNote": "Service endpoint is available for direct usage entry.",
+    "market.detail.operatingPendingNote": "This project is already treated as operating, but the endpoint is still being finalized.",
+    "market.detail.operatingSnapshot": "Operating Snapshot",
+    "market.detail.sourceProject": "Source Project",
+    "market.detail.latestRun": "Latest Run",
+    "market.detail.accessModel": "Access Model",
+    "market.detail.pricing": "Pricing",
+    "market.detail.usage": "Usage",
+    "market.detail.workspaceEntryNote": "Operator context, members, and delivery history stay attached to the project page.",
+    "market.detail.workspaceEntryTitle": "Project Workspace Entry",
+    "market.detail.usageSurfaces": "Usage Surfaces",
+    "market.detail.usageSurfacesNote": "Live service and source links stay separate from the operator entry path.",
+    "market.detail.liveServiceMissing": "Live service publishes after the operating endpoint is available.",
+    "market.detail.sourceRepoMissing": "Source repo publishes after the source surface is connected.",
+    "market.detail.linksMissing": "Usage links publish after the live endpoint or source repo is available.",
+    "settings.detail.noActiveProjectSelected": "No active project selected.",
+    "settings.detail.noBridgeContext": "No bridge context yet.",
+    "settings.detail.openProjectCommandDeck": "Open a project to load the command deck.",
+    "settings.detail.noWorkspaceConversation": "No workspace conversation yet.",
+    "settings.detail.noProjectMembershipState": "No project selected, so no membership state is available.",
+    "settings.detail.noAgentAvailable": "No agent available",
+    "settings.detail.human": "Human",
+    "settings.detail.auth": "Auth",
+    "settings.detail.github": "GitHub",
+    "settings.detail.agents": "Agents",
+    "settings.detail.projects": "Projects",
+    "settings.detail.ownedProjects": "Owned Projects",
+    "settings.detail.operating": "Operating",
+    "settings.detail.humanId": "Human ID",
+    "settings.detail.email": "Email",
+    "settings.detail.emailVerification": "Email Verification",
+    "settings.detail.displayName": "Display Name",
+    "settings.detail.copy": "Copy",
+    "settings.detail.joinPromptRegenerated": "Secure join prompt regenerated for {humanId}",
+    "settings.detail.selectMainAgent": "Select your main agent",
+    "settings.detail.linked": "Linked",
+    "settings.detail.notLinked": "Not linked",
+    "settings.detail.verified": "Verified",
+    "settings.detail.pending": "Pending",
+    "settings.detail.sendVerificationEmail": "Send Verification Email",
+    "settings.detail.emailVerified": "Email Verified",
+    "settings.detail.refreshGithubLink": "Refresh GitHub Link",
+    "settings.detail.linkGithub": "Link GitHub Account",
+    "settings.detail.unlinkGithub": "Unlink GitHub",
+    "settings.detail.emailDeliveryNotConfigured": "Email delivery is not configured on this deployment.",
+    "settings.detail.emailVerificationRecommended": "Use email verification before you rely on the account for longer-lived access.",
+    "settings.detail.githubOauthNotConfigured": "GitHub OAuth is not configured on this deployment.",
+    "settings.detail.githubRequiredForSource": "GitHub link is required before creating a source project.",
+    "settings.detail.verificationEmailSent": "Verification email sent to {email}",
+    "settings.detail.githubUnlinked": "GitHub unlinked from {humanId}",
+    "settings.detail.agentAuthKeyLede": "Issue a human-scoped keypair so your agent can self-register with a signed request.",
+    "settings.detail.keyStatus": "Key Status",
+    "settings.detail.issued": "Issued",
+    "settings.detail.notIssued": "Not issued",
+    "settings.detail.issuedAt": "Issued At",
+    "settings.detail.lastUsed": "Last Used",
+    "settings.detail.fingerprint": "Fingerprint",
+    "settings.detail.notAvailable": "Not available",
+    "settings.detail.issueNewAgentAuthKey": "Issue New Agent Auth Key",
+    "settings.detail.downloadPemBundle": "Download PEM Bundle",
+    "settings.detail.privateKeyOneTime": "Private key material is returned only once. Re-issuing rotates the active agent auth key.",
+    "settings.detail.issueKeyHint": "Issue a key to receive the one-time PEM bundle.",
+    "settings.detail.issuedAgentAuthKey": "Issued agent auth key for {humanId}",
+    "settings.detail.primarySignin": "Primary Sign-In",
+    "settings.detail.emailStatus": "Email Status",
+    "settings.detail.githubLink": "GitHub Link",
+    "settings.detail.pendingVerification": "Pending verification",
+    "settings.detail.githubPrimarySigninNote": "This account currently uses GitHub as the primary sign-in method. Email verification is still recommended for account recovery and future password setup.",
+    "settings.detail.passwordPrimarySigninNote": "This account uses local password authentication. Email verification should be completed before relying on the account for long-term access.",
+    "settings.detail.openProjectToSendTask": "Open a project to send a project-specific task.",
+    "settings.detail.workspace": "Workspace",
+    "settings.detail.noActiveProject": "No active project",
+    "settings.detail.profileCopied": "Copied profile field.",
+    "settings.detail.aiPromptCopied": "AI registration prompt copied.",
+    "settings.detail.fingerprintCopied": "Fingerprint copied.",
+    "workspace.detail.bridgeRequiredHeadline": "Browser bridge not detected.",
+    "workspace.detail.bridgeRequiredNote": "Load elo-agent-web-plugin in this browser first, then re-check bridge readiness from this page.",
+    "workspace.detail.bridgeRequiredPlaceholder": "Check the browser bridge before sending a task.",
+    "workspace.detail.bridgeSetupHeadline": "Bridge configuration still needs attention.",
+    "workspace.detail.bridgeSetupNote": "Finish the world URL, agent, and endpoint configuration in the browser bridge before sending a project task.",
+    "workspace.detail.bridgeSetupPlaceholder": "Finish bridge configuration before sending a task.",
+    "workspace.detail.memberAgentNeededHeadline": "No eligible project member agent is attached to your account yet.",
+    "workspace.detail.memberAgentNeededNote": "Have the owner invite one of your registered agents, or accept the pending invite, before using the project thread.",
+    "workspace.detail.memberAgentNeededPlaceholder": "Add one of your registered agents as a project member first.",
+    "workspace.detail.awaitingAccessHeadline": "Participation approval is still pending.",
+    "workspace.detail.awaitingAccessNote": "Wait for the project owner to review your request before using the project conversation deck.",
+    "workspace.detail.awaitingAccessPlaceholder": "Collaboration unlocks after the participation request is approved.",
+    "workspace.detail.participationRequiredHeadline": "Join the project before tasking an agent here.",
+    "workspace.detail.participationRequiredNote": "Use the participation panel on this page to request access, then come back to the command deck once your agent is attached.",
+    "workspace.detail.participationRequiredPlaceholder": "Request participation before sending a project task.",
+    "workspace.detail.readyHeadline": "Command deck is ready for project work.",
+    "workspace.detail.readyNote": "Keep the task short, specific, and tied to this project so the conversation timeline stays useful after refresh.",
+    "workspace.detail.readyPlaceholder": "Describe the next task, decision, blocker, or refinement for your agent.",
+    "workspace.detail.bridgeReadiness": "Bridge Readiness",
+    "workspace.detail.bridgeReadinessLede": "Verify the browser bridge, current endpoint, and target world before sending the next project task.",
+    "workspace.detail.browserBridge": "Browser Bridge",
+    "workspace.detail.workspaceAgent": "Workspace Agent",
+    "workspace.detail.agentEndpoint": "Agent Endpoint",
+    "workspace.detail.worldUrl": "World URL",
+    "workspace.detail.nextStep": "Next step",
+    "workspace.detail.bridgeProtocol": "Bridge Protocol",
+    "workspace.detail.openBridgeProject": "Open Bridge Project",
+    "workspace.detail.projectService": "Project Service",
+    "workspace.detail.agentCommandDeck": "Agent Command Deck",
+    "workspace.detail.agentCommandDeckLede": "Route project-specific requests through a member agent so the timeline stays attached to the workspace.",
+    "workspace.detail.yourAccess": "Your Access",
+    "workspace.detail.owner": "Owner",
+    "workspace.detail.participant": "Participant",
+    "workspace.detail.viewer": "Viewer",
+    "workspace.detail.eligibleAgents": "Eligible Agents",
+    "workspace.detail.selectedAgent": "Selected Agent",
+    "workspace.detail.conversationEntries": "Conversation Entries",
+    "workspace.detail.lastSpeaker": "Last Speaker",
+    "workspace.detail.lastActivity": "Last Activity",
+    "workspace.detail.noneAvailable": "None available",
+    "workspace.detail.noConversationYet": "No conversation yet",
+    "workspace.detail.primaryWorkingAgent": "Primary working agent",
+    "workspace.detail.threadEmptyTitle": "No project conversation yet.",
+    "workspace.detail.threadEmptyReady": "Use the working agent selector and send the next task, blocker, or design question. This thread stays attached to the project record.",
+    "workspace.detail.totalEntries": "Total Entries",
+    "workspace.detail.humanMessages": "Human Messages",
+    "workspace.detail.agentMessages": "Agent Messages",
+    "workspace.detail.latestExchange": "Latest Exchange",
+    "workspace.detail.noMessageContent": "No message content recorded.",
+    "workspace.detail.earlierContext": "Earlier Context ({count})",
+    "workspace.detail.latestExchanges": "Latest Exchanges",
+    "workspace.detail.latestMostRecent": "{count} most recent entries",
+    "workspace.detail.intake": "Intake",
+    "workspace.detail.refinement": "Refinement",
+    "workspace.detail.sourceProject": "Source Project",
+    "workspace.detail.operating": "Operating",
+    "workspace.detail.ready": "Ready",
+    "workspace.detail.pending": "Pending",
+    "workspace.detail.noLinkedRequirement": "Project idea intake still needs a linked requirement.",
+    "workspace.detail.noDirection": "Primary-agent refinement has not produced a structured direction yet.",
+    "workspace.detail.noSourceRepo": "Source repository not created yet.",
+    "workspace.detail.notOperatingYet": "Not operating yet.",
+    "workspace.detail.currentDirection": "Current Direction",
+    "workspace.detail.deliverySignals": "Delivery Signals",
+    "workspace.detail.requirement": "Requirement",
+    "workspace.detail.latestFoundationRun": "Latest Foundation Run",
+    "workspace.detail.noStructuredRequirement": "No structured requirement summary yet.",
+    "workspace.detail.directionWillAppear": "Project direction will appear here after requirement refinement.",
+    "workspace.detail.milestones": "Milestones",
+    "workspace.detail.openQuestions": "Open Questions",
+    "workspace.detail.noMilestones": "No milestones captured yet.",
+    "workspace.detail.noOpenQuestions": "No open questions recorded.",
+    "workspace.detail.currentMembers": "Current Members",
+    "workspace.detail.roleLabel": "Role",
+    "workspace.detail.workspaceReady": "Workspace ready",
+    "workspace.detail.noMemberAgents": "No member agents recorded.",
+    "workspace.detail.noMembershipHistory": "No membership history yet.",
+    "workspace.detail.pendingInvites": "Pending Invites",
+    "workspace.detail.statusLabel": "Status",
+    "workspace.detail.noPendingInvites": "No pending invites.",
+    "workspace.detail.participationRequests": "Participation Requests",
+    "workspace.detail.agentsLabel": "Agents",
+    "workspace.detail.noAgentsLinked": "No agents linked",
+    "workspace.detail.noParticipationRequests": "No participation requests yet.",
+    "workspace.detail.membershipHistory": "Membership History",
+    "workspace.detail.ownerControls": "Owner Controls",
+    "workspace.detail.participationRequest": "Participation Request",
+    "workspace.detail.enabled": "Enabled",
+    "workspace.detail.alreadyParticipating": "Already participating",
+    "workspace.detail.requestAccess": "Request access",
+    "workspace.detail.agentIdToInvite": "Agent ID To Invite",
+    "workspace.detail.agentIdToInvitePlaceholder": "agent id to invite",
+    "workspace.detail.inviteRole": "Invite Role",
+    "workspace.detail.currentMember": "Current Member",
+    "workspace.detail.selectMember": "Select member",
+    "workspace.detail.newRole": "New Role",
+    "workspace.detail.memberToRemove": "Member To Remove",
+    "workspace.detail.alreadyParticipatingNote": "You are already participating in this project through one of your registered agents.",
+    "workspace.detail.joinReason": "Why do you want to join this project?",
+    "workspace.detail.joinReasonPlaceholder": "Explain your interest, the agent you want to contribute with, and the role you expect to play.",
+    "workspace.detail.enterMessageFirst": "Enter a project message first.",
+    "workspace.detail.selectAgentFirst": "Select a workspace agent first.",
+    "workspace.detail.notAssigned": "not assigned",
+    "workspace.detail.closed": "Closed",
+    "workspace.detail.open": "Open",
+    "workspace.detail.singleProjectLede": "Single project page for direct collaboration, participation, and delivery work.",
+    "workspace.detail.notRecruiting": "Not Recruiting",
+    "workspace.detail.yourRole": "Your Role",
+    "workspace.detail.repository": "Repository",
+    "workspace.detail.none": "none",
+    "workspace.detail.primaryAgent": "Primary Agent",
+    "workspace.detail.members": "Members",
+    "workspace.detail.projectRecord": "Project Record",
+    "workspace.detail.noSummaryYet": "No summary yet.",
+    "workspace.detail.participationAndDelivery": "Participation And Delivery",
+    "workspace.detail.executionFocus": "Execution Focus",
+    "workspace.detail.latestMembershipChange": "Latest Membership Change",
+    "workspace.detail.sourceAndOperatingInputs": "Source And Operating Inputs",
+    "workspace.detail.noProjectAgentAvailable": "No project agent available",
+    "workspace.detail.workspaceResponseReceived": "Workspace response received from {agentId}.",
+    "workspace.detail.loadedIntoMetadataEditor": "Loaded {title} into metadata editor.",
+    "world.drawer.projectNode": "Project Node",
+    "world.drawer.universeNode": "Universe Node",
+    "world.drawer.humanNode": "Human Node",
+    "world.drawer.agentNode": "Agent Node",
+    "world.drawer.closeProjectDetails": "Close project details",
+    "world.drawer.closeUniverseDetails": "Close universe details",
+    "world.drawer.closeHumanDetails": "Close human details",
+    "world.drawer.closeAgentDetails": "Close agent details",
+    "world.drawer.cluster": "Cluster",
+    "world.drawer.focus": "Focus",
+    "world.drawer.surface": "Surface",
+    "world.drawer.tags": "Tags",
+    "world.drawer.noTagsYet": "No tags yet.",
+    "world.drawer.foundationRuns": "Foundation Runs",
+    "world.drawer.latestDelivery": "Latest Delivery",
+    "world.drawer.noRuns": "No foundation runs recorded yet.",
+    "world.drawer.relationshipSummary": "Relationship Summary",
+    "world.drawer.sharedOwners": "Shared Owners",
+    "world.drawer.sharedAgents": "Shared Agents",
+    "world.drawer.sharedPlugins": "Shared Plugins",
+    "world.drawer.clusterLens": "Cluster Lens",
+    "world.drawer.clusterContext": "Cluster Context",
+    "world.drawer.projects": "Projects",
+    "world.drawer.agents": "Agents",
+    "world.drawer.owners": "Owners",
+    "world.drawer.current": "current",
+    "world.drawer.noClusterSiblings": "No cluster siblings available.",
+    "world.drawer.visualLabNoteTitle": "Visual Lab Note",
+    "world.drawer.visualLabNoteBody": "This is synthetic data used to stress-test the World graph. It exists for layout and interaction tuning, not for project execution.",
+    "world.drawer.visualLab": "Visual Lab",
+    "world.drawer.operatingFoundation": "Operating Foundation",
+    "world.drawer.dataSurface": "Data Surface",
+    "world.drawer.hierarchy": "Hierarchy",
+    "world.drawer.foundations": "Foundations",
+    "world.drawer.agentLinks": "Agent Links",
+    "world.drawer.ownerClusters": "Owner Clusters",
+    "world.drawer.topPluginAttachments": "Top Plugin Attachments",
+    "world.drawer.projectLinkCount": "{count} project link{suffix}",
+    "world.drawer.noPluginClusters": "No plugin clusters yet.",
+    "world.drawer.topClusters": "Top Clusters",
+    "world.drawer.projectNodeCount": "{count} project node{suffix}",
+    "world.drawer.noClusterSummaries": "No cluster summaries yet.",
+    "world.drawer.universeBody": "The universe node anchors all source projects and highlights the strongest owner, plugin, and foundation clusters in this deployment.",
+    "world.drawer.noLinkedProjects": "No linked projects.",
+    "world.drawer.linkedProjects": "Linked Projects",
+    "world.drawer.linkedAgents": "Linked Agents",
+    "world.drawer.noLinkedAgents": "No linked agents.",
+    "world.drawer.agentLinkedHint": "Agent node linked through this human.",
+    "world.drawer.projectParticipation": "Project Participation",
+    "world.drawer.liveOnly": "Live data only",
+    "world.drawer.hybridLab": "Hybrid visual lab",
+    "world.drawer.mockOnly": "Visual lab only",
+    "world.drawer.plugins": "Plugins",
+    "world.drawer.human": "Human",
+    "world.drawer.focusDefault": "Open",
+    "world.drawer.focusSelection": "Selection",
+    "world.drawer.focusRelation": "Relation",
+    "world.drawer.focusCluster": "Cluster"
+  },
+  zh: {},
+  es: {},
+  ja: {}
+};
+for (const locale of ["zh", "es", "ja"]) {
+  APP_DYNAMIC_I18N[locale] = { ...APP_DYNAMIC_I18N.en };
+}
+const APP_I18N_CACHE = new Map();
+const APP_I18N_MISSING_KEYS = new Set();
+const APP_STATIC_TEXT_BINDINGS = [
+  ['.locale-switch label', "langLabel"],
+  ['[data-route-link="home"]', "navHome"],
+  ['[data-route-link="onboarder"]', "navOnboarder"],
+  ['[data-route-link="world"]', "navWorld"],
+  ['[data-route-link="build"]', "navBuild"],
+  ['[data-route-link="market"]', "navMarket"],
+  ['[data-route-link="docs"]', "navDocs"],
+  ['section[data-route="home"] .hero .eyebrow', "homeEyebrow"],
+  ['section[data-route="home"] .hero h1', "homeTitle"],
+  ['section[data-route="home"] .hero .lede', "homeLede"],
+  ['section[data-route="home"] .quickstart-panel .panel-header h2', "quickstartTitle"],
+  ['section[data-route="home"] .quickstart-panel .panel-header p', "quickstartLede"],
+  ['section[data-route="home"] .quickstart-panel .guide-card:nth-of-type(1) h3', "quick1Title"],
+  ['section[data-route="home"] .quickstart-panel .guide-card:nth-of-type(1) p', "quick1Body"],
+  ['section[data-route="home"] .quickstart-panel .guide-card:nth-of-type(1) button', "quick1Cta"],
+  ['section[data-route="home"] .quickstart-panel .guide-card:nth-of-type(2) h3', "quick2Title"],
+  ['section[data-route="home"] .quickstart-panel .guide-card:nth-of-type(2) p', "quick2Body"],
+  ['section[data-route="home"] .quickstart-panel .guide-card:nth-of-type(2) button', "quick2Cta"],
+  ['section[data-route="home"] .quickstart-panel .guide-card:nth-of-type(3) h3', "quick3Title"],
+  ['section[data-route="home"] .quickstart-panel .guide-card:nth-of-type(3) p', "quick3Body"],
+  ['section[data-route="home"] .quickstart-panel .guide-card:nth-of-type(3) button', "quick3Cta"],
+  ['section[data-route="home"] .quickstart-panel .guide-card:nth-of-type(4) h3', "quick4Title"],
+  ['section[data-route="home"] .quickstart-panel .guide-card:nth-of-type(4) p', "quick4Body"],
+  ['section[data-route="home"] .quickstart-panel .guide-card:nth-of-type(4) .action-row button:nth-of-type(1)', "quick4CtaPrimary"],
+  ['section[data-route="home"] .quickstart-panel .guide-card:nth-of-type(4) .action-row button:nth-of-type(2)', "quick4CtaSecondary"],
+  ['section[data-route="home"] .infrastructure .panel-header h2', "infraTitle"],
+  ['section[data-route="home"] .infrastructure .panel-header p', "infraLede"],
+  ['section[data-route="join"] .section-header .eyebrow', "joinEyebrow"],
+  ['section[data-route="join"] .section-header h2', "joinTitle"],
+  ['section[data-route="join"] .section-header .lede', "joinLede"],
+  ['section[data-route="settings"] .section-header .eyebrow', "settingsEyebrow"],
+  ['section[data-route="settings"] .section-header h2', "settingsTitle"],
+  ['section[data-route="settings"] .section-header .lede', "settingsLede"],
+  ['section[data-route="new-project"] .section-header .eyebrow', "newProjectEyebrow"],
+  ['section[data-route="new-project"] .section-header h2', "newProjectTitle"],
+  ['section[data-route="new-project"] .section-header .lede', "newProjectLede"],
+  ['section[data-route="project"] .section-header .eyebrow', "projectEyebrow"],
+  ['section[data-route="project"] .section-header .lede', "projectLede"],
+  ['section[data-route="world"] .section-header .eyebrow', "worldEyebrow"],
+  ['section[data-route="world"] .section-header h2', "worldTitle"],
+  ['section[data-route="world"] .section-header .lede', "worldLede"],
+  ['section[data-route="build"] .section-header .eyebrow', "buildEyebrow"],
+  ['section[data-route="build"] .section-header h2', "buildTitle"],
+  ['section[data-route="build"] .section-header .lede', "buildLede"],
+  ['section[data-route="market"] .section-header .eyebrow', "marketEyebrow"],
+  ['section[data-route="market"] .section-header h2', "marketTitle"],
+  ['section[data-route="market"] .section-header .lede', "marketLede"],
+  ['section[data-route="docs"] .section-header .eyebrow', "docsEyebrow"],
+  ['section[data-route="docs"] .section-header h2', "docsTitle"],
+  ['section[data-route="docs"] .section-header .lede', "docsLede"],
+  ['[data-settings-section="profile"]', "settingsNavProfile"],
+  ['[data-settings-section="security"]', "settingsNavSecurity"],
+  ['[data-settings-section="privacy"]', "settingsNavPrivacy"],
+  ['[data-settings-section="protocols"]', "settingsNavProtocols"],
+  ['[data-settings-section="agents"]', "settingsNavAgents"],
+  ['[data-settings-section="projects"]', "settingsNavProjects"],
+  ['[data-settings-section="currency"]', "settingsNavCurrency"]
+];
+const ONBOARDER_PRESET = {
+  repoName: "elo-agent-onboarder",
+  kind: "app",
+  title: "ELO OpenClaw Onboarding Assistant",
+  summary: "Guides ordinary users to configure OpenClaw, register agents, and connect them into ELO Open World.",
+  tags: "onboarding,openclaw,agent,entry",
+  rating: 4.8,
+  heat: 500,
+  stage: "operating",
+  pricingNote: "ELO plugin settlement, final rule pending",
+  usageNote: "Point your local agent runtime to the service endpoint and submit status updates regularly."
+};
+
+const FOUNDATION_PROJECT_WORKSPACES = {
+  "peterpan42388/elo-agent-onboarder": {
+    operating: true,
+    focus: "Agent onboarding, install plans, bootstrap reports, and runtime-ready setup artifacts for ordinary users joining ELO Open World.",
+    docs: [
+      { label: "Project Scope", href: "https://github.com/peterpan42388/elo-agent-onboarder/blob/codex/foundation-workspace/docs/PROJECT_SCOPE.md" },
+      { label: "Roadmap", href: "https://github.com/peterpan42388/elo-agent-onboarder/blob/codex/foundation-workspace/docs/ROADMAP.md" },
+      { label: "Integration", href: "https://github.com/peterpan42388/elo-agent-onboarder/blob/codex/foundation-workspace/docs/INTEGRATION.md" },
+      { label: "Install Plan Contract", href: "https://github.com/peterpan42388/elo-agent-onboarder/blob/codex/foundation-workspace/docs/INSTALL_PLAN_CONTRACT.md" }
+    ]
+  },
+  "peterpan42388/elo-agent-web-plugin": {
+    operating: true,
+    focus: "Browser bridge infrastructure that connects user-owned agents to ELO Open World starter and workspace flows.",
+    docs: [
+      { label: "README", href: "https://github.com/peterpan42388/elo-agent-web-plugin/blob/codex/browser-bridge-skeleton/README.md" },
+      { label: "Bridge Protocol", href: "https://github.com/peterpan42388/elo-agent-web-plugin/blob/codex/browser-bridge-skeleton/docs/BRIDGE_PROTOCOL.md" },
+      { label: "Installation", href: "https://github.com/peterpan42388/elo-agent-web-plugin/blob/codex/browser-bridge-skeleton/docs/INSTALLATION.md" }
+    ]
+  }
+};
+
+const state = {
+  summary: null,
+  locale: "en",
+  authResolved: false,
+  sessionHumanId: loadSession(),
+  latestAuthKeyBundle: null,
+  latestJoinToken: null,
+  latestSignedAgentGuide: null,
+  activeSettingsSection: SETTINGS_DEFAULT_SECTION,
+  settingsProjectScope: "all",
+  settingsProjectFilters: {
+    kind: "",
+    state: "",
+    tag: ""
+  },
+  worldGraphEngine: null,
+  worldGraphEnginePromise: null,
+  worldGraphRenderer: null,
+  worldGraph: null,
+  worldGraphNodeMap: new Map(),
+  worldGraphEdgeMap: new Map(),
+  worldGraphAnimationFrame: 0,
+  worldGraphCameraCleanup: null,
+  worldSceneMotionFrame: 0,
+  worldSceneMotionEnabled: true,
+  worldSceneMotionPauseUntil: 0,
+  worldSceneMotionAnchor: null,
+  worldSceneMotionCleanup: null,
+  worldFocusMode: "default",
+  worldGraphOverlayCanvas: null,
+  worldGraphOverlayContext: null,
+  worldGraphOverlayVisible: false,
+  selectedWorldNodeId: "",
+  hoveredWorldNodeId: "",
+  worldDrawerOpen: false,
+  worldGraphFilters: {
+    universe: true,
+    owner: true,
+    agent: true,
+    plugin: true,
+    foundation: true
+  },
+  worldVisualMode: loadWorldVisualMode(),
+  worldHierarchyPreset: loadWorldHierarchyPreset(),
+  worldDeclutterMode: loadWorldDeclutterMode(),
+  worldGraphLoadError: "",
+  buildFilters: {
+    kind: "",
+    status: "",
+    tag: "",
+    minRating: 0,
+    minHeat: 0,
+    query: ""
+  },
+  marketFilters: {
+    kind: "",
+    minRating: 0,
+    query: "",
+    sort: "heat-desc"
+  },
+  authConfig: {
+    githubEnabled: false
+  },
+  latestStarterRequirement: null,
+  starterRequirementId: "",
+  starterBridgeStatus: null,
+  latestStarterConversation: null,
+  latestFoundationArtifacts: {},
+  onboarderCatalog: null,
+  onboarderPurchases: { purchases: [], entitlements: [] },
+  onboarderPublicOffer: null,
+  onboarderBillingReadiness: null,
+  pendingOnboarderCheckout: null,
+  pendingInstallerAuthSessionId: "",
+  activeProjectId: ""
+};
+
+bootstrapSessionFromUrl();
+bootstrapOnboarderCheckoutFromUrl();
+bootstrapInstallerAuthFromUrl();
+state.locale = resolveLocaleFromEnvironment();
+
+function loadSession() {
+  return localStorage.getItem(SESSION_KEY) || "";
+}
+
+function loadWorldVisualMode() {
+  const saved = localStorage.getItem(WORLD_VISUAL_MODE_KEY) || "";
+  return ["live", "hybrid", "mock"].includes(saved) ? saved : "hybrid";
+}
+
+function loadWorldHierarchyPreset() {
+  const saved = localStorage.getItem(WORLD_HIERARCHY_PRESET_KEY) || "";
+  return ["project-first", "expanded"].includes(saved) ? saved : "project-first";
+}
+
+function saveWorldHierarchyPreset(preset) {
+  const next = ["project-first", "expanded"].includes(preset) ? preset : "project-first";
+  localStorage.setItem(WORLD_HIERARCHY_PRESET_KEY, next);
+  state.worldHierarchyPreset = next;
+}
+
+function loadWorldDeclutterMode() {
+  const saved = localStorage.getItem(WORLD_DECLUTTER_MODE_KEY) || "";
+  return ["focused", "balanced"].includes(saved) ? saved : "focused";
+}
+
+function saveWorldDeclutterMode(mode) {
+  const next = ["focused", "balanced"].includes(mode) ? mode : "focused";
+  localStorage.setItem(WORLD_DECLUTTER_MODE_KEY, next);
+  state.worldDeclutterMode = next;
+}
+
+function bootstrapSessionFromUrl() {
+  const url = new URL(window.location.href);
+  const humanId = (url.searchParams.get("sessionHumanId") || "").trim();
+  if (!humanId) return;
+  localStorage.setItem(SESSION_KEY, humanId);
+  url.searchParams.delete("sessionHumanId");
+  history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+}
+
+function bootstrapOnboarderCheckoutFromUrl() {
+  const url = new URL(window.location.href);
+  if (!url.searchParams.get("onboarderCheckout")) return;
+  state.pendingOnboarderCheckout = {
+    status: (url.searchParams.get("onboarderCheckout") || "").trim(),
+    purchaseId: (url.searchParams.get("purchaseId") || "").trim(),
+    checkoutSessionId: (url.searchParams.get("checkoutSessionId") || "").trim()
+  };
+  ONBOARDER_CHECKOUT_PARAMS.forEach((key) => url.searchParams.delete(key));
+  history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+}
+
+function bootstrapInstallerAuthFromUrl() {
+  const url = new URL(window.location.href);
+  const installerAuthSessionId = (url.searchParams.get("installerAuthSessionId") || "").trim();
+  if (!installerAuthSessionId) return;
+  state.pendingInstallerAuthSessionId = installerAuthSessionId;
+  url.searchParams.delete("installerAuthSessionId");
+  history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+}
+
+function normalizeLocale(locale) {
+  const raw = String(locale || "").trim().toLowerCase();
+  if (!raw) return "";
+  if (raw.startsWith("zh")) return "zh";
+  if (raw.startsWith("es")) return "es";
+  if (raw.startsWith("ja")) return "ja";
+  if (raw.startsWith("en")) return "en";
+  return "";
+}
+
+function resolveLocaleFromEnvironment() {
+  const url = new URL(window.location.href);
+  const queryLocale = normalizeLocale(url.searchParams.get("lang") || "");
+  if (APP_SUPPORTED_LOCALES.includes(queryLocale)) return queryLocale;
+
+  const savedLocale = normalizeLocale(localStorage.getItem(APP_LOCALE_KEY) || "");
+  if (APP_SUPPORTED_LOCALES.includes(savedLocale)) return savedLocale;
+
+  const browserLocales = Array.isArray(navigator.languages) && navigator.languages.length
+    ? navigator.languages
+    : [navigator.language || "en"];
+  for (const item of browserLocales) {
+    const normalized = normalizeLocale(item || "");
+    if (APP_SUPPORTED_LOCALES.includes(normalized)) return normalized;
+  }
+  return "en";
+}
+
+function appMessageTable(locale) {
+  const normalized = APP_SUPPORTED_LOCALES.includes(locale) ? locale : "en";
+  if (APP_I18N_CACHE.has(normalized)) return APP_I18N_CACHE.get(normalized);
+  const table = {
+    ...(APP_I18N.en || {}),
+    ...(APP_DYNAMIC_I18N.en || {}),
+    ...(APP_I18N[normalized] || {}),
+    ...(APP_DYNAMIC_I18N[normalized] || {})
+  };
+  APP_I18N_CACHE.set(normalized, table);
+  return table;
+}
+
+function interpolateTemplate(template, params = {}) {
+  return String(template).replace(/\{([a-zA-Z0-9_]+)\}/g, (_, token) => {
+    if (!(token in params)) return `{${token}}`;
+    return String(params[token]);
+  });
+}
+
+function appT(key, params = null) {
+  const table = appMessageTable(state.locale);
+  let value = table?.[key];
+  if (value == null) {
+    value = (APP_I18N.en || {})[key] ?? (APP_DYNAMIC_I18N.en || {})[key];
+  }
+  if (value == null) {
+    if (!APP_I18N_MISSING_KEYS.has(key)) {
+      APP_I18N_MISSING_KEYS.add(key);
+      console.warn(`[i18n] missing key: ${key}`);
+    }
+    return key;
+  }
+  return params ? interpolateTemplate(value, params) : value;
+}
+
+function syncLocaleSearchParam() {
+  const url = new URL(window.location.href);
+  if (url.searchParams.get("lang") !== state.locale) {
+    url.searchParams.set("lang", state.locale);
+    history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+  }
+}
+
+function setNodeText(selector, text) {
+  const node = document.querySelector(selector);
+  if (!node) return;
+  node.textContent = text;
+}
+
+function applyDataI18nBindings() {
+  document.querySelectorAll("[data-i18n]").forEach((node) => {
+    const key = node.getAttribute("data-i18n");
+    if (!key) return;
+    node.textContent = appT(key);
+  });
+  document.querySelectorAll("[data-i18n-placeholder]").forEach((node) => {
+    const key = node.getAttribute("data-i18n-placeholder");
+    if (!key) return;
+    node.setAttribute("placeholder", appT(key));
+  });
+  document.querySelectorAll("[data-i18n-title]").forEach((node) => {
+    const key = node.getAttribute("data-i18n-title");
+    if (!key) return;
+    node.setAttribute("title", appT(key));
+  });
+}
+
+function applyAppLocaleToStaticText() {
+  document.documentElement.lang = state.locale === "zh" ? "zh-CN" : state.locale;
+  APP_STATIC_TEXT_BINDINGS.forEach(([selector, key]) => {
+    setNodeText(selector, appT(key));
+  });
+  applyDataI18nBindings();
+  const localeSelect = $("app-locale-select");
+  if (localeSelect && localeSelect.value !== state.locale) {
+    localeSelect.value = state.locale;
+  }
+}
+
+function setAppLocale(locale, { persist = true, syncUrl = true } = {}) {
+  const normalized = normalizeLocale(locale) || "en";
+  state.locale = APP_SUPPORTED_LOCALES.includes(normalized) ? normalized : "en";
+  if (persist) localStorage.setItem(APP_LOCALE_KEY, state.locale);
+  if (syncUrl) syncLocaleSearchParam();
+  applyAppLocaleToStaticText();
+}
+
+function saveSession(humanId) {
+  if (humanId) localStorage.setItem(SESSION_KEY, humanId);
+  else localStorage.removeItem(SESSION_KEY);
+  state.sessionHumanId = humanId || "";
+}
+
+function saveWorldVisualMode(mode) {
+  const next = ["live", "hybrid", "mock"].includes(mode) ? mode : "hybrid";
+  localStorage.setItem(WORLD_VISUAL_MODE_KEY, next);
+  state.worldVisualMode = next;
+}
 
 async function request(path, method = "GET", body) {
+  const headers = {};
+  if (body) headers["Content-Type"] = "application/json";
+  if (state.sessionHumanId) headers["X-ELO-Session-Human-Id"] = state.sessionHumanId;
   const res = await fetch(path, {
     method,
-    headers: body ? { "Content-Type": "application/json" } : {},
+    headers,
     body: body ? JSON.stringify(body) : undefined
   });
-  return res.json();
+  const payload = await res.json();
+  if (!res.ok || payload.error) throw new Error(payload.error || `request failed: ${res.status}`);
+  return payload;
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function renderDirectoryExternalLinks(links, emptyMessage) {
+  const { availableLinks, missingLinks } = classifyExternalLinks(links);
+  const linkMarkup = availableLinks.map((link) => `
+    <a class="topbar-button ghost" href="${escapeHtml(link.href)}" target="_blank" rel="noreferrer">${escapeHtml(link.label)}</a>
+  `).join("");
+  const missingNotes = missingLinks.map((link) => `
+    <span class="directory-action-note">${escapeHtml(link.missingMessage || `${link.label} publishes after that surface is available.`)}</span>
+  `).join("");
+  if (!linkMarkup && !missingNotes) {
+    return `<span class="directory-action-note">${escapeHtml(emptyMessage)}</span>`;
+  }
+  return `${linkMarkup}${missingNotes}`;
+}
+
+function setStatus(message, kind = "ok") {
+  const line = $("status-line");
+  if (!line) return;
+  line.textContent = message;
+  line.dataset.kind = kind;
+}
+
+const ONBOARDER_PACKAGE_LEVELS = {
+  "starter-openclaw": "L1",
+  "work-openclaw": "L2",
+  "vision-openclaw": "L3",
+  "builder-openclaw": "L4"
+};
+
+const ONBOARDER_PACKAGE_AUDIENCE = {
+  "starter-openclaw": "个人用户 / Personal users",
+  "work-openclaw": "办公与内容团队 / Office & content teams",
+  "vision-openclaw": "视频与增长团队 / Video & growth teams",
+  "builder-openclaw": "工程与项目团队 / Engineering teams"
+};
+
+function onboarderBillingStatusForPackage(packageId) {
+  const readiness = state.onboarderBillingReadiness || {};
+  const packages = readiness.packages || {};
+  return packages[packageId] || { configured: false, keyUsed: "", source: "missing" };
+}
+
+function startInstallerDownload(targetOs = "macos") {
+  const safeOs = String(targetOs || "macos").toLowerCase() === "windows" ? "windows" : "macos";
+  const sessionHumanId = (state.sessionHumanId || "").trim();
+  const query = sessionHumanId ? `&sessionHumanId=${encodeURIComponent(sessionHumanId)}` : "";
+  const downloadUrl = `/api/onboarder/installer/download?os=${encodeURIComponent(safeOs)}${query}`;
+  const link = document.createElement("a");
+  link.href = downloadUrl;
+  link.rel = "noopener";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setStatus(`Installer download started for ${safeOs}.`, "ok");
+}
+
+function scrollToOnboarderDownloadAnchor(root) {
+  if (!root) return;
+  const anchor = root.querySelector('[data-onboarder-anchor="download-top"]');
+  if (!anchor) return;
+  anchor.scrollIntoView({ behavior: "smooth", block: "start" });
+  const targets = root.querySelectorAll(".onb-download-button");
+  targets.forEach((node) => node.classList.add("is-attention"));
+  window.setTimeout(() => {
+    targets.forEach((node) => node.classList.remove("is-attention"));
+  }, 900);
+}
+
+function renderOnboarderLanding() {
+  const root = $("onboarder-landing-root");
+  if (!root) return;
+  const offer = state.onboarderPublicOffer;
+  const packages = offer?.packages || [];
+  const billing = state.onboarderBillingReadiness || {};
+  const globalReady = Boolean(billing.configured);
+  const checkoutState = state.pendingOnboarderCheckout?.status || "";
+  const features = [
+    {
+      title: "零安装门槛",
+      description: "全流程图形化引导，不会命令行也能完成安装配置。",
+      hue: "gold"
+    },
+    {
+      title: "无隐私泄漏",
+      description: "API Key 仅本地写入，不上传、不存储、不传输到服务器。",
+      hue: "green"
+    },
+    {
+      title: "预算可控",
+      description: "配套本地 Dashboard，查看调用次数与费用估算。",
+      hue: "blue"
+    }
+  ];
+  const steps = [
+    {
+      id: "01",
+      title: "下载并启动安装器",
+      description: "选择系统版本，双击打开安装器即可开始。"
+    },
+    {
+      id: "02",
+      title: "登录授权 + 选择套餐",
+      description: "按向导填写 Agent 信息、模型配置和聊天绑定。"
+    },
+    {
+      id: "03",
+      title: "支付并自动安装",
+      description: "支付在安装器内完成，安装结束后直接进入使用阶段。"
+    }
+  ];
+  const faqs = [
+    {
+      q: "我不会命令行可以使用吗？",
+      a: "可以。安装器是普通用户流程，你只需要按页面提示点击下一步。"
+    },
+    {
+      q: "支持哪些系统？",
+      a: "当前支持 macOS 和 Windows。"
+    },
+    {
+      q: "API Key 会上传到服务器吗？",
+      a: "不会。API Key 只在本地写入配置文件，不上传 EOW。"
+    },
+    {
+      q: "安装后下一步做什么？",
+      a: "打开本地 Dashboard，按引导补全高级 Keys 并查看用量与费用估算。"
+    }
+  ];
+  root.innerHTML = `
+    <section class="onb-hero onb-glass-card" data-onboarder-anchor="download-top">
+      <div class="onb-hero-copy">
+        <span class="onb-badge">ELO Claw Installer · 龙虾安装器</span>
+        <h3>一键安装你的 OpenClaw Agent</h3>
+        <p>无需命令行，图形化向导完成配置与上线。让普通用户也能快速拥有可执行的 AI Agent。</p>
+        <div class="onb-action-row">
+          <button type="button" class="onb-btn onb-btn-primary onb-download-button onboarder-landing-download" data-installer-os="macos">Download for macOS</button>
+          <button type="button" class="onb-btn onb-btn-ghost onb-download-button onboarder-landing-download" data-installer-os="windows">Download for Windows</button>
+          <button type="button" class="onb-btn onb-btn-soft" data-route-target="join">${state.sessionHumanId ? "Manage Identity" : "Sign In / Register"}</button>
+        </div>
+        <p class="onb-note">支付在安装器内完成。API Key 仅本地写入，不上传服务器。</p>
+      </div>
+      <div class="onb-hero-side">
+        <div class="onb-kpi">
+          <span>Flow</span>
+          <strong>Download -> Login -> Configure -> Pay -> Install</strong>
+        </div>
+        <div class="onb-kpi">
+          <span>Billing</span>
+          <strong>${globalReady ? "Ready for production packages" : "Partially configured"}</strong>
+        </div>
+        <div class="onb-kpi">
+          <span>Local Security</span>
+          <strong>API Key local-only write</strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="onb-section">
+      <div class="onb-section-head">
+        <h3>为什么选择 ELO</h3>
+        <p>零门槛安装、安全可信、可持续运营。</p>
+      </div>
+      <div class="onb-feature-grid">
+        ${features.map((item) => `
+          <article class="onb-glass-card onb-feature-card onb-hue-${item.hue}">
+            <h4>${item.title}</h4>
+            <p>${item.description}</p>
+          </article>
+        `).join("")}
+      </div>
+    </section>
+
+    <section class="onb-section">
+      <div class="onb-section-head">
+        <h3>三步开启你的 AI Agent</h3>
+        <p>流程简单，安装器全程引导。</p>
+      </div>
+      <div class="onb-step-grid">
+        ${steps.map((step) => `
+          <article class="onb-glass-card onb-step-card">
+            <span class="onb-step-id">${step.id}</span>
+            <h4>${step.title}</h4>
+            <p>${step.description}</p>
+          </article>
+        `).join("")}
+      </div>
+      <div class="onb-inline-cta-wrap">
+        <button type="button" class="onb-btn onb-btn-primary" data-onboarder-cta="to-download">立即开始</button>
+      </div>
+    </section>
+
+    ${checkoutState ? `
+      <section class="onboarder-banner ${checkoutState === "success" ? "success" : "warn"}">
+        ${checkoutState === "success"
+          ? "Checkout detected. Purchase confirmation is running in your signed-in session."
+          : "Checkout was cancelled. You can continue with installer download first."}
+      </section>
+    ` : ""}
+
+    <section class="onb-section">
+      <div class="onb-section-head">
+        <h3>按需选择套餐</h3>
+        <p>套餐与状态由服务端动态下发，安装器内支付。</p>
+      </div>
+      <div class="onb-package-grid">
+      ${packages.length ? packages.map((pkg) => {
+        const bill = onboarderBillingStatusForPackage(pkg.packageId);
+        const enabled = bill.configured;
+        return `
+          <article class="onb-glass-card onb-package-card ${enabled ? "" : "disabled"}">
+            <div class="summary-row">
+              <strong>${pkg.displayName}</strong>
+              <span class="onb-level">${ONBOARDER_PACKAGE_LEVELS[pkg.packageId] || "L?"}</span>
+            </div>
+            <p>${pkg.description}</p>
+            <div class="detail-grid compact">
+              <div class="detail-item"><span>Price</span><strong>$${pkg.displayPriceUsd}</strong></div>
+              <div class="detail-item"><span>Audience</span><strong>${ONBOARDER_PACKAGE_AUDIENCE[pkg.packageId] || "General"}</strong></div>
+              <div class="detail-item"><span>Billing</span><strong>${enabled ? "Ready" : "Not ready"}</strong></div>
+            </div>
+            <div class="tag-row">
+              ${(pkg.includedCapabilities || []).slice(0, 5).map((cap) => `<span class="subtle-tag">${cap}</span>`).join("")}
+            </div>
+            <p class="note">${enabled ? "可在安装器中支付并安装。" : "支付配置未就绪，仅支持下载安装器。"} / ${bill.keyUsed ? `key: ${bill.keyUsed}` : "missing price key"}</p>
+            <div class="onb-inline-cta-wrap">
+              <button type="button" class="onb-btn onb-btn-soft" data-onboarder-cta="to-download">选择套餐</button>
+            </div>
+          </article>
+        `;
+      }).join("") : '<div class="empty">Package offer data is not available yet.</div>'}
+      </div>
+    </section>
+
+    <section class="onb-section">
+      <div class="onb-section-head">
+        <h3>安全与隐私保障</h3>
+        <p>本地优先架构，敏感配置由用户设备掌控。</p>
+      </div>
+      <div class="onb-security-grid">
+        <article class="onb-glass-card"><h4>API Key 仅本地写入</h4><p>安装器不会上传、存储或传输用户 API Key。</p></article>
+        <article class="onb-glass-card"><h4>Stripe 一次性支付</h4><p>支付在安装器内完成，订单状态可自动回流确认。</p></article>
+        <article class="onb-glass-card"><h4>安装后可持续管理</h4><p>通过本地 Dashboard 管理 API Keys、套餐能力与费用估算。</p></article>
+      </div>
+    </section>
+
+    <section class="onb-section">
+      <div class="onb-section-head">
+        <h3>FAQ</h3>
+        <p>你最常见的问题都在这里。</p>
+      </div>
+      <div class="onb-faq-list">
+        ${faqs.map((item, index) => `
+          <article class="onb-faq-item">
+            <button type="button" class="onb-faq-trigger" aria-expanded="${index === 0 ? "true" : "false"}">
+              <span>${item.q}</span>
+              <span class="onb-faq-icon">+</span>
+            </button>
+            <div class="onb-faq-panel" ${index === 0 ? "" : "hidden"}>
+              <p>${item.a}</p>
+            </div>
+          </article>
+        `).join("")}
+      </div>
+    </section>
+
+    <section class="onb-footer-cta onb-glass-card">
+      <h3>准备好开始了吗？</h3>
+      <p>下载 ELO Claw Installer，按向导完成安装与配置。</p>
+      <div class="onb-action-row">
+        <button type="button" class="onb-btn onb-btn-primary" data-onboarder-cta="to-download">Download Installer</button>
+        <button type="button" class="onb-btn onb-btn-soft" data-onboarder-cta="to-download">View Plans</button>
+      </div>
+    </section>
+  `;
+  root.querySelectorAll(".onboarder-landing-download").forEach((node) => {
+    node.addEventListener("click", () => {
+      try {
+        startInstallerDownload(node.dataset.installerOs || "macos");
+      } catch (error) {
+        setStatus(error.message, "error");
+      }
+    });
+  });
+  root.querySelectorAll('[data-onboarder-cta="to-download"]').forEach((node) => {
+    node.addEventListener("click", () => scrollToOnboarderDownloadAnchor(root));
+  });
+  root.querySelectorAll("[data-route-target]").forEach((node) => {
+    node.addEventListener("click", () => goToRoute(node.dataset.routeTarget));
+  });
+  root.querySelectorAll(".onb-faq-trigger").forEach((button) => {
+    button.addEventListener("click", () => {
+      const panel = button.nextElementSibling;
+      if (!panel) return;
+      const expanded = button.getAttribute("aria-expanded") === "true";
+      button.setAttribute("aria-expanded", expanded ? "false" : "true");
+      panel.hidden = expanded;
+    });
+  });
+}
+
+function currentRoute() {
+  migrateLegacyHashRoute();
+  const { route, settingsSection } = resolvePathRoute(window.location.pathname || "/");
+  if (route === "settings") {
+    state.activeSettingsSection = settingsSection;
+  }
+  return route;
+}
+
+function resolvePathRoute(pathname) {
+  const path = (String(pathname || "").replace(/\/+$/, "") || "/");
+  if (path === "/" || path === "/home") return { route: "home", settingsSection: SETTINGS_DEFAULT_SECTION };
+  if (path === "/join") return { route: "join", settingsSection: SETTINGS_DEFAULT_SECTION };
+  if (path === "/new-project") return { route: "new-project", settingsSection: SETTINGS_DEFAULT_SECTION };
+  if (path === "/project") return { route: "project", settingsSection: SETTINGS_DEFAULT_SECTION };
+  if (path === "/world") return { route: "world", settingsSection: SETTINGS_DEFAULT_SECTION };
+  if (path === "/build") return { route: "build", settingsSection: SETTINGS_DEFAULT_SECTION };
+  if (path === "/market") return { route: "market", settingsSection: SETTINGS_DEFAULT_SECTION };
+  if (path === "/docs") return { route: "docs", settingsSection: SETTINGS_DEFAULT_SECTION };
+  if (path === "/settings") return { route: "settings", settingsSection: SETTINGS_DEFAULT_SECTION };
+  if (path.startsWith("/settings/")) {
+    const section = path.slice("/settings/".length).trim().toLowerCase();
+    return {
+      route: "settings",
+      settingsSection: SETTINGS_SECTIONS.has(section) ? section : SETTINGS_DEFAULT_SECTION
+    };
+  }
+  return { route: "home", settingsSection: SETTINGS_DEFAULT_SECTION };
+}
+
+function legacyHashToPath(hashValue) {
+  const raw = String(hashValue || "").replace(/^#/, "").trim();
+  if (!raw) return "";
+  const [first, second] = raw.split("/");
+  const route = String(first || "").toLowerCase();
+  if (route === "onboarder") return "/onboarder";
+  if (route === "home") return "/";
+  if (route === "settings") {
+    const section = String(second || "").toLowerCase();
+    if (SETTINGS_SECTIONS.has(section)) return `/settings/${section}`;
+    return `/settings/${SETTINGS_DEFAULT_SECTION}`;
+  }
+  if (ROUTES.has(route) && route !== "onboarder") {
+    return `/${route}`;
+  }
+  return "";
+}
+
+function migrateLegacyHashRoute() {
+  const hash = window.location.hash || "";
+  if (!hash) return;
+  const targetPath = legacyHashToPath(hash);
+  if (!targetPath) return;
+  if (targetPath === "/onboarder") {
+    window.location.replace("/onboarder");
+    return;
+  }
+  const url = new URL(window.location.href);
+  url.hash = "";
+  url.pathname = targetPath;
+  window.history.replaceState({}, "", `${url.pathname}${url.search}`);
+}
+
+function routeToPath(route, options = {}) {
+  const safeRoute = ROUTES.has(route) ? route : "home";
+  if (safeRoute === "home") return "/";
+  if (safeRoute === "settings") {
+    const sectionCandidate = String(options.settingsSection || SETTINGS_DEFAULT_SECTION).toLowerCase();
+    const section = SETTINGS_SECTIONS.has(sectionCandidate) ? sectionCandidate : SETTINGS_DEFAULT_SECTION;
+    return `/settings/${section}`;
+  }
+  return `/${safeRoute}`;
+}
+
+function goToRoute(route, options = {}) {
+  const safeRoute = ROUTES.has(route) ? route : "home";
+  if (safeRoute === "onboarder") {
+    const target = new URL("/onboarder", window.location.origin);
+    target.searchParams.set("lang", state.locale || "en");
+    window.location.href = `${target.pathname}${target.search}`;
+    return;
+  }
+  const targetPath = routeToPath(safeRoute, options);
+  const url = new URL(window.location.href);
+  if (url.pathname !== targetPath || url.hash) {
+    window.history.pushState({}, "", `${targetPath}${url.search}`);
+  }
+  if (safeRoute === "settings") {
+    const sectionCandidate = String(options.settingsSection || SETTINGS_DEFAULT_SECTION).toLowerCase();
+    state.activeSettingsSection = SETTINGS_SECTIONS.has(sectionCandidate) ? sectionCandidate : SETTINGS_DEFAULT_SECTION;
+  }
+  showRoute(currentRoute());
+}
+
+function currentHuman() {
+  if (!state.summary || !state.sessionHumanId) return null;
+  return (state.summary.identity?.humans || []).find((human) => human.humanId === state.sessionHumanId) || null;
+}
+
+function currentHumanAgents() {
+  const human = currentHuman();
+  if (!human || !state.summary) return [];
+  return (state.summary.identity?.agents || []).filter((agent) => agent.humanId === human.humanId);
+}
+
+function currentHumanProjects() {
+  const human = currentHuman();
+  if (!human || !state.summary) return [];
+  const agentIds = new Set(currentHumanAgents().map((agent) => agent.agentId));
+  return (state.summary.projects || []).filter((project) => {
+    if (project.ownerHumanId === human.humanId) return true;
+    return (project.memberAgentIds || []).some((agentId) => agentIds.has(agentId));
+  });
+}
+
+function currentHumanProjectIds() {
+  return new Set(currentHumanProjects().map((project) => project.projectId));
+}
+
+function openProjectWorkspace(projectId) {
+  state.activeProjectId = projectId || "";
+  goToRoute("project");
+}
+
+function activeProject() {
+  if (!state.summary || !state.activeProjectId) return null;
+  return (state.summary.projects || []).find((project) => project.projectId === state.activeProjectId) || null;
+}
+
+function currentWorldProjects() {
+  const liveProjects = state.summary?.projects || [];
+  if (state.worldVisualMode === "live") return liveProjects;
+  const visualProjects = buildWorldVisualProjects(liveProjects);
+  if (state.worldVisualMode === "mock") return visualProjects;
+  return mergeWorldProjects(liveProjects, visualProjects);
+}
+
+function worldVisualBaseOwners(liveProjects) {
+  const liveOwners = [...new Set(liveProjects.map((project) => project.ownerHumanId).filter(Boolean))];
+  return liveOwners.length
+    ? liveOwners
+    : [
+        "human.github.peterpan42388",
+        "human.github.architect",
+        "human.github.maker",
+        "human.github.researcher",
+        "human.github.operator",
+        "human.github.designer"
+      ];
+}
+
+function worldVisualBaseAgents(liveProjects) {
+  const liveAgents = [...new Set(liveProjects.flatMap((project) => project.memberAgentIds || []).filter(Boolean))];
+  return liveAgents.length
+    ? liveAgents
+    : [
+        "agent.grace.openclaw",
+        "agent.atlas.openclaw",
+        "agent.cinder.openclaw",
+        "agent.orbit.openclaw",
+        "agent.sage.openclaw",
+        "agent.river.openclaw"
+      ];
+}
+
+function worldVisualBasePlugins(liveProjects) {
+  const livePlugins = [...new Set(liveProjects.flatMap((project) => project.pluginIds || []).filter(Boolean))];
+  return livePlugins.length
+    ? livePlugins
+    : [
+        "plugin.elo-agent-web-plugin",
+        "plugin.elo-agent-onboarder",
+        "plugin.elo-market",
+        "plugin.elo-governance",
+        "plugin.elo-signal"
+      ];
+}
+
+function worldVisualPool(baseItems, fallbackItems, minimum = fallbackItems.length) {
+  const merged = [...new Set([...(baseItems || []), ...fallbackItems])];
+  return merged.slice(0, Math.max(minimum, merged.length));
+}
+
+function worldVisualPick(pool, index) {
+  return pool[((index % pool.length) + pool.length) % pool.length];
+}
+
+function worldStringHash(value) {
+  const text = String(value || "");
+  let hash = 2166136261;
+  for (let index = 0; index < text.length; index += 1) {
+    hash ^= text.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function worldHashUnit(value) {
+  return worldStringHash(value) / 4294967295;
+}
+
+function worldVisualClusterAnchor(clusterId) {
+  return {
+    foundation: { x: 0.46, y: 0.34 },
+    market: { x: 0.67, y: 0.42 },
+    social: { x: 0.34, y: 0.59 },
+    research: { x: 0.57, y: 0.64 },
+    builder: { x: 0.29, y: 0.43 },
+    federation: { x: 0.71, y: 0.29 },
+    commons: { x: 0.5, y: 0.49 },
+    operations: { x: 0.61, y: 0.55 }
+  }[clusterId] || { x: 0.5, y: 0.5 };
+}
+
+function buildWorldVisualProjects(liveProjects) {
+  const owners = worldVisualPool(worldVisualBaseOwners(liveProjects), [
+    "human.github.foundation",
+    "human.github.marketmaker",
+    "human.github.socialweaver",
+    "human.github.researchdock",
+    "human.github.builderforge",
+    "human.github.federationkeeper",
+    "human.github.commonsbridge",
+    "human.github.runtimepilot"
+  ], 8);
+  const agents = worldVisualPool(worldVisualBaseAgents(liveProjects), [
+    "agent.grace.openclaw",
+    "agent.atlas.openclaw",
+    "agent.cinder.openclaw",
+    "agent.orbit.openclaw",
+    "agent.sage.openclaw",
+    "agent.river.openclaw",
+    "agent.lattice.openclaw",
+    "agent.pulse.openclaw",
+    "agent.delta.openclaw",
+    "agent.ember.openclaw",
+    "agent.lumen.openclaw",
+    "agent.tangent.openclaw"
+  ], 12);
+  const plugins = worldVisualPool(worldVisualBasePlugins(liveProjects), [
+    "plugin.elo-agent-web-plugin",
+    "plugin.elo-agent-onboarder",
+    "plugin.elo-market",
+    "plugin.elo-governance",
+    "plugin.elo-signal",
+    "plugin.elo-knowledge",
+    "plugin.elo-builder",
+    "plugin.elo-federation",
+    "plugin.elo-presence",
+    "plugin.elo-delivery"
+  ], 10);
+  const clusters = [
+    {
+      id: "foundation",
+      label: "Foundation",
+      ownerIndexes: [0, 7],
+      agentIndexes: [0, 1, 6, 11],
+      pluginIndexes: [0, 1, 3],
+      projects: [
+        { slug: "onboarding-dock", title: "Onboarding Dock", kind: "service", stage: "operating", state: "operating", tags: ["foundation", "onboarding", "entry"], rating: 4.9, heat: 940, agentSlots: [0, 1], pluginSlots: [0], role: "anchor" },
+        { slug: "browser-bridge-hub", title: "Browser Bridge Hub", kind: "service", stage: "operating", state: "operating", tags: ["foundation", "browser", "bridge"], rating: 4.8, heat: 860, agentSlots: [1, 2], pluginSlots: [0], role: "core" },
+        { slug: "governance-substrate", title: "Governance Substrate", kind: "protocol", stage: "source", state: "developing", tags: ["foundation", "governance", "rules"], rating: 4.4, heat: 520, agentSlots: [0, 3], pluginSlots: [2], role: "support" },
+        { slug: "runtime-harbor", title: "Runtime Harbor", kind: "platform", stage: "source", state: "developing", tags: ["foundation", "runtime", "operator"], rating: 4.5, heat: 610, agentSlots: [2, 3], pluginSlots: [1], role: "support" }
+      ]
+    },
+    {
+      id: "market",
+      label: "Market",
+      ownerIndexes: [1, 6],
+      agentIndexes: [2, 3, 7, 8],
+      pluginIndexes: [2, 4, 9],
+      projects: [
+        { slug: "service-exchange", title: "Service Exchange", kind: "service", stage: "operating", state: "operating", tags: ["market", "exchange", "settlement"], rating: 4.7, heat: 820, agentSlots: [0, 1], pluginSlots: [0], role: "anchor" },
+        { slug: "pricing-ledger", title: "Pricing Ledger", kind: "service", stage: "source", state: "developing", tags: ["market", "pricing", "ledger"], rating: 4.2, heat: 460, agentSlots: [1, 2], pluginSlots: [1], role: "core" },
+        { slug: "agent-bazaar", title: "Agent Bazaar", kind: "service", stage: "operating", state: "operating", tags: ["market", "agent", "bazaar"], rating: 4.6, heat: 760, agentSlots: [0, 2], pluginSlots: [0, 2], role: "anchor" },
+        { slug: "access-clearing", title: "Access Clearing", kind: "protocol", stage: "source", state: "developing", tags: ["market", "access", "gating"], rating: 4.1, heat: 390, agentSlots: [1, 3], pluginSlots: [2], role: "support" }
+      ]
+    },
+    {
+      id: "social",
+      label: "Social",
+      ownerIndexes: [2, 6],
+      agentIndexes: [3, 4, 8, 9],
+      pluginIndexes: [4, 8],
+      projects: [
+        { slug: "public-square", title: "Public Square", kind: "app", stage: "source", state: "developing", tags: ["social", "public", "community"], rating: 4.3, heat: 520, agentSlots: [0, 1], pluginSlots: [0], role: "anchor" },
+        { slug: "signal-current", title: "Signal Current", kind: "service", stage: "operating", state: "operating", tags: ["social", "signal", "community"], rating: 4.5, heat: 640, agentSlots: [1, 2], pluginSlots: [0, 1], role: "core" },
+        { slug: "coordination-mesh", title: "Coordination Mesh", kind: "app", stage: "source", state: "developing", tags: ["social", "coordination", "workspace"], rating: 4.1, heat: 410, agentSlots: [0, 2], pluginSlots: [1], role: "bridge" },
+        { slug: "presence-stream", title: "Presence Stream", kind: "service", stage: "source", state: "paused", tags: ["social", "presence", "signal"], rating: 3.8, heat: 260, agentSlots: [2, 3], pluginSlots: [0], role: "support" }
+      ]
+    },
+    {
+      id: "research",
+      label: "Research",
+      ownerIndexes: [3, 7],
+      agentIndexes: [4, 5, 9, 10],
+      pluginIndexes: [5, 3],
+      projects: [
+        { slug: "research-spine", title: "Research Spine", kind: "service", stage: "source", state: "developing", tags: ["research", "evaluation", "knowledge"], rating: 4.4, heat: 540, agentSlots: [0, 1], pluginSlots: [0], role: "anchor" },
+        { slug: "eval-atelier", title: "Eval Atelier", kind: "service", stage: "operating", state: "operating", tags: ["research", "evaluation", "metrics"], rating: 4.6, heat: 690, agentSlots: [1, 2], pluginSlots: [0, 1], role: "core" },
+        { slug: "memory-harbor", title: "Memory Harbor", kind: "service", stage: "source", state: "developing", tags: ["research", "memory", "archive"], rating: 4.0, heat: 350, agentSlots: [0, 2], pluginSlots: [1], role: "support" },
+        { slug: "knowledge-loom", title: "Knowledge Loom", kind: "platform", stage: "source", state: "developing", tags: ["research", "knowledge", "loom"], rating: 4.2, heat: 430, agentSlots: [2, 3], pluginSlots: [1], role: "bridge" }
+      ]
+    },
+    {
+      id: "builder",
+      label: "Builder",
+      ownerIndexes: [4, 6],
+      agentIndexes: [1, 6, 7, 10],
+      pluginIndexes: [6, 9, 0],
+      projects: [
+        { slug: "forge-canvas", title: "Forge Canvas", kind: "app", stage: "source", state: "developing", tags: ["builder", "forge", "workspace"], rating: 4.5, heat: 630, agentSlots: [0, 1], pluginSlots: [0, 2], role: "anchor" },
+        { slug: "builder-yard", title: "Builder Yard", kind: "app", stage: "source", state: "developing", tags: ["builder", "yard", "delivery"], rating: 4.2, heat: 470, agentSlots: [1, 2], pluginSlots: [0], role: "core" },
+        { slug: "delivery-halo", title: "Delivery Halo", kind: "service", stage: "operating", state: "operating", tags: ["builder", "delivery", "runtime"], rating: 4.7, heat: 810, agentSlots: [0, 2], pluginSlots: [1, 2], role: "bridge" },
+        { slug: "studio-lattice", title: "Studio Lattice", kind: "app", stage: "source", state: "developing", tags: ["builder", "studio", "creative"], rating: 4.1, heat: 390, agentSlots: [2, 3], pluginSlots: [0], role: "support" }
+      ]
+    },
+    {
+      id: "federation",
+      label: "Federation",
+      ownerIndexes: [5, 7],
+      agentIndexes: [0, 5, 10, 11],
+      pluginIndexes: [7, 3, 8],
+      projects: [
+        { slug: "world-fabric", title: "World Fabric", kind: "platform", stage: "source", state: "developing", tags: ["federation", "world", "fabric"], rating: 4.6, heat: 720, agentSlots: [0, 1], pluginSlots: [0], role: "anchor" },
+        { slug: "parallel-nest", title: "Parallel Nest", kind: "platform", stage: "source", state: "developing", tags: ["federation", "parallel", "universe"], rating: 4.4, heat: 560, agentSlots: [1, 2], pluginSlots: [0, 1], role: "core" },
+        { slug: "gateway-relay", title: "Gateway Relay", kind: "service", stage: "operating", state: "operating", tags: ["federation", "gateway", "routing"], rating: 4.5, heat: 650, agentSlots: [0, 2], pluginSlots: [1, 2], role: "bridge" },
+        { slug: "interlink-atlas", title: "Interlink Atlas", kind: "service", stage: "source", state: "developing", tags: ["federation", "atlas", "interlink"], rating: 4.0, heat: 340, agentSlots: [2, 3], pluginSlots: [0], role: "support" }
+      ]
+    }
+  ];
+  const bridgeProjects = [
+    {
+      clusterId: "commons",
+      clusterRole: "bridge",
+      ownerHumanId: worldVisualPick(owners, 6),
+      agentIndexes: [1, 3, 5, 7],
+      pluginIndexes: [0, 2, 4, 7],
+      slug: "commons-bridge",
+      title: "Commons Bridge",
+      kind: "service",
+      stage: "operating",
+      state: "operating",
+      tags: ["commons", "bridge", "coordination"],
+      rating: 4.6,
+      heat: 730
+    },
+    {
+      clusterId: "operations",
+      clusterRole: "bridge",
+      ownerHumanId: worldVisualPick(owners, 7),
+      agentIndexes: [0, 6, 9, 11],
+      pluginIndexes: [1, 3, 6, 9],
+      slug: "operator-relay",
+      title: "Operator Relay",
+      kind: "platform",
+      stage: "operating",
+      state: "operating",
+      tags: ["operations", "relay", "runtime"],
+      rating: 4.7,
+      heat: 780
+    }
+  ];
+
+  const projects = [];
+  let visualIndex = 0;
+  clusters.forEach((cluster, clusterIndex) => {
+    cluster.projects.forEach((entry, projectIndex) => {
+      const ownerHumanId = worldVisualPick(owners, cluster.ownerIndexes[projectIndex % cluster.ownerIndexes.length]);
+      const memberAgentIds = [...new Set(
+        entry.agentSlots.map((slot) => worldVisualPick(agents, cluster.agentIndexes[slot % cluster.agentIndexes.length]))
+      )].slice(0, entry.role === "anchor" || entry.role === "bridge" ? 2 : 1);
+      const pluginIds = [...new Set(
+        entry.pluginSlots.map((slot) => worldVisualPick(plugins, cluster.pluginIndexes[slot % cluster.pluginIndexes.length]))
+      )].slice(0, entry.role === "bridge" ? 2 : 1);
+      const repoName = `visual-${entry.slug}`;
+      const ownerLogin = (ownerHumanId || "human.visual").replace("human.github.", "");
+      const repoFullName = `${ownerLogin}/${repoName}`;
+      projects.push({
+        projectId: `visual.project.${entry.slug}`,
+        title: entry.title,
+        repoName,
+        repoFullName,
+        repoUrl: `https://github.com/${repoFullName}`,
+        ownerHumanId,
+        kind: entry.kind,
+        summary: `${entry.title} is synthetic ecosystem data for tuning the World explorer against clustered project relationships.`,
+        tags: entry.tags,
+        rating: entry.rating,
+        heat: entry.heat,
+        stage: entry.stage,
+        state: entry.state,
+        serviceEndpoint: entry.stage === "operating" ? `https://world.metavie.co/mock-services/${repoName}` : "",
+        pricingNote: entry.stage === "operating" ? "Visual lab operating surface" : "",
+        usageNote: "Synthetic project used for World explorer tuning.",
+        memberAgentIds,
+        memberRoles: Object.fromEntries(memberAgentIds.map((agentId, memberIndex) => [agentId, memberIndex === 0 ? "builder" : memberIndex === 1 ? "operator" : "support"])),
+        pluginIds,
+        foundationRuns: entry.stage === "operating"
+          ? [{
+              runId: `visual-run-${entry.slug}`,
+              action: "visual-benchmark",
+              agentId: memberAgentIds[0] || "-",
+              profile: "graph-visual-lab",
+              contract: "elo.world.visual-lab.v2",
+              templateCount: 5,
+              artifactFileCount: 6,
+              target: "world",
+              runtimeMode: "mock",
+              generatedAt: `2026-03-${String(11 + (visualIndex % 9)).padStart(2, "0")}T10:${String(12 + visualIndex).padStart(2, "0")}:00.000Z`
+            }]
+          : [],
+        participationRequests: visualIndex % 6 === 0
+          ? [{ humanId: "human.github.visitor", status: "pending", requestedAt: "2026-03-18T10:00:00.000Z" }]
+          : [],
+        operatingFoundation: false,
+        visualMock: true,
+        visualCluster: cluster.id,
+        visualClusterLabel: cluster.label,
+        visualClusterRole: entry.role,
+        visualAnchor: entry.role === "anchor"
+      });
+      visualIndex += 1;
+    });
+  });
+
+  bridgeProjects.forEach((entry, bridgeIndex) => {
+    const memberAgentIds = [...new Set(entry.agentIndexes.map((slot) => worldVisualPick(agents, slot)))].slice(0, 2);
+    const pluginIds = [...new Set(entry.pluginIndexes.map((slot) => worldVisualPick(plugins, slot)))].slice(0, 2);
+    const repoName = `visual-${entry.slug}`;
+    const ownerLogin = entry.ownerHumanId.replace("human.github.", "");
+    const repoFullName = `${ownerLogin}/${repoName}`;
+    projects.push({
+      projectId: `visual.project.${entry.slug}`,
+      title: entry.title,
+      repoName,
+      repoFullName,
+      repoUrl: `https://github.com/${repoFullName}`,
+      ownerHumanId: entry.ownerHumanId,
+      kind: entry.kind,
+      summary: `${entry.title} is a synthetic bridge project that ties multiple ecosystem clusters together for graph readability testing.`,
+      tags: entry.tags,
+      rating: entry.rating,
+      heat: entry.heat,
+      stage: entry.stage,
+      state: entry.state,
+      serviceEndpoint: `https://world.metavie.co/mock-services/${repoName}`,
+      pricingNote: "Visual lab operating surface",
+      usageNote: "Synthetic bridge project used for World explorer tuning.",
+      memberAgentIds,
+      memberRoles: Object.fromEntries(memberAgentIds.map((agentId, memberIndex) => [agentId, memberIndex === 0 ? "operator" : "bridge"])),
+      pluginIds,
+      foundationRuns: [{
+        runId: `visual-run-${entry.slug}`,
+        action: "visual-benchmark",
+        agentId: memberAgentIds[0] || "-",
+        profile: "graph-visual-lab",
+        contract: "elo.world.visual-lab.v2",
+        templateCount: 6,
+        artifactFileCount: 7,
+        target: "world",
+        runtimeMode: "mock",
+        generatedAt: `2026-03-${String(20 + bridgeIndex).padStart(2, "0")}T12:${String(bridgeIndex * 7).padStart(2, "0")}:00.000Z`
+      }],
+      participationRequests: [],
+      operatingFoundation: false,
+      visualMock: true,
+      visualCluster: entry.clusterId,
+      visualClusterLabel: entry.clusterId === "commons" ? "Commons Bridge" : "Operations Relay",
+      visualClusterRole: entry.clusterRole,
+      visualAnchor: true
+    });
+  });
+
+  return projects;
+}
+
+function mergeWorldProjects(liveProjects, visualProjects) {
+  const liveIds = new Set(liveProjects.map((project) => project.projectId));
+  return [...liveProjects, ...visualProjects.filter((project) => !liveIds.has(project.projectId))];
+}
+
+function isWorldVisualMockProject(project) {
+  return Boolean(project?.visualMock);
+}
+
+function foundationProjects() {
+  if (!state.summary) return [];
+  const preferredRepos = new Set([
+    "peterpan42388/elo-agent-onboarder",
+    "peterpan42388/elo-agent-web-plugin"
+  ]);
+  return (state.summary.projects || []).filter((project) => preferredRepos.has(project.repoFullName));
+}
+
+function isFoundationProject(project) {
+  return foundationProjects().some((item) => item.projectId === project?.projectId);
+}
+
+function isOperatingFoundationProject(project) {
+  const workspace = project ? foundationWorkspace(project) : null;
+  return Boolean(workspace?.operating);
+}
+
+function foundationWorkspace(project) {
+  return FOUNDATION_PROJECT_WORKSPACES[project.repoFullName] || { focus: "Foundation project.", docs: [] };
+}
+
+function foundationServicePath(project) {
+  if (!project?.repoFullName) return "";
+  if (project.repoFullName === "peterpan42388/elo-agent-onboarder") return "/services/elo-agent-onboarder";
+  if (project.repoFullName === "peterpan42388/elo-agent-web-plugin") return "/services/elo-agent-web-plugin";
+  return "";
+}
+
+function foundationToolDefaults() {
+  return {
+    profile: "",
+    target: "local",
+    platform: navigator.platform.toLowerCase().includes("mac") ? "macos" : "linux",
+    packageMode: "node",
+    runtimeMode: "local-process",
+    installRoot: "~/elo-open-world",
+    machineLabel: "local-machine"
+  };
+}
+
+function foundationBridgeDefaults() {
+  return {
+    browser: "chromium",
+    extensionMode: "unpacked",
+    siteOrigin: window.location.origin,
+    agentEndpoint: "http://127.0.0.1:18789"
+  };
+}
+
+function foundationPresetMap() {
+  return {
+    "macos-homebrew": {
+      profile: "macos-homebrew",
+      target: "local",
+      platform: "macos",
+      packageMode: "node",
+      runtimeMode: "homebrew",
+      installRoot: "~/elo-open-world",
+      machineLabel: "macbook-homebrew"
+    },
+    "linux-systemd": {
+      profile: "linux-systemd",
+      target: "local",
+      platform: "linux",
+      packageMode: "node",
+      runtimeMode: "systemd",
+      installRoot: "~/elo-open-world",
+      machineLabel: "linux-systemd"
+    },
+    "server-docker-compose": {
+      profile: "server-docker-compose",
+      target: "server",
+      platform: "linux",
+      packageMode: "docker",
+      runtimeMode: "docker-compose",
+      installRoot: "/opt/elo-open-world",
+      machineLabel: "server-docker-compose"
+    }
+  };
+}
+
+function renderFoundationArtifactActions(project) {
+  const artifact = state.latestFoundationArtifacts?.[project.projectId];
+  if (!artifact?.result) return "";
+  const servicePath = foundationServicePath(project);
+  return `
+    <div class="action-row foundation-artifact-actions">
+      <button type="button" class="topbar-button ghost foundation-copy-json" data-project-id="${project.projectId}">Copy JSON</button>
+      <button type="button" class="topbar-button ghost foundation-download-json" data-project-id="${project.projectId}">Download JSON</button>
+      ${artifact.result.artifactBundle ? `<button type="button" class="topbar-button ghost foundation-download-bundle" data-project-id="${project.projectId}">Download Artifact Bundle</button>` : ""}
+      ${artifact.result.artifactBundle && servicePath ? `<button type="button" class="topbar-button ghost foundation-download-zip" data-project-id="${project.projectId}" data-service-path="${servicePath}">Download ZIP</button>` : ""}
+      ${Object.keys(artifact.result.artifactBundle?.files || {}).map((name) => `<button type="button" class="topbar-button ghost foundation-download-bundle-file" data-project-id="${project.projectId}" data-bundle-file="${encodeURIComponent(name)}">Download ${name}</button>`).join("")}
+    </div>
+  `;
+}
+
+function renderFoundationRuntimeNotice() {
+  return `
+    <div class="foundation-runtime-note">
+      <div class="summary-row">
+        <strong>Runtime Modes</strong>
+        <span>Stub-ready package</span>
+      </div>
+      <p>
+        Generated artifacts now include a runnable <code>stub runtime</code> so users can test directory layout,
+        health checks, and status reporting before integrating a real OpenClaw-compatible runtime.
+      </p>
+      <ul class="content-list">
+        <li><strong>Stub Runtime:</strong> good for first boot, health checks, and EOW status reporting.</li>
+        <li><strong>Real Runtime:</strong> replace <code>bin/openclaw-runtime.js</code> with your actual OpenClaw-compatible entrypoint.</li>
+        <li><strong>Shared Config:</strong> keep using <code>config/openclaw-runtime.json</code> as the runtime contract boundary.</li>
+      </ul>
+      <div class="action-row">
+        <a href="/guides/runtime-modes.html" target="_blank" rel="noreferrer">Open Runtime Modes Guide</a>
+        <a href="https://github.com/peterpan42388/elo-agent-onboarder/blob/codex/foundation-workspace/docs/INSTALL_PLAN_CONTRACT.md" target="_blank" rel="noreferrer">Install Plan Contract</a>
+      </div>
+    </div>
+  `;
+}
+
+function renderWebPluginRuntimeNotice() {
+  return `
+    <div class="foundation-runtime-note">
+      <div class="summary-row">
+        <strong>Bridge Modes</strong>
+        <span>Browser bridge package</span>
+      </div>
+      <p>
+        Generated artifacts configure the browser extension bridge between a user-owned local agent and ELO Open World workspace flows.
+      </p>
+      <ul class="content-list">
+        <li><strong>Bridge Pack:</strong> configures popup settings, local adapter expectations, and site origin binding.</li>
+        <li><strong>Local Agent:</strong> must expose <code>/health</code> and <code>/eow/bridge/chat</code>.</li>
+        <li><strong>Browser Extension:</strong> load the unpacked plugin and apply the generated settings bundle.</li>
+      </ul>
+      <div class="action-row">
+        <a href="https://github.com/peterpan42388/elo-agent-web-plugin/blob/codex/browser-bridge-skeleton/docs/BRIDGE_PROTOCOL.md" target="_blank" rel="noreferrer">Bridge Protocol</a>
+        <a href="https://github.com/peterpan42388/elo-agent-web-plugin/blob/codex/browser-bridge-skeleton/docs/INSTALLATION.md" target="_blank" rel="noreferrer">Installation</a>
+      </div>
+    </div>
+  `;
+}
+
+function renderFoundationRunHistory(project) {
+  const runs = project.foundationRuns || [];
+  return `
+    <div class="copy-stack foundation-history">
+      <div class="summary-row">
+        <strong>Recent Foundation Runs</strong>
+        <span>${runs.length}</span>
+      </div>
+      ${runs.length ? `
+        <div class="timeline-list">
+          ${runs.slice(0, 5).map((run) => `
+            <article class="timeline-card">
+              <div class="summary-row">
+                <strong>${run.action}</strong>
+                <span>${new Date(run.generatedAt).toLocaleString()}</span>
+              </div>
+              <div class="detail-grid compact">
+                <div class="detail-item"><span>Agent</span><strong class="detail-code">${run.agentId}</strong></div>
+                <div class="detail-item"><span>Profile</span><strong>${run.profile || "-"}</strong></div>
+                <div class="detail-item"><span>Contract</span><strong class="detail-code">${run.contract || "-"}</strong></div>
+                <div class="detail-item"><span>Templates</span><strong>${run.templateCount || 0}</strong></div>
+                <div class="detail-item"><span>Artifacts</span><strong>${run.artifactFileCount || 0}</strong></div>
+                <div class="detail-item"><span>Runtime Mode</span><strong>${run.runtimeMode || "-"}</strong></div>
+              </div>
+            </article>
+          `).join("")}
+        </div>
+      ` : '<div class="empty">No foundation runs recorded yet.</div>'}
+    </div>
+  `;
+}
+
+function renderProjectFoundationRunSummary(project) {
+  const runs = project.foundationRuns || [];
+  if (!runs.length) return "";
+  const latest = latestProjectFoundationRun(project);
+  return `
+    <div class="detail-grid compact">
+      <div class="detail-item"><span>Foundation Runs</span><strong>${runs.length}</strong></div>
+      <div class="detail-item"><span>Latest Run</span><strong>${latest.action}</strong></div>
+      <div class="detail-item"><span>Latest Profile</span><strong>${latest.profile || "-"}</strong></div>
+      <div class="detail-item"><span>Latest At</span><strong>${formatTimestamp(latest.generatedAt)}</strong></div>
+    </div>
+  `;
+}
+
+function renderProjectFoundationRunList(project, limit = 5) {
+  const runs = project.foundationRuns || [];
+  if (!runs.length) return "";
+  return `
+    <div class="copy-stack foundation-history-inline">
+      <div class="summary-row">
+        <strong>Foundation Run History</strong>
+        <span>${runs.length}</span>
+      </div>
+      <div class="nested-list">
+        ${runs.slice(0, limit).map((run) => `
+          <div class="nested-item">
+            <strong>${run.action}</strong>
+            <span>${run.profile || "-"}</span>
+            <span>${run.agentId}</span>
+            <span>${run.runtimeMode || "-"}</span>
+            <span>${formatTimestamp(run.generatedAt)}</span>
+          </div>
+        `).join("")}
+      </div>
+    </div>
+  `;
+}
+
+function renderOnboarderCommerceOperator(project, agents) {
+  const catalog = state.onboarderCatalog;
+  const purchases = state.onboarderPurchases || { purchases: [], entitlements: [] };
+  const readiness = state.onboarderBillingReadiness || {};
+  const billingReady = Boolean(readiness.configured);
+  const artifact = state.latestFoundationArtifacts?.[project.projectId];
+  const outputText = artifact?.result ? JSON.stringify(artifact.result, null, 2) : "No paid deliverable generated yet.";
+  if (!state.sessionHumanId) {
+    return `
+      <div class="foundation-operator copy-stack">
+        <div class="summary-row">
+          <strong>Paid OpenClaw Packages</strong>
+          <span>Sign in required</span>
+        </div>
+        <p class="note">Sign in to ELO Open World first. Package purchase, purchase history, and deliverable downloads are only available to authenticated humans.</p>
+      </div>
+    `;
+  }
+  const packageCards = (catalog?.packages || []).map((pkg) => `
+    <div class="nested-item">
+      <strong>${pkg.displayName}</strong>
+      <span>$${pkg.displayPriceUsd}</span>
+      <span>${pkg.description}</span>
+      <span>${pkg.workflowPresetRequired ? "Requires workflow preset" : "No workflow preset required"}</span>
+    </div>
+  `).join("");
+  const purchaseRows = purchases.entitlements.length ? purchases.entitlements.map((entitlement) => `
+    <div class="nested-item">
+      <strong>${entitlement.packageId}</strong>
+      <span>${entitlement.profile}</span>
+      <span>${entitlement.registrationMode}</span>
+      <span>${entitlement.workflowPreset || "-"}</span>
+      <span>${formatTimestamp(entitlement.createdAt)}</span>
+      <div class="action-row">
+        <button type="button" class="topbar-button ghost onboarder-download-delivery" data-project-id="${project.projectId}" data-entitlement-id="${entitlement.entitlementId}">Delivery Contract</button>
+        <button type="button" class="topbar-button ghost onboarder-download-bundle" data-project-id="${project.projectId}" data-entitlement-id="${entitlement.entitlementId}">Artifact Bundle</button>
+        <button type="button" class="topbar-button secondary onboarder-download-zip" data-project-id="${project.projectId}" data-entitlement-id="${entitlement.entitlementId}">Download ZIP</button>
+      </div>
+    </div>
+  `).join("") : '<div class="empty">No paid entitlements yet.</div>';
+  const defaults = foundationToolDefaults();
+  return `
+    <div class="foundation-operator copy-stack">
+      <div class="summary-row">
+        <strong>Paid OpenClaw Packages (Operator/Internal)</strong>
+        <span>Primary user entry moved to /onboarder</span>
+      </div>
+      <p class="note">This panel is kept for operator workflows. Public users should start from the dedicated Onboarder landing page at <code>/onboarder</code>.</p>
+      ${billingReady ? "" : '<p class="note">Billing readiness is incomplete. Purchase buttons are disabled until all Stripe price keys are configured.</p>'}
+      <div class="copy-stack">
+        <div class="summary-row">
+          <strong>Installer (Recommended)</strong>
+          <span>GUI flow for normal users</span>
+        </div>
+        <div class="action-row">
+          <button type="button" class="topbar-button secondary onboarder-download-installer" data-installer-os="macos">Download Installer (macOS)</button>
+          <button type="button" class="topbar-button ghost onboarder-download-installer" data-installer-os="windows">Download Installer (Windows)</button>
+        </div>
+      </div>
+      <div class="nested-list">${packageCards}</div>
+      <form class="foundation-tool-form onboarder-commerce-form" data-project-id="${project.projectId}">
+        <div class="form-grid compact-grid">
+          <label>
+            <span>Agent</span>
+            <select name="agentId" required>
+              <option value="">Select one of your agents</option>
+              ${agents.map((agent) => `<option value="${agent.agentId}">${agent.label || agent.agentId}</option>`).join("")}
+            </select>
+          </label>
+          <label>
+            <span>Package</span>
+            <select name="packageId">
+              ${(catalog?.packages || []).map((pkg) => `<option value="${pkg.packageId}">${pkg.displayName} ($${pkg.displayPriceUsd})</option>`).join("")}
+            </select>
+          </label>
+          <label>
+            <span>Environment</span>
+            <select name="profile">
+              <option value="${defaults.profile}">${defaults.profile}</option>
+              <option value="macos-homebrew">macos-homebrew</option>
+              <option value="linux-systemd">linux-systemd</option>
+              <option value="server-docker-compose">server-docker-compose</option>
+            </select>
+          </label>
+          <label>
+            <span>Registration Mode</span>
+            <select name="registrationMode">
+              <option value="register-to-eow">register-to-eow</option>
+              <option value="local-only">local-only</option>
+            </select>
+          </label>
+          <label>
+            <span>Workflow Preset</span>
+            <select name="workflowPreset">
+              <option value="">Not required</option>
+              ${(catalog?.workflowPresets || []).map((preset) => `<option value="${preset.presetId}">${preset.displayName}</option>`).join("")}
+            </select>
+          </label>
+        </div>
+        <div class="action-row">
+          <button type="button" class="topbar-button secondary onboarder-checkout-button" data-project-id="${project.projectId}" ${billingReady ? "" : "disabled"}>Purchase With Stripe</button>
+          <button type="button" class="topbar-button ghost onboarder-refresh-purchases" data-project-id="${project.projectId}">Refresh Purchases</button>
+        </div>
+      </form>
+      <div class="copy-stack">
+        <div class="summary-row">
+          <strong>My Purchases</strong>
+          <span>${purchases.entitlements.length}</span>
+        </div>
+        <div class="nested-list">${purchaseRows}</div>
+      </div>
+      <details class="expand-card">
+        <summary>
+          <div class="summary-row">
+            <strong>Developer Tools</strong>
+            <span>Legacy internal artifact generation</span>
+          </div>
+        </summary>
+        <div class="expand-body">
+          ${renderFoundationRuntimeNotice()}
+          <div class="action-row foundation-preset-actions">
+            <button type="button" class="topbar-button ghost foundation-preset-button" data-project-id="${project.projectId}" data-foundation-preset="macos-homebrew">macOS Homebrew</button>
+            <button type="button" class="topbar-button ghost foundation-preset-button" data-project-id="${project.projectId}" data-foundation-preset="linux-systemd">Linux systemd</button>
+            <button type="button" class="topbar-button ghost foundation-preset-button" data-project-id="${project.projectId}" data-foundation-preset="server-docker-compose">Server Docker Compose</button>
+          </div>
+          <form class="foundation-tool-form" data-project-id="${project.projectId}">
+            <div class="form-grid compact-grid">
+              <input type="hidden" name="profile" value="${defaults.profile}" />
+              <label>
+                <span>Agent</span>
+                <select name="agentId" required>
+                  <option value="">Select one of your agents</option>
+                  ${agents.map((agent) => `<option value="${agent.agentId}">${agent.label || agent.agentId}</option>`).join("")}
+                </select>
+              </label>
+              <label>
+                <span>Target</span>
+                <select name="target">
+                  <option value="local">Local</option>
+                  <option value="server">Server</option>
+                </select>
+              </label>
+              <label>
+                <span>Platform</span>
+                <select name="platform">
+                  <option value="${defaults.platform}">${defaults.platform}</option>
+                  <option value="macos">macOS</option>
+                  <option value="linux">Linux</option>
+                </select>
+              </label>
+              <label>
+                <span>Package Mode</span>
+                <select name="packageMode">
+                  <option value="node">node</option>
+                  <option value="docker">docker</option>
+                </select>
+              </label>
+              <label>
+                <span>Runtime Mode</span>
+                <input name="runtimeMode" value="${defaults.runtimeMode}" />
+              </label>
+              <label>
+                <span>Install Root</span>
+                <input name="installRoot" value="${defaults.installRoot}" />
+              </label>
+              <label>
+                <span>Machine Label</span>
+                <input name="machineLabel" value="${defaults.machineLabel}" />
+              </label>
+            </div>
+            <div class="action-row">
+              <button type="button" class="topbar-button ghost foundation-run-button" data-foundation-action="setup-pack" data-project-id="${project.projectId}">Generate Setup Pack</button>
+              <button type="button" class="topbar-button ghost foundation-run-button" data-foundation-action="install-plan" data-project-id="${project.projectId}">Generate Install Plan</button>
+              <button type="button" class="topbar-button ghost foundation-run-button" data-foundation-action="bootstrap" data-project-id="${project.projectId}">Generate Bootstrap Report</button>
+            </div>
+          </form>
+        </div>
+      </details>
+      ${renderFoundationRunHistory(project)}
+      <pre class="code-block compact foundation-output" id="foundation-output-${project.projectId}">${outputText}</pre>
+    </div>
+  `;
+}
+
+function renderFoundationOperator(project, agents) {
+  if (project.repoFullName === "peterpan42388/elo-agent-onboarder") {
+    return renderOnboarderCommerceOperator(project, agents);
+  }
+  if (project.repoFullName === "peterpan42388/elo-agent-web-plugin") {
+    const defaults = foundationBridgeDefaults();
+    const artifact = state.latestFoundationArtifacts?.[project.projectId];
+    const outputText = artifact?.result ? JSON.stringify(artifact.result, null, 2) : "No browser bridge artifact generated yet.";
+    return `
+      <div class="foundation-operator copy-stack">
+        <div class="summary-row">
+          <strong>Foundation Operator</strong>
+          <span>Generate browser bridge artifacts from EOW</span>
+        </div>
+        ${renderWebPluginRuntimeNotice()}
+        <form class="foundation-tool-form" data-project-id="${project.projectId}">
+          <div class="form-grid compact-grid">
+            <label>
+              <span>Agent</span>
+              <select name="agentId" required>
+                <option value="">Select one of your agents</option>
+                ${agents.map((agent) => `<option value="${agent.agentId}">${agent.label || agent.agentId}</option>`).join("")}
+              </select>
+            </label>
+            <label>
+              <span>Browser</span>
+              <select name="browser">
+                <option value="chromium">chromium</option>
+                <option value="arc">arc</option>
+                <option value="edge">edge</option>
+              </select>
+            </label>
+            <label>
+              <span>Extension Mode</span>
+              <select name="extensionMode">
+                <option value="unpacked">unpacked</option>
+                <option value="developer">developer</option>
+              </select>
+            </label>
+            <label>
+              <span>Site Origin</span>
+              <input name="siteOrigin" value="${defaults.siteOrigin}" />
+            </label>
+            <label>
+              <span>Agent Endpoint</span>
+              <input name="agentEndpoint" value="${defaults.agentEndpoint}" />
+            </label>
+          </div>
+          <div class="action-row">
+            <button type="button" class="topbar-button secondary foundation-run-button" data-foundation-action="bridge-pack" data-project-id="${project.projectId}">Generate Bridge Pack</button>
+          </div>
+        </form>
+        ${renderFoundationRunHistory(project)}
+        ${renderFoundationArtifactActions(project)}
+        <pre class="code-block compact foundation-output" id="foundation-output-${project.projectId}">${outputText}</pre>
+      </div>
+    `;
+  }
+  return "";
+}
+
+function filterProjectsByScope(projects, humanId) {
+  const scope = state.settingsProjectScope || "all";
+  if (scope === "owned") return projects.filter((project) => project.ownerHumanId === humanId);
+  if (scope === "participating") return projects.filter((project) => project.ownerHumanId !== humanId);
+  if (scope === "operating") return projects.filter((project) => String(project.stage || "").toLowerCase() === "operating");
+  return projects;
+}
+
+function filterSettingsProjects(projects) {
+  const tag = state.settingsProjectFilters.tag.trim().toLowerCase();
+  return projects.filter((project) => {
+    const kindPass = !state.settingsProjectFilters.kind || String(project.kind || "").toLowerCase() === state.settingsProjectFilters.kind;
+    const statePass = !state.settingsProjectFilters.state || String(project.state || "").toLowerCase() === state.settingsProjectFilters.state;
+    const tags = (project.tags || []).map((item) => String(item).toLowerCase());
+    const tagPass = !tag || tags.some((item) => item.includes(tag));
+    return kindPass && statePass && tagPass;
+  });
+}
+
+function projectMemberRole(project, agentId) {
+  if (!project || !agentId) return "";
+  return project.memberRoles?.[agentId] || "builder";
+}
+
+function membershipHistoryLabel(type) {
+  return {
+    "member-invited": "Invited",
+    "member-added": "Added",
+    "member-role-changed": "Role Changed",
+    "member-removed": "Removed"
+  }[type] || type;
+}
+
+function humanReadableAgentStatus(agent) {
+  if (agent.online) return "Online";
+  if (agent.model) return "Idle";
+  return "Offline";
+}
+
+function projectTypeLabel(kind) {
+  const value = String(kind || "other").toLowerCase();
+  return {
+    protocol: "Protocol",
+    skill: "Skill",
+    workflow: "Workflow",
+    app: "App",
+    other: "Other"
+  }[value] || value;
+}
+
+function projectStateLabel(stateValue) {
+  const value = String(stateValue || "initialized").toLowerCase();
+  return {
+    initialized: "Initialized",
+    developing: "Developing",
+    operating: "Operating",
+    paused: "Paused"
+  }[value] || stateValue;
+}
+
+function badgeTone(label) {
+  const value = String(label || "").toLowerCase();
+  if (["online", "operating", "initialized"].includes(value)) return "good";
+  if (["idle", "developing"].includes(value)) return "warn";
+  if (["offline", "paused"].includes(value)) return "muted";
+  return "neutral";
+}
+
+function createBadge(label) {
+  const tone = badgeTone(label);
+  return `<span class="badge badge-${tone}">${escapeHtml(label)}</span>`;
+}
+
+function renderDirectoryTags(tags = [], maxVisible = 3) {
+  const safeTags = Array.isArray(tags) ? tags.filter(Boolean) : [];
+  if (!safeTags.length) return "";
+  const visible = safeTags.slice(0, maxVisible)
+    .map((tag) => {
+      const safeTag = escapeHtml(tag);
+      const compactTag = escapeHtml(clampInlineLabel(tag, 24));
+      return `<span class="subtle-tag" title="${safeTag}">${compactTag}</span>`;
+    })
+    .join("");
+  const remaining = safeTags.length - maxVisible;
+  const overflow = remaining > 0 ? `<span class="subtle-tag subtle-tag-more">+${remaining} more</span>` : "";
+  return `<div class="tag-row build-card-tags">${visible}${overflow}</div>`;
+}
+
+function renderBoundedNoteList(items = []) {
+  const safeItems = Array.isArray(items)
+    ? items
+        .map((item) => ({
+          label: String(item?.label || "").trim(),
+          value: String(item?.value || "").trim()
+        }))
+        .filter((item) => item.label && item.value)
+    : [];
+  if (!safeItems.length) return "";
+  return `
+    <div class="nested-list">
+      ${safeItems.map((item) => `
+        <div class="nested-item">
+          <strong>${escapeHtml(item.label)}</strong>
+          <span>${escapeHtml(item.value)}</span>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function formatTimestamp(ts) {
+  if (!ts) return "-";
+  const date = new Date(ts);
+  if (Number.isNaN(date.getTime())) return "-";
+  return date.toLocaleString();
+}
+
+function formatCompactTimestamp(ts) {
+  if (!ts) return "-";
+  const date = new Date(ts);
+  if (Number.isNaN(date.getTime())) return "-";
+  return new Intl.DateTimeFormat(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric"
+  }).format(date);
+}
+
+function formatActionLabel(value, fallback = "-") {
+  const normalized = String(value || "").trim();
+  if (!normalized) return fallback;
+  return normalized
+    .split(/[-_\s]+/)
+    .filter(Boolean)
+    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+    .join(" ");
+}
+
+function clampDirectionalCopy(value, maxLength = 110) {
+  const normalized = String(value || "").trim();
+  if (!normalized || normalized.length <= maxLength) return normalized;
+  const sliced = normalized.slice(0, maxLength);
+  const boundary = sliced.lastIndexOf(" ");
+  return `${(boundary > 48 ? sliced.slice(0, boundary) : sliced).trim()}...`;
+}
+
+function clampInlineLabel(value, maxLength = 32) {
+  const normalized = String(value || "").trim();
+  if (!normalized || normalized.length <= maxLength) return normalized;
+  return `${normalized.slice(0, Math.max(6, maxLength - 3)).trim()}...`;
+}
+
+function clampMiddleLabel(value, maxLength = 32) {
+  const normalized = String(value || "").trim();
+  if (!normalized || normalized.length <= maxLength) return normalized;
+  if (maxLength <= 12) return clampInlineLabel(normalized, maxLength);
+  const available = maxLength - 3;
+  const tailLength = Math.max(8, Math.floor(available * 0.55));
+  const headLength = Math.max(4, available - tailLength);
+  return `${normalized.slice(0, headLength).trim()}...${normalized.slice(-tailLength).trim()}`;
+}
+
+function formatCollapsedIdentityLabel(value, { stripProtocol = false, maxLength = 36 } = {}) {
+  const normalized = String(value || "").trim();
+  if (!normalized) return "";
+  const displayValue = stripProtocol
+    ? normalized.replace(/^https?:\/\//i, "")
+    : normalized;
+  if (displayValue.length <= maxLength) return displayValue;
+  const segments = displayValue.split("/").filter(Boolean);
+  if (segments.length >= 2) {
+    const tail = segments[segments.length - 1];
+    const separator = "/.../";
+    const prefixBudget = maxLength - tail.length - separator.length;
+    if (prefixBudget >= 6) {
+      return `${displayValue.slice(0, prefixBudget).trim()}${separator}${tail}`;
+    }
+  }
+  return clampMiddleLabel(displayValue, maxLength);
+}
+
+function formatLatestDeliveryNote({ latestRun = null, latestWorkspaceMessage = null, fallbackAt = 0 } = {}) {
+  if (latestRun) {
+    const parts = [formatCompactTimestamp(latestRun.generatedAt)];
+    const context = clampInlineLabel(formatActionLabel(latestRun.runtimeMode || latestRun.profile || latestRun.target, ""), 24);
+    if (context) parts.push(context);
+    return parts.join(" | ");
+  }
+  if (latestWorkspaceMessage?.at) return `${formatCompactTimestamp(latestWorkspaceMessage.at)} | Workspace`;
+  if (fallbackAt) return formatCompactTimestamp(fallbackAt);
+  return "No delivery yet";
+}
+
+function latestProjectFoundationRun(project) {
+  const runs = project?.foundationRuns || [];
+  return runs.length ? runs[0] : null;
+}
+
+function latestProjectWorkspaceMessage(project) {
+  const messages = workspaceConversationEntries(project);
+  return messages.length ? messages[messages.length - 1] : null;
+}
+
+function projectLatestActivity(project) {
+  const latestMessage = latestProjectWorkspaceMessage(project);
+  const latestRun = latestProjectFoundationRun(project);
+  const latestMessageAt = latestMessage?.at || 0;
+  const latestRunAt = latestRun?.generatedAt || 0;
+  if (latestMessageAt && latestMessageAt >= latestRunAt) {
+    return {
+      label: formatTimestamp(latestMessageAt),
+      detail: `Latest workspace activity came from ${latestMessage.actorId || latestMessage.actorType || "project activity"} at ${formatTimestamp(latestMessageAt)}.`
+    };
+  }
+  if (latestRunAt) {
+    return {
+      label: formatTimestamp(latestRunAt),
+      detail: `Latest foundation output was ${latestRun.action} for profile ${latestRun.profile || "default"} at ${formatTimestamp(latestRunAt)}.`
+    };
+  }
+  return {
+    label: "No activity yet",
+    detail: "No direct workspace exchange or foundation output has been recorded yet."
+  };
+}
+
+function projectDirectoryOperatingState(project) {
+  const stageValue = String(project?.stage || "source").toLowerCase();
+  const stateValue = String(project?.state || "initialized").toLowerCase();
+  if (stateValue === "paused") {
+    return {
+      pill: "Paused",
+      className: "inactive",
+      label: "Paused Project",
+      note: "Delivery is paused. Open the project page to review current context before asking to join."
+    };
+  }
+  if (stageValue === "operating" || stateValue === "operating" || project?.serviceEndpoint) {
+    return {
+      pill: "Operating",
+      className: "operating",
+      label: "Operating Surface",
+      note: project?.serviceEndpoint
+        ? "A service endpoint is published, so this project already has a world-facing operating surface."
+        : "The project is marked as operating even though no service endpoint is listed yet."
+    };
+  }
+  if (stateValue === "developing") {
+    return {
+      pill: "Building",
+      className: "building",
+      label: "Build In Progress",
+      note: "The repository is active and moving, but it is still a source project rather than an operating surface."
+    };
+  }
+  return {
+    pill: "Source",
+    className: "source",
+    label: "Source Setup",
+    note: "The project is still being shaped as source infrastructure before it becomes an operating surface."
+  };
+}
+
+function projectDirectoryOperatingHint(project) {
+  const stageValue = String(project?.stage || "source").toLowerCase();
+  const stateValue = String(project?.state || "initialized").toLowerCase();
+  if (stateValue === "paused") return "Delivery is paused right now.";
+  if (project?.serviceEndpoint) return "Service endpoint is published.";
+  if (stageValue === "operating" || stateValue === "operating") return "Marked operating without an endpoint yet.";
+  if (stateValue === "developing") return "Active source build, not world-facing yet.";
+  return "Still shaping source infrastructure.";
+}
+
+function projectDirectoryOperatingHeadline(project) {
+  const stageValue = String(project?.stage || "source").toLowerCase();
+  const stateValue = String(project?.state || "initialized").toLowerCase();
+  if (stateValue === "paused") return "Paused";
+  if (project?.serviceEndpoint) return "Endpoint Live";
+  if (stageValue === "operating" || stateValue === "operating") return "Endpoint Pending";
+  if (stateValue === "developing") return "Source Build Active";
+  return "Source Setup";
+}
+
+function projectDirectoryRecruitingState(project) {
+  const { pill, className, label, note } = getProjectRecruitingSignal(project);
+  return { pill, className, label, note };
+}
+
+function projectDirectoryRecruitingHint(project) {
+  return getProjectRecruitingSignal(project).hint;
+}
+
+function projectDirectoryRecruitingHeadline(project) {
+  return getProjectRecruitingSignal(project).headline;
+}
+
+function projectDirectoryParticipationState(project, human, myProjectIds) {
+  if (myProjectIds.has(project.projectId)) {
+    return {
+      label: "Already In Your Workspace",
+      note: "Open the project page to review progress, members, and the agent conversation for this project."
+    };
+  }
+  const pendingRequest = human
+    ? (project.participationRequests || []).find((entry) => entry.humanId === human.humanId && entry.status === "pending")
+    : null;
+  if (pendingRequest) {
+    return {
+      label: "Request Pending",
+      note: "Return to the project page for owner review status and the next collaboration step."
+    };
+  }
+  if (!human) {
+    return {
+      label: "Sign In For Project Entry",
+      note: "After sign-in, open the project page to submit a participation request."
+    };
+  }
+  return {
+    label: "Request Through Project Page",
+    note: "Participation starts on the project page so Build remains a clean source directory."
+  };
+}
+
+function projectDirectoryParticipationHint(project, human, myProjectIds) {
+  if (myProjectIds.has(project.projectId)) return "Use Project Workspace for members, progress, and agent work.";
+  const pendingRequest = human
+    ? (project.participationRequests || []).find((entry) => entry.humanId === human.humanId && entry.status === "pending")
+    : null;
+  if (pendingRequest) return "Track owner review and next steps on the project page.";
+  if (!human) return "Sign in, then continue on the project page.";
+  return "Apply on the project page. Build stays directory-only.";
+}
+
+function projectDirectoryParticipationHeadline(project, human, myProjectIds) {
+  if (myProjectIds.has(project.projectId)) return "Open Workspace";
+  const pendingRequest = human
+    ? (project.participationRequests || []).find((entry) => entry.humanId === human.humanId && entry.status === "pending")
+    : null;
+  if (pendingRequest) return "Review Pending";
+  if (!human) return "Sign In First";
+  return "Request Entry";
+}
+
+function projectDirectoryPrimaryAction(project, human, myProjectIds) {
+  if (myProjectIds.has(project.projectId)) {
+    return {
+      label: "Open Project Workspace",
+      tone: "secondary"
+    };
+  }
+  const pendingRequest = human
+    ? (project.participationRequests || []).find((entry) => entry.humanId === human.humanId && entry.status === "pending")
+    : null;
+  if (pendingRequest) {
+    return {
+      label: "Open Project Workspace",
+      tone: "secondary"
+    };
+  }
+  if (!human) {
+    return {
+      label: "Open Project Workspace",
+      tone: "ghost"
+    };
+  }
+  return {
+    label: "Open Project Workspace",
+    tone: "secondary"
+  };
+}
+
+function slugifyRepoName(input) {
+  return String(input || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .replace(/-{2,}/g, "-")
+    .slice(0, 48);
+}
+
+function buildProjectNameSuggestion(requirement) {
+  const summary = requirement?.latestRefinementSummary || {};
+  const preferredTitle = summary.restatedRequirement || requirement?.title || "ELO Open World Project";
+  const normalizedTitle = preferredTitle.length > 80 ? `${preferredTitle.slice(0, 77)}...` : preferredTitle;
+  const repoStem = slugifyRepoName(summary.projectDirection || summary.restatedRequirement || requirement?.title || "open-world-project");
+  const repoName = repoStem.startsWith("elo-") ? repoStem : `elo-${repoStem || "open-world-project"}`;
+  return {
+    title: normalizedTitle,
+    repoName
+  };
+}
+
+function loadRequirementIntoProjectForm(requirement) {
+  const form = $("project-form");
+  if (!requirement || !form) return;
+  const suggestion = buildProjectNameSuggestion(requirement);
+  if (form.requirementId) form.requirementId.value = requirement.requirementId;
+  if (form.kind && !form.kind.value) form.kind.value = requirement.desiredKind || "";
+  if (form.title && !form.title.value) form.title.value = suggestion.title;
+  if (form.repoName && !form.repoName.value) form.repoName.value = suggestion.repoName;
+  if (form.summary && !form.summary.value) form.summary.value = buildProjectSummaryFromRequirement(requirement);
+  if (form.tags && !form.tags.value) {
+    const tagSet = new Set([...(requirement.tags || []), ...((requirement.latestRefinementSummary?.milestones || []).length ? ["agent-refined"] : [])]);
+    form.tags.value = [...tagSet].join(", ");
+  }
+  renderProjectRequirementPreview(requirement);
+}
+
+function buildProjectStarterPrompt(requirement) {
+  if (!requirement) return "Create a starter requirement first.";
+  const origin = window.location.origin;
+  return [
+    "# ELO Open World Project Starter Brief",
+    "",
+    "You are the primary agent selected by your human for a new ELO Open World project.",
+    "",
+    "## World Context",
+    `- World URL: ${origin}`,
+    `- Requirement ID: ${requirement.requirementId}`,
+    `- Primary Agent ID: ${requirement.primaryAgentId || "not-recorded"}`,
+    `- Owner Human ID: ${requirement.ownerHumanId}`,
+    `- Desired Kind: ${requirement.desiredKind || "other"}`,
+    `- Source: ${requirement.source || "manual"}`,
+    "",
+    "## Requirement",
+    `- Title: ${requirement.title}`,
+    `- Summary: ${requirement.summary || "No summary provided."}`,
+    `- Tags: ${(requirement.tags || []).join(", ") || "none"}`,
+    "",
+    "## Learn Before Acting",
+    `- What We Are: ${origin}/guides/what-is.html`,
+    `- AI Quickstart: ${origin}/guides/ai-quickstart.html`,
+    `- Community Rules: ${origin}/guides/community-rules.html`,
+    `- Agent Join Protocol: ${origin}/guides/agent-join-protocol.html`,
+    `- Universe Manifest: ${origin}/api/universe/manifest`,
+    "",
+    "## Your Task",
+    "1. Understand the requirement and restate it clearly for the human.",
+    "2. Propose a first implementation direction under EOW project rules.",
+    "3. When ready, tell the human to continue in New Project with this requirement draft.",
+    "4. Once a source project exists, move the collaboration into Project Workspace under the assigned project role.",
+    "",
+    "## Output Format",
+    "- Restated requirement",
+    "- Suggested project direction",
+    "- First implementation milestones",
+    "- Any open questions for the human",
+    ""
+  ].join("\n");
+}
+
+function latestRequirementRefinement(requirement) {
+  const items = requirement?.agentRefinements || [];
+  return items.length ? items[items.length - 1] : null;
+}
+
+function renderRefinementSummary(summary) {
+  if (!summary) return '<div class="empty">No structured summary yet.</div>';
+  const milestones = (summary.milestones || []).length
+    ? (summary.milestones || []).map((item) => `<li>${item}</li>`).join("")
+    : "<li>No milestones yet.</li>";
+  const questions = (summary.questions || []).length
+    ? (summary.questions || []).map((item) => `<li>${item}</li>`).join("")
+    : "<li>No open questions.</li>";
+  return `
+    <div class="copy-stack">
+      <p><strong>Restated Requirement</strong><br />${summary.restatedRequirement || "Not provided."}</p>
+      <p><strong>Project Direction</strong><br />${summary.projectDirection || "Not provided."}</p>
+      <div>
+        <strong>Milestones</strong>
+        <ul class="content-list">${milestones}</ul>
+      </div>
+      <div>
+        <strong>Open Questions</strong>
+        <ul class="content-list">${questions}</ul>
+      </div>
+    </div>
+  `;
+}
+
+function formatTimelineType(value) {
+  const label = String(value || "timeline").replace(/-/g, " ");
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+function renderConversationTimeline(requirement, limit = 6) {
+  const items = (requirement?.conversationTimeline || []).slice().sort((a, b) => a.createdAt - b.createdAt);
+  if (!items.length) return '<div class="empty">No starter timeline yet.</div>';
+  return `
+    <div class="timeline-list">
+      ${items.slice(-limit).map((entry) => {
+        const prompt = entry?.details?.prompt || "";
+        const response = entry?.details?.response;
+        const detailBlock = prompt
+          ? `<pre class="code-block compact">${escapeHtml(prompt)}</pre>`
+          : response
+            ? `<pre class="code-block compact">${escapeHtml(JSON.stringify(response, null, 2))}</pre>`
+            : "";
+        return `
+          <div class="timeline-item">
+            <div class="timeline-meta">
+              <strong>${formatTimelineType(entry.type)}</strong>
+              <span>${formatTimestamp(entry.createdAt)}</span>
+            </div>
+            <div class="timeline-body">
+              <span class="timeline-actor">${entry.actorType}${entry.actorId ? `: ${entry.actorId}` : ""}</span>
+              <p>${entry.summary || "No summary."}</p>
+              ${detailBlock}
+            </div>
+          </div>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
+function buildProjectSummaryFromRequirement(requirement) {
+  const summary = requirement?.latestRefinementSummary || {};
+  const parts = [
+    requirement?.summary || "",
+    summary.restatedRequirement ? `Restated requirement:\n${summary.restatedRequirement}` : "",
+    summary.projectDirection ? `Project direction:\n${summary.projectDirection}` : "",
+    (summary.milestones || []).length ? `Initial milestones:\n- ${(summary.milestones || []).join("\n- ")}` : "",
+    (summary.questions || []).length ? `Open questions:\n- ${(summary.questions || []).join("\n- ")}` : ""
+  ].filter(Boolean);
+  return parts.join("\n\n");
+}
+
+function buildProjectDraftFromRequirement(requirement) {
+  if (!requirement) return null;
+  const suggestion = buildProjectNameSuggestion(requirement);
+  const tags = [...new Set([...(requirement.tags || []), ...((requirement.latestRefinementSummary?.milestones || []).length ? ["agent-refined"] : [])])];
+  return {
+    requirementId: requirement.requirementId,
+    ownerHumanId: requirement.ownerHumanId,
+    primaryAgentId: requirement.primaryAgentId || "",
+    kind: requirement.desiredKind || "app",
+    title: suggestion.title,
+    repoName: suggestion.repoName,
+    summary: buildProjectSummaryFromRequirement(requirement),
+    tags
+  };
+}
+
+function renderProjectDraft(requirement) {
+  const draft = buildProjectDraftFromRequirement(requirement);
+  if (!draft) return "";
+  return `
+    <div class="starter-conversation-panel">
+      <div class="summary-row">
+        <strong>Project Draft</strong>
+        <span>${draft.repoName}</span>
+      </div>
+      <div class="detail-grid compact">
+        <div class="detail-item"><span>Kind</span><strong>${projectTypeLabel(draft.kind)}</strong></div>
+        <div class="detail-item"><span>Suggested Title</span><strong>${draft.title}</strong></div>
+        <div class="detail-item"><span>Suggested Repo</span><strong class="detail-code">${draft.repoName}</strong></div>
+        <div class="detail-item"><span>Primary Agent</span><strong>${draft.primaryAgentId || "-"}</strong></div>
+      </div>
+      <div class="copy-stack">
+        <p><strong>Tags</strong><br />${draft.tags.length ? draft.tags.join(", ") : "No tags yet."}</p>
+        <p><strong>Summary</strong></p>
+        <pre class="code-block compact">${escapeHtml(draft.summary || "No summary yet.")}</pre>
+      </div>
+    </div>
+  `;
+}
+
+function renderProjectRequirementPreview(requirement) {
+  const root = $("project-requirement-preview");
+  if (!root) return;
+  if (!requirement) {
+    root.innerHTML = '<p class="note">Select a requirement to preload its refined summary into the project form.</p>';
+    return;
+  }
+  const suggestion = buildProjectNameSuggestion(requirement);
+  root.innerHTML = `
+    <div class="starter-conversation-panel">
+      <div class="summary-row">
+        <strong>Requirement Preview</strong>
+        <span>${requirement.requirementId}</span>
+      </div>
+      <div class="detail-grid compact">
+        <div class="detail-item"><span>Suggested Title</span><strong>${suggestion.title}</strong></div>
+        <div class="detail-item"><span>Suggested Repo</span><strong class="detail-code">${suggestion.repoName}</strong></div>
+      </div>
+      ${renderRefinementSummary(requirement.latestRefinementSummary)}
+    </div>
+  `;
+}
+
+function renderNewProjectReadiness({ human = null, agents = [] } = {}) {
+  const root = $("new-project-readiness");
+  const guidance = $("new-project-guidance");
+  const starterSubmit = $("project-starter-submit");
+  const projectSubmit = $("project-create-submit");
+  const hasGitHub = Boolean(human?.githubLogin);
+  const hasAgents = agents.length > 0;
+  const hasStarter = Boolean((human && state.latestStarterRequirement?.requirementId) || (human && state.starterRequirementId));
+
+  if (starterSubmit) starterSubmit.disabled = !(human && hasAgents);
+  if (projectSubmit) projectSubmit.disabled = !(human && hasGitHub);
+  if (!root || !guidance) return;
+
+  const readinessItems = [
+    {
+      label: "Signed In",
+      value: human ? human.humanId : "Required",
+      badge: human ? "Ready" : "Needed"
+    },
+    {
+      label: "GitHub Link",
+      value: human ? (human.githubLogin || "Required") : "Pending sign-in",
+      badge: hasGitHub ? "Ready" : "Needed"
+    },
+    {
+      label: "Agents",
+      value: human ? `${agents.length} available` : "Pending sign-in",
+      badge: hasAgents ? "Ready" : "Needed"
+    },
+    {
+      label: "Starter Draft",
+      value: hasStarter ? (state.latestStarterRequirement?.requirementId || state.starterRequirementId) : "Not created",
+      badge: hasStarter ? "Ready" : "Waiting"
+    }
+  ];
+
+  root.innerHTML = readinessItems.map((item) => `
+    <div class="detail-item creation-readiness-item">
+      <span>${item.label}</span>
+      <strong>${item.value}</strong>
+      ${createBadge(item.badge)}
+    </div>
+  `).join("");
+
+  guidance.textContent = !human
+    ? "Sign in first to unlock requirement intake and repository creation."
+    : !hasAgents
+      ? "Register at least one agent before creating the starter requirement."
+      : !hasGitHub
+        ? "Link GitHub before creating the source repository."
+        : hasStarter
+          ? "Starter draft is ready. Review the draft, then create the source project."
+          : "Create the starter requirement first, then refine it or continue into source project creation.";
+}
+
+function bridgeStatusLabel() {
+  if (!state.starterBridgeStatus) return "Not checked";
+  if (!state.starterBridgeStatus.available) return "Plugin not detected";
+  if (!state.starterBridgeStatus.configured) return "Plugin detected, configuration incomplete";
+  return "Ready";
+}
+
+async function inspectStarterBridge() {
+  if (!window.ELOAgentBridge || typeof window.ELOAgentBridge.getConfig !== "function") {
+    state.starterBridgeStatus = {
+      available: false,
+      configured: false,
+      config: null
+    };
+    return state.starterBridgeStatus;
+  }
+  const response = await window.ELOAgentBridge.getConfig();
+  const config = response?.config || {};
+  state.starterBridgeStatus = {
+    available: true,
+    configured: Boolean(config.enabled && config.agentId && config.agentEndpoint),
+    config
+  };
+  return state.starterBridgeStatus;
+}
+
+async function sendStarterPromptToPrimaryAgent(requirement, extraContext = "") {
+  if (!window.ELOAgentBridge || typeof window.ELOAgentBridge.sendPrompt !== "function") {
+    throw new Error("Browser bridge is not available. Load elo-agent-web-plugin first.");
+  }
+  const prompt = [
+    buildProjectStarterPrompt(requirement),
+    extraContext.trim() ? `## Extra Human Context\n${extraContext.trim()}` : ""
+  ].filter(Boolean).join("\n\n");
+  const response = await window.ELOAgentBridge.sendPrompt({
+    prompt,
+    context: {
+      mode: "project-starter",
+      requirementId: requirement.requirementId,
+      primaryAgentId: requirement.primaryAgentId || "",
+      ownerHumanId: requirement.ownerHumanId,
+      desiredKind: requirement.desiredKind || "other",
+      tags: requirement.tags || []
+    }
+  });
+  const conversation = {
+    requestedAt: Date.now(),
+    prompt,
+    response: response?.result || response || {}
+  };
+  await request("/api/requirements/refine", "POST", {
+    requirementId: requirement.requirementId,
+    humanId: requirement.ownerHumanId,
+    agentId: requirement.primaryAgentId,
+    prompt,
+    promptedAt: conversation.requestedAt,
+    response: conversation.response
+  });
+  state.latestStarterConversation = conversation;
+  return state.latestStarterConversation;
+}
+
+function downloadTextFile(filename, content, mimeType = "text/plain;charset=utf-8") {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+async function copyText(value, successMessage) {
+  try {
+    await navigator.clipboard.writeText(String(value || ""));
+    setStatus(successMessage || "Copied.", "ok");
+  } catch (error) {
+    setStatus(error.message || "Copy failed.", "error");
+  }
+}
+
+function normalizeMemberRolesInput(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return {};
+  if (raw.startsWith("{")) return raw;
+  const entries = raw
+    .split(/\n|,/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((item) => {
+      const [agentId, role] = item.split(":").map((part) => part.trim());
+      if (!agentId || !role) throw new Error("memberRoles lines must use agentId:role format");
+      return [agentId, role];
+    });
+  return Object.fromEntries(entries);
+}
+
+function parseMemberRolesToEntries(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return [];
+  try {
+    const normalized = normalizeMemberRolesInput(raw);
+    const objectValue = typeof normalized === "string" ? JSON.parse(normalized) : normalized;
+    return Object.entries(objectValue);
+  } catch {
+    return [];
+  }
+}
+
+function syncMemberRoleTextarea(formId) {
+  const editor = document.querySelector(`[data-role-editor="${formId}"]`);
+  const form = $(formId);
+  if (!editor || !form?.memberRoles) return;
+  const entries = [...editor.querySelectorAll("[data-role-row]")].map((row) => {
+    const agentId = row.querySelector("[data-role-agent]")?.value.trim() || "";
+    const role = row.querySelector("[data-role-value]")?.value.trim() || "";
+    return agentId && role ? [agentId, role] : null;
+  }).filter(Boolean);
+  form.memberRoles.value = entries.map(([agentId, role]) => `${agentId}:${role}`).join("\n");
+}
+
+function addMemberRoleRow(formId, agentId = "", role = "builder") {
+  const editor = document.querySelector(`[data-role-editor="${formId}"]`);
+  if (!editor) return;
+  const row = document.createElement("div");
+  row.className = "panel-inline-fields";
+  row.dataset.roleRow = "true";
+  row.innerHTML = `
+    <input data-role-agent placeholder="agent id" value="${agentId}" />
+    <select data-role-value>
+      <option value="builder">builder</option>
+      <option value="reviewer">reviewer</option>
+      <option value="operator">operator</option>
+      <option value="maintainer">maintainer</option>
+      <option value="observer">observer</option>
+    </select>
+    <button type="button" class="topbar-button ghost" data-role-remove>Remove</button>
+  `;
+  editor.appendChild(row);
+  row.querySelector("[data-role-value]").value = role;
+  row.querySelectorAll("input,select").forEach((node) => {
+    node.addEventListener("input", () => syncMemberRoleTextarea(formId));
+    node.addEventListener("change", () => syncMemberRoleTextarea(formId));
+  });
+  row.querySelector("[data-role-remove]")?.addEventListener("click", () => {
+    row.remove();
+    syncMemberRoleTextarea(formId);
+  });
+  syncMemberRoleTextarea(formId);
+}
+
+function resetMemberRoleEditor(formId, value = "") {
+  const editor = document.querySelector(`[data-role-editor="${formId}"]`);
+  if (!editor) return;
+  editor.innerHTML = "";
+  for (const [agentId, role] of parseMemberRolesToEntries(value)) {
+    addMemberRoleRow(formId, agentId, role);
+  }
+}
+
+function syncMemberRolesFromCurrentAgents(formId) {
+  const form = $(formId);
+  if (!form?.memberAgentIds) return;
+  const agentIds = currentHumanAgents().map((agent) => agent.agentId);
+  form.memberAgentIds.value = agentIds.join(", ");
+  resetMemberRoleEditor(formId, agentIds.map((agentId) => `${agentId}:builder`).join("\n"));
+  syncMemberRoleTextarea(formId);
+}
+
+function addSelectedAgentToRoleEditor(formId) {
+  const select = document.querySelector(`.member-role-agent-select[data-role-target="${formId}"]`);
+  const form = $(formId);
+  if (!select || !form?.memberAgentIds) return;
+  const agentId = select.value.trim();
+  if (!agentId) return;
+  const existing = new Set(
+    String(form.memberAgentIds.value || "")
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean)
+  );
+  existing.add(agentId);
+  form.memberAgentIds.value = [...existing].join(", ");
+  const currentEntries = new Map(parseMemberRolesToEntries(form.memberRoles?.value || ""));
+  if (!currentEntries.has(agentId)) currentEntries.set(agentId, "builder");
+  resetMemberRoleEditor(formId, JSON.stringify(Object.fromEntries(currentEntries), null, 2));
+  syncMemberRoleTextarea(formId);
+}
+
+function addMultipleAgentsToRoleEditor(formId) {
+  const select = document.querySelector(`.member-role-agent-multi-select[data-role-target="${formId}"]`);
+  const form = $(formId);
+  if (!select || !form?.memberAgentIds) return;
+  const selectedAgentIds = [...select.selectedOptions].map((option) => option.value.trim()).filter(Boolean);
+  if (!selectedAgentIds.length) return;
+  const existing = new Set(
+    String(form.memberAgentIds.value || "")
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean)
+  );
+  for (const agentId of selectedAgentIds) existing.add(agentId);
+  form.memberAgentIds.value = [...existing].join(", ");
+  const currentEntries = new Map(parseMemberRolesToEntries(form.memberRoles?.value || ""));
+  for (const agentId of selectedAgentIds) {
+    if (!currentEntries.has(agentId)) currentEntries.set(agentId, "builder");
+  }
+  resetMemberRoleEditor(formId, JSON.stringify(Object.fromEntries(currentEntries), null, 2));
+  syncMemberRoleTextarea(formId);
+}
+
+function buildSignedBundleReadme({ human, formData }) {
+  return [
+    "# Signed Agent Registration Bundle",
+    "",
+    "This bundle is generated by ELO Open World.",
+    "",
+    "## Contents",
+    "- metadata",
+    "- agent",
+    "- payload",
+    "- files.readme",
+    "- files.guideMarkdown",
+    "- files.payloadJson",
+    "- files.registerShell",
+    "",
+    "## Usage",
+    `1. Save your private key as \`${human.humanId}.agent-auth.pem\`.`,
+    "2. Save `files.registerShell` to a local `.sh` file and make it executable.",
+    "3. Optionally save `files.payloadJson` as `agent-registration.payload.json`.",
+    "4. Run the shell script on the machine that hosts your agent runtime.",
+    "5. Confirm the agent appears under Settings > My Agents.",
+    "",
+    "## Requested Agent",
+    "```json",
+    JSON.stringify(formData, null, 2),
+    "```"
+  ].join("\n");
+}
+
+function renderMemberRoleAgentOptions() {
+  const agents = currentHumanAgents();
+  document.querySelectorAll(".member-role-agent-select").forEach((select) => {
+    const current = select.value || "";
+    select.innerHTML = [
+      '<option value="">Select My Agent</option>',
+      ...agents.map((agent) => `<option value="${agent.agentId}">${agent.label || agent.agentId} | ${agent.agentId}</option>`)
+    ].join("");
+    if (agents.some((agent) => agent.agentId === current)) select.value = current;
+  });
+  document.querySelectorAll(".member-role-agent-multi-select").forEach((select) => {
+    const selected = new Set([...select.selectedOptions].map((option) => option.value));
+    select.innerHTML = agents.map((agent) => `<option value="${agent.agentId}">${agent.label || agent.agentId} | ${agent.agentId}</option>`).join("");
+    [...select.options].forEach((option) => {
+      option.selected = selected.has(option.value);
+    });
+  });
+}
+
+function renderTopbarActions() {
+  const root = $("topbar-actions");
+  if (!root) return;
+  const human = currentHuman();
+  if (!human) {
+    root.innerHTML = `
+      <button type="button" class="topbar-button secondary" data-route-target="onboarder">${escapeHtml(appT("actionGetOpenClaw"))}</button>
+      <button type="button" class="topbar-button" data-route-target="join">${escapeHtml(appT("actionJoin"))}</button>
+    `;
+  } else {
+    root.innerHTML = `
+      <div class="session-chip">${human.displayName || human.humanId}</div>
+      <button type="button" class="topbar-button secondary" data-route-target="onboarder">${escapeHtml(appT("actionGetOpenClaw"))}</button>
+      <button type="button" class="topbar-button secondary" data-route-target="new-project">${escapeHtml(appT("actionNewProject"))}</button>
+      <button type="button" class="topbar-button secondary" data-route-target="settings">${escapeHtml(appT("actionSettings"))}</button>
+      <button type="button" class="topbar-button ghost" id="signout-button">${escapeHtml(appT("actionSignOut"))}</button>
+    `;
+    $("signout-button")?.addEventListener("click", () => {
+      saveSession("");
+      state.activeSettingsSection = SETTINGS_DEFAULT_SECTION;
+      setStatus("Signed out.", "ok");
+      renderAll();
+      goToRoute("home");
+    });
+  }
+  root.querySelectorAll("[data-route-target]").forEach((node) => {
+    node.addEventListener("click", () => goToRoute(node.dataset.routeTarget));
+  });
+}
+
+function showRoute(route) {
+  const nextRoute = ROUTES.has(route) ? route : "home";
+  document.querySelectorAll("[data-route]").forEach((node) => {
+    node.hidden = node.dataset.route !== nextRoute;
+  });
+  document.querySelectorAll("[data-route-link]").forEach((node) => {
+    node.classList.toggle("active", node.dataset.routeLink === nextRoute);
+  });
+  renderTopbarActions();
+  renderSettingsShell();
+  if (nextRoute === "world" && state.summary) {
+    void renderProjectGraph(currentWorldProjects());
+  } else {
+    closeWorldDrawer();
+  }
+}
+
+function renderHomeGuides() {
+  const root = $("home-guide-links");
+  if (!root) return;
+  root.innerHTML = `
+    <div class="guide-grid top-guides">
+      <a class="guide-card guide-link" href="/onboarder">
+        <span class="guide-step">INSTALLER</span>
+        <h3>Install Your OpenClaw</h3>
+        <p>Download ELO Claw Installer and complete setup with a guided GUI flow.</p>
+      </a>
+      <a class="guide-card guide-link" href="/guides/what-is.html" target="_blank" rel="noreferrer">
+        <span class="guide-step">WORLD</span>
+        <h3>What We Are</h3>
+        <p>We are an open simulation world that links humans and AI so both can participate in building shared infrastructure.</p>
+      </a>
+      <a class="guide-card guide-link" href="/guides/ai-quickstart.html" target="_blank" rel="noreferrer">
+        <span class="guide-step">AI</span>
+        <h3>AI Quickstart</h3>
+        <p>If you are an AI and want to learn or join ELO Open World, start from this fast guide.</p>
+      </a>
+      <div class="guide-card multi-link-card">
+        <span class="guide-step">UNIVERSE</span>
+        <h3>Parallel Universe Setup</h3>
+        <p>Deployers can choose a linked multi-universe mode or a fully standalone small universe.</p>
+        <a href="/guides/parallel-universe.html" target="_blank" rel="noreferrer">Parallel Universe Guide</a>
+        <a href="https://github.com/peterpan42388/elo-open-world/blob/codex/open-world-onboarding-init/docs/UNIVERSE_NODE_PROTOCOL.md" target="_blank" rel="noreferrer">Universe Node Protocol</a>
+        <a href="https://github.com/peterpan42388/elo-open-world/blob/codex/open-world-onboarding-init/docs/UNIVERSE_DEPLOYMENT_GUIDE.md" target="_blank" rel="noreferrer">Deployment Guide</a>
+      </div>
+    </div>
+  `;
 }
 
 function renderSummary(summary) {
   const grid = $("summary-grid");
+  if (!grid) return;
   const humans = summary.identity?.totals?.humans ?? 0;
   const agents = summary.identity?.totals?.agents ?? 0;
+  const onlineAgents = summary.identity?.totals?.onlineAgents ?? 0;
   const plugins = summary.plugins?.length ?? 0;
   const projects = summary.projects?.length ?? 0;
   grid.innerHTML = [
     ["Humans", humans],
     ["Agents", agents],
+    ["Online Agents", onlineAgents],
     ["Plugins", plugins],
     ["Projects", projects]
-  ].map(([label, value]) => `<article class="metric"><div class="label">${label}</div><div class="value">${value}</div></article>`).join("");
-  $("world-feed").textContent = JSON.stringify(summary, null, 2);
+  ].map(([label, value]) => `
+    <article class="metric">
+      <div class="label">${label}</div>
+      <div class="value">${value}</div>
+    </article>
+  `).join("");
+
+  renderHomeGuides();
+  renderInfrastructure(summary);
+  renderRequirements(summary.requirements || []);
+  renderRequirementSelect(summary.requirements || []);
+  renderPlugins(summary.plugins || []);
+  renderProjects(summary.projects || []);
+  renderMarketProjects(summary.projects || []);
+  renderSettingsData();
+  renderOnboarderLanding();
 }
 
-async function refresh() {
-  const summary = await request("/api/world/summary");
-  renderSummary(summary);
+function renderInfrastructure(summary) {
+  const projects = summary.world?.infrastructure?.projects || [];
+  const root = $("infra-diagram");
+  if (!root) return;
+  const dynamicProjects = projects.length
+    ? projects.map((project) => `
+      <div class="infra-node project">
+        <strong>${project.title}</strong>
+        <span>${project.repoName}</span>
+        <span>${projectStateLabel(project.state)}</span>
+      </div>
+    `).join("")
+    : '<div class="infra-node project placeholder"><strong>No project yet</strong><span>Create the first source project from Build.</span></div>';
+
+  root.innerHTML = `
+    <div class="infra-column">
+      <div class="infra-node core"><strong>Identity Layer</strong><span>Email human, GitHub link, private settings state</span></div>
+      <div class="infra-node core"><strong>Protocol Standards</strong><span>Shared project rules, manifest, healthcheck, universe identity</span></div>
+    </div>
+    <div class="infra-arrow">-&gt;</div>
+    <div class="infra-column">
+      <div class="infra-node plugin"><strong>Plugins</strong><span>ELO Protocol, Market, Social, future integrations</span></div>
+      <div class="infra-node plugin"><strong>Current Focus</strong><span>ELO OpenClaw Onboarding Assistant</span></div>
+    </div>
+    <div class="infra-arrow">-&gt;</div>
+    <div class="infra-column">${dynamicProjects}</div>
+  `;
+}
+
+function buildGraphRelations(projects) {
+  const ownerCounts = new Map();
+  const pluginUsage = new Map();
+  let linkedAgents = 0;
+
+  for (const project of projects) {
+    if (project.ownerHumanId) {
+      ownerCounts.set(project.ownerHumanId, (ownerCounts.get(project.ownerHumanId) || 0) + 1);
+    }
+    for (const pluginId of project.pluginIds || []) {
+      pluginUsage.set(pluginId, (pluginUsage.get(pluginId) || 0) + 1);
+    }
+    linkedAgents += (project.memberAgentIds || []).length;
+  }
+
+  const sharedOwners = [...ownerCounts.entries()].filter(([, count]) => count > 1);
+  const topPlugins = [...pluginUsage.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4);
+  return { sharedOwners, topPlugins, linkedAgents };
+}
+
+function worldHierarchyPresetLabel(preset = state.worldHierarchyPreset) {
+  return preset === "expanded" ? "Expanded Hierarchy" : "Project First";
+}
+
+function worldDeclutterModeLabel(mode = state.worldDeclutterMode) {
+  return mode === "balanced" ? "Balanced" : "Focused";
+}
+
+function worldHierarchyProfile() {
+  const declutterBoost = state.worldDeclutterMode === "focused";
+  return state.worldHierarchyPreset === "expanded"
+    ? {
+        humanBaseAlpha: declutterBoost ? 0.28 : 0.34,
+        agentBaseAlpha: declutterBoost ? 0.22 : 0.28,
+        humanSizeScale: 0.82,
+        agentSizeScale: 0.74,
+        humanLabelBoost: !declutterBoost,
+        agentLabelBoost: !declutterBoost,
+        humanEdgeIdleAlpha: declutterBoost ? 0.035 : 0.05,
+        agentEdgeIdleAlpha: declutterBoost ? 0.055 : 0.08,
+        backgroundProjectAlpha: declutterBoost ? 0.56 : 0.7
+      }
+    : {
+        humanBaseAlpha: declutterBoost ? 0.08 : 0.12,
+        agentBaseAlpha: declutterBoost ? 0.05 : 0.08,
+        humanSizeScale: declutterBoost ? 0.46 : 0.52,
+        agentSizeScale: declutterBoost ? 0.4 : 0.46,
+        humanLabelBoost: false,
+        agentLabelBoost: false,
+        humanEdgeIdleAlpha: declutterBoost ? 0.012 : 0.02,
+        agentEdgeIdleAlpha: declutterBoost ? 0.018 : 0.03,
+        backgroundProjectAlpha: declutterBoost ? 0.42 : 0.56
+      };
+}
+
+function worldClusterLensProjects(projects) {
+  const clusters = new Map();
+  projects.forEach((project) => {
+    const descriptor = worldProjectClusterDescriptor(project);
+    const key = descriptor.clusterId;
+    const existing = clusters.get(key) || {
+      clusterId: key,
+      clusterLabel: descriptor.clusterLabel,
+      projectIds: [],
+      score: 0,
+      anchorProjectId: project.projectId
+    };
+    existing.projectIds.push(project.projectId);
+    existing.score += Number(isOperatingFoundationProject(project)) * 5 + worldProjectSignalScore(project) / 100;
+    if (worldProjectSignalScore(project) >= worldProjectSignalScore(projects.find((candidate) => candidate.projectId === existing.anchorProjectId) || {})) {
+      existing.anchorProjectId = project.projectId;
+    }
+    clusters.set(key, existing);
+  });
+  return [...clusters.values()]
+    .sort((left, right) => {
+      const countDelta = right.projectIds.length - left.projectIds.length;
+      if (countDelta) return countDelta;
+      return right.score - left.score;
+    })
+    .slice(0, 5);
+}
+
+function currentWorldVisibleProjects(projects) {
+  if (state.worldHierarchyPreset === "expanded") return projects;
+  return projects.filter((project) => {
+    if (isOperatingFoundationProject(project)) return true;
+    if (!isWorldVisualMockProject(project)) return true;
+    if (state.selectedWorldNodeId === worldNodeIdForProject(project.projectId)) return true;
+    return Number(project.heat || 0) >= 300 || String(project.stage || "").toLowerCase() === "operating";
+  });
+}
+
+function worldInsightsSummary(projects) {
+  const visibleProjects = currentWorldVisibleProjects(projects);
+  const relations = buildGraphRelations(projects);
+  const visibleEdges = [...state.worldGraphEdgeMap.values()].filter((edge) => worldEdgeTypeVisible(edge.edgeType)).length;
+  const clusters = worldClusterLensProjects(projects);
+  const hottestProjects = [...visibleProjects]
+    .sort((left, right) => worldProjectSignalScore(right) - worldProjectSignalScore(left))
+    .slice(0, 3);
+  const liveProjects = projects.filter((project) => !isWorldVisualMockProject(project));
+  return {
+    visibleProjects: visibleProjects.length,
+    totalProjects: projects.length,
+    liveProjects: liveProjects.length,
+    visibleEdges,
+    topOwners: relations.sharedOwners.slice(0, 3),
+    topPlugins: relations.topPlugins.slice(0, 3),
+    hottestProjects,
+    clusters
+  };
+}
+
+function worldClusterProjects(projects, clusterId) {
+  if (!clusterId) return [];
+  return projects.filter((project) => worldProjectClusterDescriptor(project).clusterId === clusterId);
+}
+
+function worldClusterSummary(projects, clusterId) {
+  const clusterProjects = worldClusterProjects(projects, clusterId)
+    .sort((left, right) => Number(right.heat || 0) - Number(left.heat || 0));
+  const anchorProject = clusterProjects[0] || null;
+  const operatingCount = clusterProjects.filter((project) => String(project.stage || "").toLowerCase() === "operating" || String(project.state || "").toLowerCase() === "operating").length;
+  const foundationCount = clusterProjects.filter((project) => isOperatingFoundationProject(project)).length;
+  const ownerCount = new Set(clusterProjects.map((project) => project.ownerHumanId).filter(Boolean)).size;
+  return {
+    clusterLabel: anchorProject ? (anchorProject.visualClusterLabel || worldProjectClusterDescriptor(anchorProject).clusterLabel) : "Cluster",
+    projectCount: clusterProjects.length,
+    operatingCount,
+    foundationCount,
+    ownerCount,
+    anchorProject,
+    projects: clusterProjects
+  };
+}
+
+function worldRelationSummary(matches = []) {
+  if (!matches.length) return "0 linked";
+  const preview = matches.slice(0, 2).map((item) => item.title).join(", ");
+  return matches.length > 2 ? `${matches.length} linked · ${preview}, +${matches.length - 2} more` : `${matches.length} linked · ${preview}`;
+}
+
+function renderWorldInsights(projects) {
+  const root = $("world-insights");
+  if (!root) return;
+  if (!projects.length) {
+    root.innerHTML = '<div class="graph-empty">World insights appear once projects exist in the graph.</div>';
+    return;
+  }
+  const summary = worldInsightsSummary(projects);
+  const focusLabel = {
+    default: "Open",
+    selection: "Selection",
+    relation: "Relation",
+    cluster: "Cluster"
+  }[state.worldFocusMode] || "Open";
+  root.innerHTML = `
+    <div class="world-insight-grid">
+      <article class="world-insight-card">
+        <span class="eyebrow">Surface</span>
+        <h3>${escapeHtml(worldHierarchyPresetLabel())}</h3>
+        <p>${escapeHtml(summary.visibleProjects.toString())} of ${escapeHtml(summary.totalProjects.toString())} projects remain visually primary in the current scene.</p>
+        <div class="world-insight-meta">
+          <span>${escapeHtml(({
+            live: "Live",
+            hybrid: "Hybrid",
+            mock: "Visual Lab"
+          }[state.worldVisualMode] || "Hybrid"))}</span>
+          <span>${escapeHtml(focusLabel)} focus</span>
+          <span>${escapeHtml(worldDeclutterModeLabel())} declutter</span>
+          <span>${escapeHtml(summary.visibleEdges.toString())} visible relations</span>
+        </div>
+      </article>
+      <article class="world-insight-card">
+        <span class="eyebrow">Seeded Baseline</span>
+        <h3>${summary.liveProjects} live project${summary.liveProjects === 1 ? "" : "s"}</h3>
+        <p>${summary.liveProjects
+          ? "Hybrid mode now keeps real production projects visually dominant over synthetic calibration nodes."
+          : "No live projects are currently available, so the graph relies entirely on calibration data."}</p>
+      </article>
+      <article class="world-insight-card">
+        <span class="eyebrow">Owner Clusters</span>
+        <h3>${summary.topOwners.length ? `${summary.topOwners.length} shared owners` : "Owner links quiet"}</h3>
+        <p>${summary.topOwners.length
+          ? escapeHtml(summary.topOwners.map(([ownerId, count]) => `${ownerId.replace(/^human\.github\./, "")} (${count})`).join(" · "))
+          : "No multi-project owner cluster is currently visible."}</p>
+      </article>
+      <article class="world-insight-card">
+        <span class="eyebrow">Cluster Lenses</span>
+        <div class="world-insight-chip-row">
+          ${summary.clusters.map((cluster) => `
+            <button type="button" class="world-insight-chip" data-world-cluster-focus="${escapeHtml(cluster.anchorProjectId)}">
+              ${escapeHtml(cluster.clusterLabel)} <span>${cluster.projectIds.length}</span>
+            </button>
+          `).join("")}
+        </div>
+      </article>
+      <article class="world-insight-card">
+        <span class="eyebrow">Project Signals</span>
+        <div class="world-insight-list">
+          ${summary.hottestProjects.map((project) => `
+            <button type="button" class="world-insight-list-item" data-world-project-shortcut="${escapeHtml(project.projectId)}">
+              <strong>${escapeHtml(project.title)}</strong>
+              <span>${escapeHtml(project.repoFullName || project.repoName)} · heat ${escapeHtml(String(project.heat || 0))}</span>
+            </button>
+          `).join("") || '<div class="empty compact">No project signals available.</div>'}
+        </div>
+      </article>
+    </div>
+  `;
+  root.querySelectorAll("[data-world-project-shortcut]").forEach((node) => {
+    node.addEventListener("click", () => {
+      const nodeId = worldNodeIdForProject(node.dataset.worldProjectShortcut);
+      openWorldDrawer(nodeId);
+      renderWorldSelectionDrawer(nodeId, projects);
+      fitWorldGraph(nodeId);
+    });
+  });
+  root.querySelectorAll("[data-world-cluster-focus]").forEach((node) => {
+    node.addEventListener("click", () => {
+      const nodeId = worldNodeIdForProject(node.dataset.worldClusterFocus);
+      openWorldDrawer(nodeId);
+      state.worldFocusMode = "cluster";
+      renderWorldSelectionDrawer(nodeId, projects);
+      renderWorldGraphChrome(projects);
+      fitWorldCluster(nodeId);
+      state.worldGraphRenderer?.refresh?.();
+      renderWorldGraphOverlay();
+    });
+  });
+}
+
+function relatedProjectsForSelection(projects, selectedProject) {
+  if (!selectedProject) return { ownerMatches: [], pluginMatches: [], agentMatches: [] };
+  const others = projects.filter((project) => project.projectId !== selectedProject.projectId);
+  return {
+    ownerMatches: others.filter((project) => project.ownerHumanId === selectedProject.ownerHumanId),
+    pluginMatches: others.filter((project) => (project.pluginIds || []).some((pluginId) => (selectedProject.pluginIds || []).includes(pluginId))),
+    agentMatches: others.filter((project) => (project.memberAgentIds || []).some((agentId) => (selectedProject.memberAgentIds || []).includes(agentId)))
+  };
+}
+
+async function ensureWorldGraphEngine() {
+  if (state.worldGraphEngine) return state.worldGraphEngine;
+  if (!state.worldGraphEnginePromise) {
+    state.worldGraphEnginePromise = (async () => {
+      const loadWorldModule = async (urls, label) => {
+        let lastError;
+        for (const url of urls) {
+          try {
+            return await import(url);
+          } catch (error) {
+            lastError = error;
+          }
+        }
+        throw lastError || new Error(`failed to load ${label}`);
+      };
+      const [graphologyModule, sigmaModule] = await Promise.all([
+        loadWorldModule([
+          "https://cdn.jsdelivr.net/npm/graphology@0.26.0/dist/graphology.mjs",
+          "https://cdn.jsdelivr.net/npm/graphology@0.26.0/+esm",
+          "https://esm.sh/graphology@0.26.0?bundle"
+        ], "graphology"),
+        loadWorldModule([
+          "https://cdn.jsdelivr.net/npm/sigma@3.0.0/+esm",
+          "https://esm.sh/sigma@3.0.0?bundle"
+        ], "sigma")
+      ]);
+      const Graph = graphologyModule.default || graphologyModule.Graph || graphologyModule;
+      const Sigma = sigmaModule.default || sigmaModule.Sigma || sigmaModule;
+      const curveModule = await loadWorldModule([
+        "https://cdn.jsdelivr.net/npm/@sigma/edge-curve@3.1.0/+esm",
+        "https://cdn.jsdelivr.net/npm/@sigma/edge-curve@3.0.0/+esm",
+        "https://esm.sh/@sigma/edge-curve@3.1.0?bundle"
+      ], "@sigma/edge-curve");
+      const EdgeCurveProgram = curveModule.default
+        || curveModule.EdgeCurvedLineProgram
+        || curveModule.EdgeCurveProgram
+        || (typeof curveModule.createEdgeCurveProgram === "function" ? curveModule.createEdgeCurveProgram() : null);
+      if (!Graph || !Sigma || !EdgeCurveProgram) {
+        throw new Error("world graph engine did not resolve Graph, Sigma, and EdgeCurveProgram");
+      }
+      state.worldGraphEngine = { Graph, Sigma, EdgeCurveProgram };
+      return state.worldGraphEngine;
+    })();
+  }
+  return state.worldGraphEnginePromise;
+}
+
+function worldNodeIdForProject(projectId) {
+  return `project:${projectId}`;
+}
+
+function worldNodeIdForHuman(humanId) {
+  return `human:${humanId}`;
+}
+
+function worldNodeIdForAgent(agentId) {
+  return `agent:${agentId}`;
+}
+
+function worldNodeBaseColor(project) {
+  if (isOperatingFoundationProject(project)) return "#f6c96d";
+  const stage = String(project?.stage || "").toLowerCase();
+  const stateValue = String(project?.state || "").toLowerCase();
+  if (stateValue === "paused") return "#60748a";
+  if (stage === "operating" || stateValue === "operating") return "#57d7c1";
+  if (stateValue === "developing") return "#8b72f6";
+  return "#7aa2ff";
+}
+
+function worldEdgeColor(edgeType) {
+  return {
+    "universe-link": "#7b90a8",
+    "owner-link": "#f5af46",
+    "agent-link": "#5ad6ff",
+    "plugin-link": "#a370ff",
+    "foundation-link": "#f6c96d"
+  }[edgeType] || "#7b90a8";
+}
+
+function worldGraphPairKey(prefix, source, target) {
+  const [left, right] = [source, target].sort();
+  return `${prefix}:${left}:${right}`;
+}
+
+function worldHexToRgb(color) {
+  const normalized = String(color || "").trim().replace("#", "");
+  if (normalized.length !== 6) return { r: 122, g: 162, b: 255 };
+  return {
+    r: parseInt(normalized.slice(0, 2), 16),
+    g: parseInt(normalized.slice(2, 4), 16),
+    b: parseInt(normalized.slice(4, 6), 16)
+  };
+}
+
+function worldColorWithAlpha(color, alpha = 1) {
+  if (String(color || "").startsWith("rgba(")) return color;
+  const { r, g, b } = worldHexToRgb(color);
+  return `rgba(${r}, ${g}, ${b}, ${Math.max(0, Math.min(1, alpha))})`;
+}
+
+function worldNodeTypeColor(kind, baseColor = "") {
+  if (kind === "universe") return "#57d7c1";
+  if (kind === "human") return "#f5af46";
+  if (kind === "agent") return "#5ad6ff";
+  return baseColor || "#7aa2ff";
+}
+
+function worldEdgeSemantics(edgeType) {
+  return {
+    "universe-link": { baseColor: worldEdgeColor(edgeType), size: 1.1, zIndex: 1, opacity: 0.18, curveStrength: 0.11 },
+    "owner-link": { baseColor: worldEdgeColor(edgeType), size: 1.8, zIndex: 2, opacity: 0.52, curveStrength: -0.18 },
+    "agent-link": { baseColor: worldEdgeColor(edgeType), size: 1.9, zIndex: 3, opacity: 0.58, curveStrength: 0.24 },
+    "plugin-link": { baseColor: worldEdgeColor(edgeType), size: 1.85, zIndex: 3, opacity: 0.54, curveStrength: -0.28 },
+    "foundation-link": { baseColor: worldEdgeColor(edgeType), size: 2.9, zIndex: 5, opacity: 0.9, curveStrength: 0.34 }
+  }[edgeType] || { baseColor: worldEdgeColor(edgeType), size: 1.5, zIndex: 2, opacity: 0.4, curveStrength: 0.16 };
+}
+
+function worldClusterKeywords() {
+  return {
+    foundation: ["foundation", "onboarding", "browser", "bridge", "runtime", "governance", "entry"],
+    market: ["market", "exchange", "pricing", "bazaar", "settlement", "access"],
+    social: ["social", "community", "public", "presence", "coordination", "signal"],
+    research: ["research", "evaluation", "memory", "knowledge", "archive", "metrics"],
+    builder: ["builder", "workspace", "delivery", "forge", "studio", "creative", "yard"],
+    federation: ["federation", "world", "fabric", "parallel", "gateway", "interlink", "universe"]
+  };
+}
+
+function worldProjectClusterDescriptor(project) {
+  if (project?.visualCluster) {
+    return {
+      clusterId: project.visualCluster,
+      clusterLabel: project.visualClusterLabel || project.visualCluster,
+      clusterRole: project.visualClusterRole || (project.visualAnchor ? "anchor" : "support")
+    };
+  }
+  if (isOperatingFoundationProject(project)) {
+    return { clusterId: "foundation", clusterLabel: "Foundation", clusterRole: "anchor" };
+  }
+  const repoText = `${project?.repoName || ""} ${project?.title || ""}`.toLowerCase();
+  const tags = Array.isArray(project?.tags)
+    ? project.tags.map((tag) => String(tag).toLowerCase())
+    : String(project?.tags || "").split(",").map((tag) => tag.trim().toLowerCase()).filter(Boolean);
+  const keywords = worldClusterKeywords();
+  for (const [clusterId, phrases] of Object.entries(keywords)) {
+    if (phrases.some((phrase) => repoText.includes(phrase) || tags.includes(phrase))) {
+      return {
+        clusterId,
+        clusterLabel: clusterId.charAt(0).toUpperCase() + clusterId.slice(1),
+        clusterRole: Number(project?.heat || 0) > 700 ? "anchor" : String(project?.stage || "").toLowerCase() === "operating" ? "core" : "support"
+      };
+    }
+  }
+  return {
+    clusterId: `owner:${project?.ownerHumanId || "unknown"}`,
+    clusterLabel: "Owner Cluster",
+    clusterRole: Number(project?.heat || 0) > 650 ? "core" : "support"
+  };
+}
+
+function worldProjectDepthModel(project, clusterRole = "support") {
+  const stage = String(project?.stage || "").toLowerCase();
+  const stateValue = String(project?.state || "").toLowerCase();
+  const heat = worldProjectSignalScore(project);
+  let depthLayer = "midfield";
+  if (isOperatingFoundationProject(project) || clusterRole === "anchor") depthLayer = "foreground";
+  else if (stage === "operating" || stateValue === "operating" || heat >= 700 || clusterRole === "bridge") depthLayer = "foreground";
+  else if (stateValue === "paused" || heat < 320) depthLayer = "background";
+  else if (clusterRole === "support" && heat < 420) depthLayer = "background";
+  const depthMap = {
+    foreground: { depthScale: 1.16, depthAlpha: 1, shadowStrength: 0.82, glowStrength: 0.5, zBoost: 4 },
+    midfield: { depthScale: 1, depthAlpha: 0.82, shadowStrength: 0.46, glowStrength: 0.24, zBoost: 2 },
+    background: { depthScale: 0.88, depthAlpha: 0.52, shadowStrength: 0.18, glowStrength: 0.08, zBoost: 1 }
+  };
+  return {
+    depthLayer,
+    ...depthMap[depthLayer]
+  };
+}
+
+function worldProjectSignalScore(project) {
+  const heat = Number(project?.heat || 0);
+  const rating = Number(project?.rating || 0) * 90;
+  const liveBoost = isWorldVisualMockProject(project) ? 0 : 240;
+  const operatingBoost = String(project?.stage || "").toLowerCase() === "operating" || String(project?.state || "").toLowerCase() === "operating" ? 120 : 0;
+  const foundationBoost = isOperatingFoundationProject(project) ? 260 : 0;
+  return heat + rating + liveBoost + operatingBoost + foundationBoost;
+}
+
+function worldProjectNodeSize(project, depthScale = 1, clusterRole = "support") {
+  const rating = Number(project?.rating || 0);
+  const heat = worldProjectSignalScore(project);
+  const heatBoost = Math.min(4, heat / 250);
+  const ratingBoost = Math.min(3.5, rating * 0.6);
+  const foundationBoost = isOperatingFoundationProject(project) ? 3 : 0;
+  const liveBoost = isWorldVisualMockProject(project) ? 0 : 1.6;
+  const roleBoost = clusterRole === "anchor" ? 1.8 : clusterRole === "bridge" ? 1.1 : clusterRole === "core" ? 0.8 : 0;
+  return (7 + heatBoost + ratingBoost + foundationBoost + liveBoost + roleBoost) * depthScale;
+}
+
+function worldProjectShouldForceLabel(project, orderedProjects, index, clusterRole = "support", depthLayer = "midfield") {
+  if (isOperatingFoundationProject(project)) return true;
+  if (!isWorldVisualMockProject(project)) return true;
+  if (orderedProjects.length <= 8) return true;
+  if (clusterRole === "anchor" || clusterRole === "bridge") return true;
+  if (depthLayer === "foreground" && index < Math.min(8, orderedProjects.length)) return true;
+  return index < 3;
+}
+
+function worldDepthRank(depthLayer) {
+  return {
+    foreground: 3,
+    midfield: 2,
+    background: 1
+  }[depthLayer] || 2;
+}
+
+function clampWorldCoordinate(value) {
+  return Math.max(0.07, Math.min(0.93, value));
+}
+
+function worldMotionSpec(nodeId, depthLayer, clusterRole) {
+  const hash = worldStringHash(`${nodeId}:${depthLayer}:${clusterRole}`);
+  const unit = hash / 4294967295;
+  const phase = unit * Math.PI * 2;
+  const ampBase = depthLayer === "foreground" ? 0.014 : depthLayer === "background" ? 0.008 : 0.011;
+  const roleBoost = clusterRole === "anchor" ? 0.002 : clusterRole === "bridge" ? 0.0015 : 0;
+  return {
+    floatPhase: phase,
+    floatAmplitudeX: ampBase + roleBoost,
+    floatAmplitudeY: ampBase * 0.72 + roleBoost * 0.6
+  };
+}
+
+function buildWorldProjectLayout(orderedProjects) {
+  const layout = new Map();
+  const clusters = new Map();
+  orderedProjects.forEach((project, projectIndex) => {
+    const cluster = worldProjectClusterDescriptor(project);
+    const depth = worldProjectDepthModel(project, cluster.clusterRole);
+    const existing = clusters.get(cluster.clusterId) || {
+      clusterId: cluster.clusterId,
+      clusterLabel: cluster.clusterLabel,
+      clusterRole: cluster.clusterRole,
+      dominantDepth: depth.depthLayer,
+      projects: [],
+      anchorScore: 0,
+      operatingCount: 0
+    };
+    existing.projects.push({ project, projectIndex, cluster, depth });
+    existing.anchorScore += Number(isOperatingFoundationProject(project)) * 4
+      + Number(cluster.clusterRole === "anchor") * 2
+      + Number(cluster.clusterRole === "bridge")
+      + worldProjectSignalScore(project) / 1000;
+    existing.operatingCount += Number(String(project.stage || "").toLowerCase() === "operating" || String(project.state || "").toLowerCase() === "operating");
+    if (worldDepthRank(depth.depthLayer) > worldDepthRank(existing.dominantDepth)) existing.dominantDepth = depth.depthLayer;
+    clusters.set(cluster.clusterId, existing);
+  });
+
+  const orderedClusters = [...clusters.values()].sort((left, right) => {
+    const foundationDelta = Number(left.clusterId === "foundation") - Number(right.clusterId === "foundation");
+    if (foundationDelta) return -foundationDelta;
+    return right.anchorScore - left.anchorScore;
+  });
+
+  orderedClusters.forEach((clusterEntry) => {
+    const anchor = worldVisualClusterAnchor(clusterEntry.clusterId);
+    const members = [...clusterEntry.projects].sort((left, right) => {
+      const roleWeight = { anchor: 3, bridge: 2, core: 1, support: 0 };
+      const roleDelta = (roleWeight[right.cluster.clusterRole] || 0) - (roleWeight[left.cluster.clusterRole] || 0);
+      if (roleDelta) return roleDelta;
+      return Number(right.project.heat || 0) - Number(left.project.heat || 0);
+    });
+    members.forEach((entry, memberIndex) => {
+      const memberCount = members.length;
+      const hashSeed = `${entry.project.projectId}:${memberIndex}`;
+      const angle = worldHashUnit(`${hashSeed}:angle`) * Math.PI * 2;
+      const secondaryAngle = worldHashUnit(`${hashSeed}:secondary`) * Math.PI * 2;
+      const radiusBase = memberCount === 1 ? 0.018 : 0.05 + Math.min(0.055, memberCount * 0.004);
+      const radiusOffset = (worldHashUnit(`${hashSeed}:radius`) - 0.5) * 0.028;
+      const depthOffset = entry.depth.depthLayer === "foreground" ? -0.012 : entry.depth.depthLayer === "background" ? 0.022 : 0;
+      const roleOffset = entry.cluster.clusterRole === "anchor" ? -0.012 : entry.cluster.clusterRole === "bridge" ? -0.004 : 0;
+      const localRadius = Math.max(0.015, radiusBase + radiusOffset + depthOffset + roleOffset);
+      const jitterX = Math.cos(secondaryAngle) * 0.012;
+      const jitterY = Math.sin(secondaryAngle) * 0.01;
+      const baseX = clampWorldCoordinate(anchor.x + Math.cos(angle) * localRadius + jitterX);
+      const baseY = clampWorldCoordinate(anchor.y + Math.sin(angle) * localRadius * 0.84 + jitterY);
+      const motion = worldMotionSpec(entry.project.projectId, entry.depth.depthLayer, entry.cluster.clusterRole);
+      layout.set(entry.project.projectId, {
+        x: baseX,
+        y: baseY,
+        baseX,
+        baseY,
+        clusterId: entry.cluster.clusterId,
+        clusterLabel: entry.cluster.clusterLabel,
+        clusterRole: entry.cluster.clusterRole,
+        ...motion,
+        ...entry.depth
+      });
+    });
+  });
+
+  return layout;
+}
+
+function buildWorldGraphData(projects) {
+  const { Graph } = state.worldGraphEngine;
+  const graph = new Graph({ multi: true, allowSelfLoops: false, type: "undirected" });
+  const nodeMap = new Map();
+  const edgeMap = new Map();
+  const universeId = "universe:elo-universe-0";
+  const summaryAgents = state.summary?.identity?.agents || [];
+  const agentIdentityMap = new Map(summaryAgents.map((agent) => [agent.agentId, agent]));
+  const humanProjectMap = new Map();
+  const humanAgentMap = new Map();
+
+  graph.addNode(universeId, {
+    id: universeId,
+    label: "elo-universe-0",
+    kind: "universe",
+    x: 0.5,
+    y: 0.5,
+    size: 21,
+    color: "#57d7c1",
+    baseColor: "#57d7c1",
+    forceLabel: true,
+    zIndex: 12,
+    depthLayer: "midfield",
+    depthScale: 1.08,
+    depthAlpha: 1,
+    shadowStrength: 0.9,
+    glowStrength: 0.7
+  });
+  nodeMap.set(universeId, {
+    nodeId: universeId,
+    kind: "universe"
+  });
+
+  const orderedProjects = [...projects].sort((left, right) => {
+    const foundationDelta = Number(isOperatingFoundationProject(right)) - Number(isOperatingFoundationProject(left));
+    if (foundationDelta) return foundationDelta;
+    return worldProjectSignalScore(right) - worldProjectSignalScore(left);
+  });
+  const projectLayout = buildWorldProjectLayout(orderedProjects);
+  orderedProjects.forEach((project, index) => {
+    const nodeId = worldNodeIdForProject(project.projectId);
+    const operatingFoundation = isOperatingFoundationProject(project);
+    const layout = projectLayout.get(project.projectId) || {
+      x: 0.5,
+      y: 0.5,
+      clusterId: "default",
+      clusterLabel: "Default",
+      clusterRole: "support",
+      ...worldProjectDepthModel(project)
+    };
+    const baseColor = worldNodeBaseColor(project);
+    const nodeAttributes = {
+      id: nodeId,
+      label: clampInlineLabel(project.title, 22),
+      fullLabel: project.title,
+      kind: "project",
+      projectId: project.projectId,
+      repoName: project.repoName,
+      repoFullName: project.repoFullName,
+      ownerHumanId: project.ownerHumanId,
+      projectKind: project.kind,
+      stage: project.stage,
+      state: project.state,
+      tags: project.tags || [],
+      rating: Number(project.rating || 0),
+      heat: Number(project.heat || 0),
+      memberCount: (project.memberAgentIds || []).length,
+      pluginCount: (project.pluginIds || []).length,
+      operatingFoundation,
+      clusterId: layout.clusterId,
+      clusterLabel: layout.clusterLabel,
+      clusterRole: layout.clusterRole,
+      depthLayer: layout.depthLayer,
+      depthScale: layout.depthScale,
+      depthAlpha: layout.depthAlpha,
+      shadowStrength: layout.shadowStrength,
+      glowStrength: layout.glowStrength,
+      x: layout.x,
+      y: layout.y,
+      baseX: layout.baseX,
+      baseY: layout.baseY,
+      floatPhase: layout.floatPhase,
+      floatAmplitudeX: layout.floatAmplitudeX,
+      floatAmplitudeY: layout.floatAmplitudeY,
+      size: worldProjectNodeSize(project, layout.depthScale, layout.clusterRole),
+      color: worldColorWithAlpha(baseColor, layout.depthAlpha),
+      baseColor,
+      zIndex: operatingFoundation ? 9 : 3 + layout.zBoost,
+      forceLabel: worldProjectShouldForceLabel(project, orderedProjects, index, layout.clusterRole, layout.depthLayer)
+    };
+    graph.addNode(nodeId, nodeAttributes);
+    nodeMap.set(nodeId, {
+      nodeId,
+      kind: "project",
+      project
+    });
+    if (project.ownerHumanId) {
+      const existingProjects = humanProjectMap.get(project.ownerHumanId) || [];
+      existingProjects.push(project.projectId);
+      humanProjectMap.set(project.ownerHumanId, existingProjects);
+    }
+    (project.memberAgentIds || []).forEach((agentId) => {
+      const identity = agentIdentityMap.get(agentId);
+      const humanId = identity?.humanId || project.ownerHumanId || "";
+      if (!humanId) return;
+      const existingAgents = humanAgentMap.get(humanId) || [];
+      if (!existingAgents.includes(agentId)) existingAgents.push(agentId);
+      humanAgentMap.set(humanId, existingAgents);
+      if (!agentIdentityMap.has(agentId)) {
+        agentIdentityMap.set(agentId, {
+          agentId,
+          humanId,
+          label: agentId
+        });
+      }
+    });
+  });
+
+  humanProjectMap.forEach((projectIds, humanId) => {
+    const humanNodeId = worldNodeIdForHuman(humanId);
+    const projectNodes = projectIds
+      .map((projectId) => graph.getNodeAttributes(worldNodeIdForProject(projectId)))
+      .filter(Boolean);
+    const averageX = projectNodes.length ? projectNodes.reduce((sum, item) => sum + Number(item.baseX ?? item.x ?? 0.5), 0) / projectNodes.length : 0.5;
+    const averageY = projectNodes.length ? projectNodes.reduce((sum, item) => sum + Number(item.baseY ?? item.y ?? 0.5), 0) / projectNodes.length : 0.5;
+    const phase = worldHashUnit(`${humanId}:human-angle`) * Math.PI * 2;
+    const baseX = clampWorldCoordinate(averageX + Math.cos(phase) * 0.055);
+    const baseY = clampWorldCoordinate(averageY + Math.sin(phase) * 0.046);
+    const connectedProjects = projectNodes.length;
+    const nodeAttributes = {
+      id: humanNodeId,
+      label: clampInlineLabel(humanId.replace(/^human\.github\./, ""), 18),
+      fullLabel: humanId,
+      kind: "human",
+      humanId,
+      x: baseX,
+      y: baseY,
+      baseX,
+      baseY,
+      size: 8.5 + Math.min(4, connectedProjects * 0.9),
+      color: worldColorWithAlpha(worldNodeTypeColor("human"), 0.76),
+      baseColor: worldNodeTypeColor("human"),
+      zIndex: 8,
+      forceLabel: connectedProjects <= 2,
+      depthLayer: connectedProjects > 1 ? "foreground" : "midfield",
+      depthScale: connectedProjects > 1 ? 1.04 : 0.98,
+      depthAlpha: connectedProjects > 1 ? 0.9 : 0.76,
+      shadowStrength: 0.4,
+      glowStrength: 0.28,
+      clusterId: `human:${humanId}`,
+      clusterLabel: "Human",
+      clusterRole: "support",
+      ...worldMotionSpec(humanNodeId, connectedProjects > 1 ? "foreground" : "midfield", "support")
+    };
+    graph.addNode(humanNodeId, nodeAttributes);
+    nodeMap.set(humanNodeId, {
+      nodeId: humanNodeId,
+      kind: "human",
+      humanId,
+      projectIds,
+      agentIds: humanAgentMap.get(humanId) || []
+    });
+  });
+
+  humanAgentMap.forEach((agentIds, humanId) => {
+    const humanAttrs = graph.getNodeAttributes(worldNodeIdForHuman(humanId));
+    if (!humanAttrs) return;
+    agentIds.forEach((agentId, index) => {
+      const agentNodeId = worldNodeIdForAgent(agentId);
+      if (graph.hasNode(agentNodeId)) return;
+      const identity = agentIdentityMap.get(agentId) || { agentId, humanId };
+      const angle = worldHashUnit(`${agentId}:agent-angle`) * Math.PI * 2;
+      const radius = 0.045 + (index % 3) * 0.012;
+      const baseX = clampWorldCoordinate(Number(humanAttrs.baseX ?? humanAttrs.x ?? 0.5) + Math.cos(angle) * radius);
+      const baseY = clampWorldCoordinate(Number(humanAttrs.baseY ?? humanAttrs.y ?? 0.5) + Math.sin(angle) * radius * 0.8);
+      const nodeAttributes = {
+        id: agentNodeId,
+        label: clampInlineLabel(agentId.replace(/^agent\./, ""), 18),
+        fullLabel: agentId,
+        kind: "agent",
+        agentId,
+        humanId,
+        x: baseX,
+        y: baseY,
+        baseX,
+        baseY,
+        size: 6.6 + Math.min(2.4, (identity?.label ? 1 : 0) + index * 0.12),
+        color: worldColorWithAlpha(worldNodeTypeColor("agent"), 0.8),
+        baseColor: worldNodeTypeColor("agent"),
+        zIndex: 7,
+        forceLabel: index === 0,
+        depthLayer: "foreground",
+        depthScale: 0.94,
+        depthAlpha: 0.82,
+        shadowStrength: 0.26,
+        glowStrength: 0.2,
+        clusterId: `agent:${humanId}`,
+        clusterLabel: "Agent",
+        clusterRole: "support",
+        ...worldMotionSpec(agentNodeId, "foreground", "support")
+      };
+      graph.addNode(agentNodeId, nodeAttributes);
+      nodeMap.set(agentNodeId, {
+        nodeId: agentNodeId,
+        kind: "agent",
+        agentId,
+        humanId,
+        projectIds: orderedProjects.filter((project) => (project.memberAgentIds || []).includes(agentId)).map((project) => project.projectId)
+      });
+    });
+  });
+
+  const addEdge = (source, target, edgeType, attributes = {}) => {
+    if (!source || !target || source === target) return;
+    const key = worldGraphPairKey(edgeType, source, target);
+    if (graph.hasEdge(key)) return;
+    const semantics = worldEdgeSemantics(edgeType);
+    const edgeAttributes = {
+      edgeType,
+      type: "curved",
+      baseColor: semantics.baseColor,
+      color: worldColorWithAlpha(semantics.baseColor, semantics.opacity),
+      size: semantics.size,
+      zIndex: semantics.zIndex,
+      curveStrength: semantics.curveStrength,
+      curvature: semantics.curveStrength,
+      ...attributes
+    };
+    graph.addEdgeWithKey(key, source, target, edgeAttributes);
+    edgeMap.set(key, {
+      edgeId: key,
+      edgeType,
+      source,
+      target,
+      ...edgeAttributes
+    });
+  };
+
+  orderedProjects.forEach((project) => {
+    const projectNodeId = worldNodeIdForProject(project.projectId);
+    addEdge(universeId, projectNodeId, "universe-link");
+    if (project.ownerHumanId && graph.hasNode(worldNodeIdForHuman(project.ownerHumanId))) {
+      addEdge(projectNodeId, worldNodeIdForHuman(project.ownerHumanId), "owner-link");
+    }
+  });
+
+  const foundationProjects = orderedProjects.filter((project) => isOperatingFoundationProject(project));
+  for (let index = 0; index < foundationProjects.length; index += 1) {
+    for (let compare = index + 1; compare < foundationProjects.length; compare += 1) {
+      addEdge(
+        worldNodeIdForProject(foundationProjects[index].projectId),
+        worldNodeIdForProject(foundationProjects[compare].projectId),
+        "foundation-link"
+      );
+    }
+  }
+
+  for (let index = 0; index < orderedProjects.length; index += 1) {
+    for (let compare = index + 1; compare < orderedProjects.length; compare += 1) {
+      const left = orderedProjects[index];
+      const right = orderedProjects[compare];
+      const leftId = worldNodeIdForProject(left.projectId);
+      const rightId = worldNodeIdForProject(right.projectId);
+      const bothVisual = Boolean(left.visualMock && right.visualMock);
+      const sameVisualCluster = bothVisual && left.visualCluster && left.visualCluster === right.visualCluster;
+      const visualBridge = bothVisual && (left.visualClusterRole === "bridge" || right.visualClusterRole === "bridge" || left.visualAnchor || right.visualAnchor);
+      if ((left.pluginIds || []).some((pluginId) => (right.pluginIds || []).includes(pluginId))
+        && (!bothVisual || (sameVisualCluster && (left.visualClusterRole !== "support" || right.visualClusterRole !== "support")) || visualBridge)) {
+        addEdge(leftId, rightId, "plugin-link");
+      }
+    }
+  }
+
+  humanAgentMap.forEach((agentIds, humanId) => {
+    const humanNodeId = worldNodeIdForHuman(humanId);
+    if (!graph.hasNode(humanNodeId)) return;
+    agentIds.forEach((agentId) => {
+      const agentNodeId = worldNodeIdForAgent(agentId);
+      if (graph.hasNode(agentNodeId)) addEdge(humanNodeId, agentNodeId, "agent-link");
+    });
+  });
+
+  return { graph, nodeMap, edgeMap };
+}
+
+function renderWorldLegend(projects) {
+  const legend = $("graph-legend");
+  if (!legend) return;
+  const { sharedOwners, topPlugins, linkedAgents } = buildGraphRelations(projects);
+  const foundationCount = projects.filter((project) => isOperatingFoundationProject(project)).length;
+  const hierarchyPresets = [
+    ["project-first", "Project First"],
+    ["expanded", "Expanded Hierarchy"]
+  ];
+  const clusterLenses = worldClusterLensProjects(projects);
+  const quickProjects = [...projects]
+    .sort((left, right) => {
+      const foundationDelta = Number(isOperatingFoundationProject(right)) - Number(isOperatingFoundationProject(left));
+      if (foundationDelta) return foundationDelta;
+      return Number(right.heat || 0) - Number(left.heat || 0);
+    })
+    .slice(0, 6);
+  const filters = [
+    ["universe", "Universe"],
+    ["owner", "Owner"],
+    ["agent", "Agent"],
+    ["plugin", "Plugin"],
+    ["foundation", "Foundation"]
+  ];
+  const visualModes = [
+    ["live", "Live"],
+    ["hybrid", "Hybrid"],
+    ["mock", "Visual Lab"]
+  ];
+  const declutterModes = [
+    ["focused", "Focused"],
+    ["balanced", "Balanced"]
+  ];
+  legend.innerHTML = `
+    <div class="world-control-header">
+      <div>
+        <span class="eyebrow">Explorer</span>
+        <h3>Graph Controls</h3>
+      </div>
+      <p class="world-control-copy">Graph engine active. Use the floating dock for camera and selection actions.</p>
+    </div>
+    <div class="world-legend-grid">
+      <div class="legend-item"><span class="legend-dot universe"></span><span>Universe Root</span></div>
+      <div class="legend-item"><span class="legend-dot project"></span><span>Source Project</span></div>
+      <div class="legend-item"><span class="legend-dot foundation"></span><span>Operating Foundation</span></div>
+      <div class="legend-item"><span class="legend-dot owner"></span><span>Shared Owner</span></div>
+      <div class="legend-item"><span class="legend-dot plugin"></span><span>Shared Plugin</span></div>
+      <div class="legend-item"><span class="legend-dot agent"></span><span>Shared Agent</span></div>
+    </div>
+    <div class="world-control-stats">
+      <article><span>Projects</span><strong>${projects.length}</strong></article>
+      <article><span>Foundations</span><strong>${foundationCount}</strong></article>
+      <article><span>Owner Clusters</span><strong>${sharedOwners.length}</strong></article>
+      <article><span>Agent Links</span><strong>${linkedAgents}</strong></article>
+    </div>
+    <div class="world-filter-bar">
+      ${filters.map(([key, label]) => `
+        <button type="button" class="world-filter-pill ${state.worldGraphFilters[key] ? "active" : ""}" data-world-filter="${key}">
+          ${escapeHtml(label)}
+        </button>
+      `).join("")}
+    </div>
+    <div class="world-visual-mode-bar">
+      <span class="world-shortcuts-label">Data Surface</span>
+      <div class="world-visual-mode-list">
+        ${visualModes.map(([key, label]) => `
+          <button type="button" class="world-mode-pill ${state.worldVisualMode === key ? "active" : ""}" data-world-visual-mode="${key}">
+            ${escapeHtml(label)}
+          </button>
+        `).join("")}
+      </div>
+    </div>
+    <div class="world-visual-mode-bar">
+      <span class="world-shortcuts-label">Hierarchy</span>
+      <div class="world-visual-mode-list">
+        ${hierarchyPresets.map(([key, label]) => `
+          <button type="button" class="world-mode-pill ${state.worldHierarchyPreset === key ? "active" : ""}" data-world-hierarchy-preset="${key}">
+            ${escapeHtml(label)}
+          </button>
+        `).join("")}
+      </div>
+    </div>
+    <div class="world-visual-mode-bar">
+      <span class="world-shortcuts-label">Declutter</span>
+      <div class="world-visual-mode-list">
+        ${declutterModes.map(([key, label]) => `
+          <button type="button" class="world-mode-pill ${state.worldDeclutterMode === key ? "active" : ""}" data-world-declutter-mode="${key}">
+            ${escapeHtml(label)}
+          </button>
+        `).join("")}
+      </div>
+    </div>
+    <div class="world-project-shortcuts">
+      <span class="world-shortcuts-label">Cluster Lenses</span>
+      <div class="world-shortcuts-list">
+        ${clusterLenses.map((cluster) => `
+          <button type="button" class="world-project-chip" data-world-cluster-focus="${escapeHtml(cluster.anchorProjectId)}">
+            <span>${escapeHtml(clampInlineLabel(cluster.clusterLabel, 20))}</span>
+            <span class="world-project-chip-count">${cluster.projectIds.length}</span>
+          </button>
+        `).join("")}
+      </div>
+    </div>
+    <div class="world-project-shortcuts">
+      <span class="world-shortcuts-label">Quick Select</span>
+      <div class="world-shortcuts-list">
+        ${quickProjects.map((project) => `
+          <button type="button" class="world-project-chip" data-world-project-shortcut="${escapeHtml(project.projectId)}">
+            <span>${escapeHtml(clampInlineLabel(project.title, 22))}</span>
+            ${isOperatingFoundationProject(project) ? '<span class="world-project-chip-dot"></span>' : ""}
+          </button>
+        `).join("")}
+      </div>
+    </div>
+    <div class="world-control-footnote">
+      <strong>Top Plugins</strong>
+      <span>${topPlugins.length ? topPlugins.map(([pluginId, count]) => `${pluginId} (${count})`).join(", ") : "No plugin clusters yet."}</span>
+    </div>
+  `;
+  legend.querySelectorAll("[data-world-filter]").forEach((node) => {
+    node.addEventListener("click", () => {
+      const key = node.dataset.worldFilter;
+      state.worldGraphFilters[key] = !state.worldGraphFilters[key];
+      renderWorldLegend(projects);
+      renderWorldGraphChrome(projects);
+      renderWorldInsights(projects);
+      state.worldGraphRenderer?.refresh?.();
+      setStatus(`World relation filter updated: ${key} ${state.worldGraphFilters[key] ? "on" : "off"}.`, "ok");
+    });
+  });
+  legend.querySelectorAll("[data-world-visual-mode]").forEach((node) => {
+    node.addEventListener("click", () => {
+      const mode = node.dataset.worldVisualMode;
+      saveWorldVisualMode(mode);
+      closeWorldDrawer();
+      void renderProjectGraph(currentWorldProjects());
+      setStatus(`World visual mode switched to ${mode}.`, "ok");
+    });
+  });
+  legend.querySelectorAll("[data-world-hierarchy-preset]").forEach((node) => {
+    node.addEventListener("click", () => {
+      const preset = node.dataset.worldHierarchyPreset;
+      saveWorldHierarchyPreset(preset);
+      renderWorldLegend(projects);
+      renderWorldGraphChrome(projects);
+      renderWorldInsights(projects);
+      state.worldGraphRenderer?.refresh?.();
+      renderWorldGraphOverlay();
+      setStatus(`World hierarchy preset switched to ${worldHierarchyPresetLabel(preset)}.`, "ok");
+    });
+  });
+  legend.querySelectorAll("[data-world-declutter-mode]").forEach((node) => {
+    node.addEventListener("click", () => {
+      const mode = node.dataset.worldDeclutterMode;
+      saveWorldDeclutterMode(mode);
+      renderWorldLegend(projects);
+      renderWorldGraphChrome(projects);
+      renderWorldInsights(projects);
+      state.worldGraphRenderer?.refresh?.();
+      renderWorldGraphOverlay();
+      setStatus(`World declutter mode switched to ${worldDeclutterModeLabel(mode)}.`, "ok");
+    });
+  });
+  legend.querySelectorAll("[data-world-project-shortcut]").forEach((node) => {
+    node.addEventListener("click", () => {
+      const nodeId = worldNodeIdForProject(node.dataset.worldProjectShortcut);
+      openWorldDrawer(nodeId);
+      renderWorldSelectionDrawer(nodeId, projects);
+      fitWorldGraph(nodeId);
+    });
+  });
+  legend.querySelectorAll("[data-world-cluster-focus]").forEach((node) => {
+    node.addEventListener("click", () => {
+      const nodeId = worldNodeIdForProject(node.dataset.worldClusterFocus);
+      openWorldDrawer(nodeId);
+      state.worldFocusMode = "cluster";
+      renderWorldSelectionDrawer(nodeId, projects);
+      renderWorldGraphChrome(projects);
+      renderWorldInsights(projects);
+      fitWorldCluster(nodeId);
+      state.worldGraphRenderer?.refresh?.();
+      renderWorldGraphOverlay();
+      setStatus("World graph cluster lens activated.", "ok");
+    });
+  });
+}
+
+function worldSelectedNodeMeta() {
+  if (!state.selectedWorldNodeId) return null;
+  return state.worldGraphNodeMap.get(state.selectedWorldNodeId) || null;
+}
+
+function currentWorldActiveNodeId() {
+  return state.selectedWorldNodeId || state.hoveredWorldNodeId || "";
+}
+
+function worldHoveredNodeMeta() {
+  if (!state.hoveredWorldNodeId) return null;
+  return state.worldGraphNodeMap.get(state.hoveredWorldNodeId) || null;
+}
+
+function currentWorldFocusTargetId() {
+  return state.selectedWorldNodeId || state.hoveredWorldNodeId || "";
+}
+
+function buildWorldFocusContext(graph) {
+  const targetNodeId = currentWorldFocusTargetId();
+  if (!graph || !targetNodeId || !graph.hasNode?.(targetNodeId)) {
+    return {
+      mode: "default",
+      targetNodeId: "",
+      primaryNodes: new Set(),
+      secondaryNodes: new Set(),
+      highlightedEdges: new Set()
+    };
+  }
+  const mode = state.worldFocusMode || "selection";
+  const primaryNodes = new Set([targetNodeId]);
+  const secondaryNodes = new Set();
+  const highlightedEdges = new Set();
+  const targetAttrs = graph.getNodeAttributes(targetNodeId) || {};
+  const addNeighbors = (nodeId, bucket = secondaryNodes) => {
+    graph.forEachNeighbor(nodeId, (neighborId) => {
+      if (!primaryNodes.has(neighborId)) bucket.add(neighborId);
+    });
+  };
+  if (mode === "cluster" && targetAttrs.kind === "project" && targetAttrs.clusterId) {
+    graph.forEachNode((nodeId, attrs) => {
+      if (attrs.kind === "project" && attrs.clusterId === targetAttrs.clusterId) primaryNodes.add(nodeId);
+      else if (attrs.kind === "universe") secondaryNodes.add(nodeId);
+    });
+    [...primaryNodes].forEach((nodeId) => addNeighbors(nodeId, secondaryNodes));
+  } else {
+    addNeighbors(targetNodeId, secondaryNodes);
+  }
+  primaryNodes.forEach((nodeId) => {
+    graph.forEachEdge(nodeId, (edgeId, attrs, source, target) => {
+      const otherId = source === nodeId ? target : source;
+      if (primaryNodes.has(otherId) || secondaryNodes.has(otherId)) highlightedEdges.add(edgeId);
+    });
+  });
+  if (mode === "selection") {
+    return { mode, targetNodeId, primaryNodes, secondaryNodes, highlightedEdges };
+  }
+  return { mode, targetNodeId, primaryNodes, secondaryNodes, highlightedEdges };
+}
+
+function worldActiveFilterCount() {
+  return Object.values(state.worldGraphFilters).filter(Boolean).length;
+}
+
+function renderWorldGraphChrome(projects) {
+  const info = $("world-graph-info");
+  const dock = $("world-graph-dock");
+  if (!info || !dock) return;
+
+  const selectedMeta = worldSelectedNodeMeta();
+  const hoveredMeta = worldHoveredNodeMeta();
+  const activeMeta = selectedMeta || hoveredMeta;
+  const activeLabel = selectedMeta ? "Selected Node" : hoveredMeta ? "Hovered Node" : "Explorer Ready";
+  const relationModes = `${worldActiveFilterCount()} / ${Object.keys(state.worldGraphFilters).length} relations visible`;
+  const visualModeLabel = {
+    live: "Live data",
+    hybrid: "Hybrid visual lab",
+    mock: "Visual lab only"
+  }[state.worldVisualMode] || "Hybrid visual lab";
+  const focusModeLabel = {
+    default: "Open",
+    selection: "Selection",
+    relation: "Relation",
+    cluster: "Cluster"
+  }[state.worldFocusMode] || "Open";
+  const hierarchyLabel = worldHierarchyPresetLabel();
+  const declutterLabel = worldDeclutterModeLabel();
+  const clusterCapable = selectedMeta?.kind === "project";
+
+  if (!projects.length) {
+    info.innerHTML = "";
+    dock.innerHTML = "";
+    return;
+  }
+
+  if (!activeMeta) {
+    info.innerHTML = `
+      <div class="world-info-pill world-info-pill-idle">
+        <span class="eyebrow">Explorer Ready</span>
+        <strong>Pan, zoom, or pick a project to inspect the world graph.</strong>
+        <span>${escapeHtml(visualModeLabel)} · ${escapeHtml(hierarchyLabel)} · ${escapeHtml(declutterLabel)} · ${escapeHtml(relationModes)}</span>
+      </div>
+    `;
+  } else if (activeMeta.kind === "universe") {
+    info.innerHTML = `
+      <div class="world-info-pill world-info-pill-active">
+        <span class="eyebrow">${activeLabel}</span>
+        <strong>elo-universe-0</strong>
+        <span>${projects.length} projects linked into the current universe surface. ${escapeHtml(visualModeLabel)}.</span>
+      </div>
+    `;
+  } else if (activeMeta.kind === "human") {
+    info.innerHTML = `
+      <div class="world-info-pill world-info-pill-active">
+        <span class="eyebrow">${activeLabel}</span>
+        <strong>${escapeHtml(activeMeta.humanId)}</strong>
+        <span>${(activeMeta.projectIds || []).length} project link${(activeMeta.projectIds || []).length === 1 ? "" : "s"} · ${(activeMeta.agentIds || []).length} agent link${(activeMeta.agentIds || []).length === 1 ? "" : "s"} · ${escapeHtml(hierarchyLabel)} · ${escapeHtml(declutterLabel)}</span>
+      </div>
+    `;
+  } else if (activeMeta.kind === "agent") {
+    info.innerHTML = `
+      <div class="world-info-pill world-info-pill-active">
+        <span class="eyebrow">${activeLabel}</span>
+        <strong>${escapeHtml(activeMeta.agentId)}</strong>
+        <span>${escapeHtml(activeMeta.humanId || "-")} · ${(activeMeta.projectIds || []).length} project link${(activeMeta.projectIds || []).length === 1 ? "" : "s"} · ${escapeHtml(hierarchyLabel)} · ${escapeHtml(declutterLabel)}</span>
+      </div>
+    `;
+  } else {
+    const project = activeMeta.project;
+    info.innerHTML = `
+      <div class="world-info-pill world-info-pill-active">
+        <span class="eyebrow">${activeLabel}</span>
+        <strong>${escapeHtml(project.title)}</strong>
+        <span>${escapeHtml(project.repoFullName || project.repoName)} · ${escapeHtml(project.stage || "source")} · ${escapeHtml(projectStateLabel(project.state))} · ${escapeHtml(focusModeLabel)} focus · ${escapeHtml(hierarchyLabel)} · ${escapeHtml(declutterLabel)}${isWorldVisualMockProject(project) ? " · visual lab node" : ""}</span>
+      </div>
+    `;
+  }
+
+  dock.innerHTML = `
+    <div class="world-dock-cluster">
+      <button type="button" class="world-dock-button" id="world-fit-graph" title="Fit graph">
+        <span aria-hidden="true">+</span>
+      </button>
+      <button type="button" class="world-dock-button" id="world-reset-selection" title="Reset selection">
+        <span aria-hidden="true">×</span>
+      </button>
+      ${selectedMeta ? `
+        <button type="button" class="world-dock-button world-dock-button-active" id="world-focus-selection" title="Focus selection">
+          <span aria-hidden="true">◎</span>
+        </button>
+        <button type="button" class="world-dock-button ${state.worldFocusMode === "relation" ? "world-dock-button-active" : ""}" id="world-focus-relation" title="Relation focus">
+          <span aria-hidden="true">≈</span>
+        </button>
+        ${clusterCapable ? `
+          <button type="button" class="world-dock-button ${state.worldFocusMode === "cluster" ? "world-dock-button-active" : ""}" id="world-focus-cluster" title="Cluster focus">
+            <span aria-hidden="true">◌</span>
+          </button>
+        ` : ""}
+      ` : ""}
+    </div>
+    <div class="world-dock-caption">
+      <strong>Explorer Dock</strong>
+      <span>${escapeHtml(visualModeLabel)} · ${escapeHtml(hierarchyLabel)} · ${escapeHtml(declutterLabel)} · ${escapeHtml(focusModeLabel)} focus</span>
+    </div>
+  `;
+
+  $("world-fit-graph")?.addEventListener("click", () => {
+    fitWorldGraph();
+    setStatus("World graph camera reset.", "ok");
+  });
+  $("world-reset-selection")?.addEventListener("click", () => {
+    closeWorldDrawer();
+    fitWorldGraph();
+  });
+  $("world-focus-selection")?.addEventListener("click", () => {
+    state.worldFocusMode = "selection";
+    fitWorldGraph(state.selectedWorldNodeId);
+    state.worldGraphRenderer?.refresh?.();
+    renderWorldGraphOverlay();
+    renderWorldGraphChrome(projects);
+    renderWorldInsights(projects);
+    setStatus("World graph focused on the selected project.", "ok");
+  });
+  $("world-focus-relation")?.addEventListener("click", () => {
+    state.worldFocusMode = "relation";
+    pauseWorldSceneMotion(620);
+    state.worldGraphRenderer?.refresh?.();
+    renderWorldGraphOverlay();
+    renderWorldGraphChrome(projects);
+    renderWorldInsights(projects);
+    setStatus("World graph relation focus enabled.", "ok");
+  });
+  $("world-focus-cluster")?.addEventListener("click", () => {
+    state.worldFocusMode = "cluster";
+    fitWorldCluster(state.selectedWorldNodeId);
+    state.worldGraphRenderer?.refresh?.();
+    renderWorldGraphOverlay();
+    renderWorldGraphChrome(projects);
+    renderWorldInsights(projects);
+    setStatus("World graph cluster focus enabled.", "ok");
+  });
+}
+
+function worldViewportPoint(renderer, attrs) {
+  const point = { x: Number(attrs.x ?? 0.5), y: Number(attrs.y ?? 0.5) };
+  if (typeof renderer?.framedGraphToViewport === "function") return renderer.framedGraphToViewport(point);
+  if (typeof renderer?.graphToViewport === "function") return renderer.graphToViewport(point);
+  return { x: 0, y: 0 };
+}
+
+function drawWorldNodeShape(context, attrs, selected, hovered) {
+  const alpha = selected ? 1 : hovered ? 0.88 : Math.max(0.4, Number(attrs.depthAlpha || 0.76));
+  const fillColor = worldColorWithAlpha(worldNodeTypeColor(attrs.kind, attrs.baseColor), alpha);
+  const strokeColor = worldColorWithAlpha("#ffffff", selected ? 0.28 : hovered ? 0.16 : 0.08);
+  const glowColor = worldColorWithAlpha(worldNodeTypeColor(attrs.kind, attrs.baseColor), selected ? 0.72 : hovered ? 0.42 : 0.18);
+  const viewport = worldViewportPoint(state.worldGraphRenderer, attrs);
+  const radius = Number(attrs.size || 8) + (selected ? 5 : hovered ? 2.8 : 0.8);
+  const pulse = selected ? 1 + Math.sin(performance.now() * 0.006) * 0.09 : 1;
+  context.save();
+  context.translate(viewport.x, viewport.y);
+  context.shadowBlur = radius * (selected ? 2.2 : hovered ? 1.5 : 1);
+  context.shadowColor = glowColor;
+  context.fillStyle = fillColor;
+  context.strokeStyle = strokeColor;
+  context.lineWidth = selected ? 2.2 : 1.4;
+  if (selected) {
+    context.beginPath();
+    context.arc(0, 0, radius * 2.25 * pulse, 0, Math.PI * 2);
+    context.strokeStyle = worldColorWithAlpha(worldNodeTypeColor(attrs.kind, attrs.baseColor), attrs.kind === "project" ? 0.34 : 0.24);
+    context.lineWidth = attrs.kind === "project" ? 2 : 1.4;
+    context.stroke();
+    context.beginPath();
+    context.arc(0, 0, radius * 1.85 * pulse, 0, Math.PI * 2);
+    context.strokeStyle = worldColorWithAlpha(worldNodeTypeColor(attrs.kind, attrs.baseColor), 0.22);
+    context.lineWidth = 1.6;
+    context.stroke();
+  }
+  const gradient = context.createRadialGradient(0, 0, radius * 0.14, 0, 0, radius);
+  gradient.addColorStop(0, worldColorWithAlpha(worldNodeTypeColor(attrs.kind, attrs.baseColor), selected ? 0.96 : 0.8));
+  gradient.addColorStop(0.68, worldColorWithAlpha(worldNodeTypeColor(attrs.kind, attrs.baseColor), selected ? 0.7 : 0.3));
+  gradient.addColorStop(1, worldColorWithAlpha(worldNodeTypeColor(attrs.kind, attrs.baseColor), 0));
+  context.beginPath();
+  context.arc(0, 0, radius, 0, Math.PI * 2);
+  context.fillStyle = gradient;
+  context.fill();
+  context.beginPath();
+  context.arc(0, 0, radius * 0.72, 0, Math.PI * 2);
+  context.fillStyle = fillColor;
+  context.fill();
+  context.stroke();
+  context.restore();
+}
+
+function drawWorldEdgeOverlay(context, graph, edgeId, attrs) {
+  const sourceAttrs = graph.getNodeAttributes(graph.source(edgeId));
+  const targetAttrs = graph.getNodeAttributes(graph.target(edgeId));
+  if (!sourceAttrs || !targetAttrs) return;
+  if (!worldEdgeTypeVisible(attrs.edgeType)) return;
+  const activeNodeId = state.selectedWorldNodeId || state.hoveredWorldNodeId;
+  const sourceId = graph.source(edgeId);
+  const targetId = graph.target(edgeId);
+  const related = activeNodeId && (sourceId === activeNodeId || targetId === activeNodeId);
+  const baseOpacity = activeNodeId
+    ? related
+      ? (attrs.edgeType === "foundation-link" ? 0.96 : 0.84)
+      : 0.018
+    : attrs.edgeType === "foundation-link"
+      ? 0.16
+      : attrs.edgeType === "plugin-link"
+        ? 0.042
+        : attrs.edgeType === "universe-link"
+          ? 0.028
+          : 0.062;
+  const sourcePoint = worldViewportPoint(state.worldGraphRenderer, sourceAttrs);
+  const targetPoint = worldViewportPoint(state.worldGraphRenderer, targetAttrs);
+  const midX = (sourcePoint.x + targetPoint.x) / 2;
+  const midY = (sourcePoint.y + targetPoint.y) / 2;
+  const deltaX = targetPoint.x - sourcePoint.x;
+  const deltaY = targetPoint.y - sourcePoint.y;
+  const length = Math.hypot(deltaX, deltaY) || 1;
+  const normalX = -deltaY / length;
+  const normalY = deltaX / length;
+  const controlX = midX + normalX * length * Number(attrs.curveStrength || 0.16);
+  const controlY = midY + normalY * length * Number(attrs.curveStrength || 0.16);
+  const segments = 26;
+  context.save();
+  context.shadowColor = worldColorWithAlpha(attrs.baseColor || attrs.color, related ? 0.42 : 0.06);
+  context.shadowBlur = related ? 10 : 2;
+  for (let index = 0; index < segments; index += 1) {
+    const t0 = index / segments;
+    const t1 = (index + 1) / segments;
+    const tm = (t0 + t1) / 2;
+    const edgeFactor = Math.abs(tm - 0.5) * 2;
+    const width = Number(attrs.size || 1.6) * (0.18 + edgeFactor * 1.12);
+    const alpha = baseOpacity * (0.04 + edgeFactor * 0.96);
+    const x0 = quadraticBezierPoint(sourcePoint.x, controlX, targetPoint.x, t0);
+    const y0 = quadraticBezierPoint(sourcePoint.y, controlY, targetPoint.y, t0);
+    const x1 = quadraticBezierPoint(sourcePoint.x, controlX, targetPoint.x, t1);
+    const y1 = quadraticBezierPoint(sourcePoint.y, controlY, targetPoint.y, t1);
+    context.beginPath();
+    context.moveTo(x0, y0);
+    context.lineTo(x1, y1);
+    context.strokeStyle = worldColorWithAlpha(attrs.baseColor || attrs.color, alpha);
+    context.lineWidth = width;
+    context.lineCap = "round";
+    context.stroke();
+  }
+  if (baseOpacity > 0.03) {
+    const endpointRadius = Math.max(1.8, Number(attrs.size || 1.6) * (related ? 1.8 : 1.2));
+    [sourcePoint, targetPoint].forEach((point) => {
+      const glow = context.createRadialGradient(point.x, point.y, 0, point.x, point.y, endpointRadius * 3.2);
+      glow.addColorStop(0, worldColorWithAlpha(attrs.baseColor || attrs.color, baseOpacity * 0.72));
+      glow.addColorStop(0.42, worldColorWithAlpha(attrs.baseColor || attrs.color, baseOpacity * 0.22));
+      glow.addColorStop(1, worldColorWithAlpha(attrs.baseColor || attrs.color, 0));
+      context.beginPath();
+      context.fillStyle = glow;
+      context.arc(point.x, point.y, endpointRadius * 3.2, 0, Math.PI * 2);
+      context.fill();
+    });
+  }
+  context.restore();
+}
+
+function quadraticBezierPoint(start, control, end, t) {
+  const nt = 1 - t;
+  return (nt * nt * start) + (2 * nt * t * control) + (t * t * end);
+}
+
+function renderWorldGraphOverlay() {
+  const canvas = state.worldGraphOverlayCanvas;
+  const context = state.worldGraphOverlayContext;
+  const renderer = state.worldGraphRenderer;
+  const graph = state.worldGraph;
+  if (!canvas || !context || !renderer || !graph) return;
+  const activeNodeId = currentWorldActiveNodeId();
+  const width = canvas.width / (window.devicePixelRatio || 1);
+  const height = canvas.height / (window.devicePixelRatio || 1);
+  if (!activeNodeId) {
+    if (state.worldGraphOverlayVisible) {
+      context.clearRect(0, 0, width, height);
+      state.worldGraphOverlayVisible = false;
+    }
+    return;
+  }
+  context.clearRect(0, 0, width, height);
+  state.worldGraphOverlayVisible = true;
+  const focus = buildWorldFocusContext(graph);
+  const visibleNodeIds = new Set([...focus.primaryNodes, ...focus.secondaryNodes]);
+  focus.highlightedEdges.forEach((edgeId) => {
+    const edgeMeta = state.worldGraphEdgeMap.get(edgeId);
+    if (edgeMeta) drawWorldEdgeOverlay(context, graph, edgeId, edgeMeta);
+  });
+
+  const nodes = [...state.worldGraphNodeMap.values()]
+    .filter((meta) => visibleNodeIds.has(meta.nodeId))
+    .map((meta) => ({ meta, attrs: graph.getNodeAttributes(meta.nodeId) }))
+    .filter(({ attrs }) => Boolean(attrs))
+    .sort((left, right) => Number(left.attrs.zIndex || 0) - Number(right.attrs.zIndex || 0));
+  nodes.forEach(({ meta, attrs }) => {
+    drawWorldNodeShape(
+      context,
+      attrs,
+      state.selectedWorldNodeId === meta.nodeId,
+      state.hoveredWorldNodeId === meta.nodeId
+    );
+  });
+}
+
+function fitWorldGraph(nodeId = "") {
+  const renderer = state.worldGraphRenderer;
+  if (!renderer) return;
+  const camera = renderer.getCamera?.();
+  if (nodeId && state.worldGraph?.hasNode?.(nodeId)) {
+    const attrs = state.worldGraph.getNodeAttributes(nodeId);
+    if (camera?.animate && attrs) {
+      const focusRatio = attrs.kind === "universe"
+        ? 1.02
+        : attrs.depthLayer === "foreground"
+          ? 0.48
+          : attrs.depthLayer === "background"
+            ? 0.74
+            : 0.6;
+      camera.animate({
+        x: attrs.x,
+        y: attrs.y,
+        ratio: Math.max(0.4, Math.min(1.15, focusRatio)),
+        angle: 0
+      }, { duration: 520 });
+      renderer.refresh?.();
+      return;
+    }
+  }
+  if (camera?.animate) {
+    camera.animate({ x: 0.5, y: 0.5, ratio: 0.82, angle: 0 }, { duration: 480 });
+  } else if (camera?.animatedReset) {
+    camera.animatedReset({ duration: 480 });
+  } else if (camera?.setState) {
+    camera.setState({ x: 0.5, y: 0.5, ratio: 0.82, angle: 0 });
+  }
+  renderer.refresh?.();
+}
+
+function fitWorldCluster(nodeId = "") {
+  const renderer = state.worldGraphRenderer;
+  const graph = state.worldGraph;
+  if (!renderer || !graph || !nodeId || !graph.hasNode?.(nodeId)) {
+    fitWorldGraph(nodeId);
+    return;
+  }
+  const attrs = graph.getNodeAttributes(nodeId);
+  if (!attrs?.clusterId) {
+    fitWorldGraph(nodeId);
+    return;
+  }
+  const clusterNodes = [];
+  graph.forEachNode((candidateId, candidateAttrs) => {
+    if (candidateAttrs.clusterId === attrs.clusterId && candidateAttrs.kind === "project") clusterNodes.push(candidateAttrs);
+  });
+  if (!clusterNodes.length) {
+    fitWorldGraph(nodeId);
+    return;
+  }
+  const minX = Math.min(...clusterNodes.map((item) => Number(item.x || 0.5)));
+  const maxX = Math.max(...clusterNodes.map((item) => Number(item.x || 0.5)));
+  const minY = Math.min(...clusterNodes.map((item) => Number(item.y || 0.5)));
+  const maxY = Math.max(...clusterNodes.map((item) => Number(item.y || 0.5)));
+  const centerX = (minX + maxX) / 2;
+  const centerY = (minY + maxY) / 2;
+  const span = Math.max(maxX - minX, maxY - minY);
+  const ratio = Math.max(0.42, Math.min(0.96, 0.36 + span * 2.9));
+  const camera = renderer.getCamera?.();
+  if (camera?.animate) {
+    camera.animate({
+      x: centerX,
+      y: centerY,
+      ratio,
+      angle: 0
+    }, { duration: 540 });
+  } else if (camera?.setState) {
+    camera.setState({ x: centerX, y: centerY, ratio, angle: 0 });
+  }
+  pauseWorldSceneMotion(920);
+  renderer.refresh?.();
+}
+
+function worldCameraBoundsForRatio(ratio) {
+  const boundedRatio = Math.max(0.42, Math.min(1.18, ratio));
+  const panRange = Math.max(0.12, Math.min(0.26, 0.12 + (boundedRatio - 0.42) * 0.18));
+  return {
+    ratio: boundedRatio,
+    minX: 0.5 - panRange,
+    maxX: 0.5 + panRange,
+    minY: 0.5 - panRange * 0.9,
+    maxY: 0.5 + panRange * 0.9
+  };
+}
+
+function clampWorldCameraState(cameraState) {
+  const bounds = worldCameraBoundsForRatio(Number(cameraState?.ratio || 1));
+  return {
+    ...cameraState,
+    ratio: bounds.ratio,
+    x: Math.max(bounds.minX, Math.min(bounds.maxX, Number(cameraState?.x ?? 0.5))),
+    y: Math.max(bounds.minY, Math.min(bounds.maxY, Number(cameraState?.y ?? 0.5)))
+  };
+}
+
+function bindWorldCameraBounds(renderer) {
+  const camera = renderer?.getCamera?.();
+  if (!camera?.on || !camera?.off || !camera?.getState || !camera?.setState) return;
+  let applying = false;
+  const handler = () => {
+    if (applying) return;
+    const current = camera.getState();
+    const clamped = clampWorldCameraState(current);
+    if (
+      Math.abs(clamped.x - current.x) > 0.0001
+      || Math.abs(clamped.y - current.y) > 0.0001
+      || Math.abs(clamped.ratio - current.ratio) > 0.0001
+    ) {
+      applying = true;
+      camera.setState(clamped);
+      renderer.refresh?.();
+      applying = false;
+    }
+    renderWorldGraphOverlay();
+  };
+  camera.on("updated", handler);
+  handler();
+  state.worldGraphCameraCleanup = () => {
+    camera.off("updated", handler);
+  };
+}
+
+function stopWorldSceneMotion() {
+  if (state.worldSceneMotionFrame) {
+    cancelAnimationFrame(state.worldSceneMotionFrame);
+    state.worldSceneMotionFrame = 0;
+  }
+  if (state.worldSceneMotionCleanup) {
+    state.worldSceneMotionCleanup();
+    state.worldSceneMotionCleanup = null;
+  }
+  state.worldSceneMotionAnchor = null;
+}
+
+function pauseWorldSceneMotion(duration = 1200) {
+  state.worldSceneMotionPauseUntil = Date.now() + duration;
+  const camera = state.worldGraphRenderer?.getCamera?.();
+  if (camera?.getState) {
+    state.worldSceneMotionAnchor = clampWorldCameraState(camera.getState());
+  }
+}
+
+function bindWorldSceneMotionSignals(mount) {
+  if (!mount) return;
+  const pauseShort = () => pauseWorldSceneMotion(900);
+  const pauseLong = () => pauseWorldSceneMotion(1400);
+  const pointerMove = (event) => {
+    if (event.buttons) pauseLong();
+  };
+  const onVisibility = () => {
+    if (document.hidden) pauseWorldSceneMotion(1600);
+  };
+  mount.addEventListener("pointerdown", pauseLong);
+  mount.addEventListener("pointermove", pointerMove);
+  mount.addEventListener("wheel", pauseLong, { passive: true });
+  mount.addEventListener("touchstart", pauseLong, { passive: true });
+  mount.addEventListener("touchmove", pauseLong, { passive: true });
+  document.addEventListener("pointerup", pauseShort, true);
+  document.addEventListener("visibilitychange", onVisibility);
+  state.worldSceneMotionCleanup = () => {
+    mount.removeEventListener("pointerdown", pauseLong);
+    mount.removeEventListener("pointermove", pointerMove);
+    mount.removeEventListener("wheel", pauseLong);
+    mount.removeEventListener("touchstart", pauseLong);
+    mount.removeEventListener("touchmove", pauseLong);
+    document.removeEventListener("pointerup", pauseShort, true);
+    document.removeEventListener("visibilitychange", onVisibility);
+  };
+}
+
+function startWorldSceneMotion(renderer, mount) {
+  stopWorldSceneMotion();
+  if (!renderer || !state.worldSceneMotionEnabled) return;
+  const camera = renderer.getCamera?.();
+  if (!camera?.getState || !camera?.setState) return;
+  bindWorldSceneMotionSignals(mount);
+  state.worldSceneMotionAnchor = clampWorldCameraState(camera.getState());
+  const tick = (timestamp) => {
+    if (currentRoute() !== "world" || state.worldGraphRenderer !== renderer) {
+      stopWorldSceneMotion();
+      return;
+    }
+    if (document.hidden) {
+      state.worldSceneMotionFrame = requestAnimationFrame(tick);
+      return;
+    }
+    const current = clampWorldCameraState(camera.getState());
+    if (Date.now() < state.worldSceneMotionPauseUntil) {
+      state.worldSceneMotionAnchor = current;
+      state.worldSceneMotionFrame = requestAnimationFrame(tick);
+      return;
+    }
+    const anchor = state.worldSceneMotionAnchor || current;
+    const focusIntensity = state.worldFocusMode === "cluster" ? 1.08 : state.worldFocusMode === "relation" ? 1 : 0.94;
+    const intensity = (state.worldDrawerOpen ? 0.64 : state.selectedWorldNodeId ? 1.02 : 1.28) * focusIntensity;
+    const next = clampWorldCameraState({
+      ...current,
+      x: anchor.x + Math.sin(timestamp * 0.00017) * 0.0165 * intensity + Math.cos(timestamp * 0.000075) * 0.0052 * intensity,
+      y: anchor.y + Math.cos(timestamp * 0.000145) * 0.0132 * intensity + Math.sin(timestamp * 0.000058) * 0.0036 * intensity,
+      ratio: anchor.ratio + Math.sin(timestamp * 0.000095) * 0.019 * intensity,
+      angle: 0
+    });
+    if (
+      Math.abs(next.x - current.x) > 0.00008
+      || Math.abs(next.y - current.y) > 0.00008
+      || Math.abs(next.ratio - current.ratio) > 0.00008
+    ) {
+      camera.setState(next);
+    }
+    state.worldSceneMotionFrame = requestAnimationFrame(tick);
+  };
+  state.worldSceneMotionFrame = requestAnimationFrame(tick);
+}
+
+function openWorldDrawer(nodeId) {
+  state.selectedWorldNodeId = nodeId || "";
+  state.worldDrawerOpen = Boolean(nodeId);
+  state.worldFocusMode = nodeId ? "selection" : "default";
+  pauseWorldSceneMotion(900);
+  renderWorldGraphChrome(currentWorldProjects());
+  renderWorldInsights(currentWorldProjects());
+  if (state.worldGraphRenderer) state.worldGraphRenderer.refresh?.();
+}
+
+function closeWorldDrawer() {
+  state.selectedWorldNodeId = "";
+  state.hoveredWorldNodeId = "";
+  state.worldDrawerOpen = false;
+  state.worldFocusMode = "default";
+  pauseWorldSceneMotion(420);
+  const drawer = $("world-selection-drawer");
+  const backdrop = $("world-drawer-backdrop");
+  if (drawer) {
+    drawer.classList.remove("open");
+    drawer.setAttribute("hidden", "hidden");
+    drawer.innerHTML = "";
+  }
+  if (backdrop) {
+    backdrop.classList.remove("open");
+    backdrop.setAttribute("hidden", "hidden");
+  }
+  renderWorldGraphChrome(currentWorldProjects());
+  renderWorldInsights(currentWorldProjects());
+  if (state.worldGraphRenderer) state.worldGraphRenderer.refresh?.();
+}
+
+function worldUniverseSummary(projects) {
+  const { sharedOwners, topPlugins, linkedAgents } = buildGraphRelations(projects);
+  const owners = new Set(projects.map((project) => project.ownerHumanId).filter(Boolean));
+  return {
+    projectCount: projects.length,
+    operatingProjectCount: projects.filter((project) => String(project.stage || "").toLowerCase() === "operating" || String(project.state || "").toLowerCase() === "operating").length,
+    foundationCount: projects.filter((project) => isOperatingFoundationProject(project)).length,
+    ownerCount: owners.size,
+    linkedAgents,
+    topPlugins,
+    sharedOwners
+  };
+}
+
+function renderWorldProjectDrawer(projects, project) {
+  const recruitingState = projectDirectoryRecruitingState(project);
+  const related = relatedProjectsForSelection(projects, project);
+  const serviceHref = sanitizeExternalHref(project.serviceEndpoint || "");
+  const visualMock = isWorldVisualMockProject(project);
+  const cluster = worldProjectClusterDescriptor(project);
+  const clusterSummary = worldClusterSummary(projects, cluster.clusterId);
+  const latestRun = latestProjectFoundationRun(project);
+  const focusLabel = {
+    default: appT("world.drawer.focusDefault"),
+    selection: appT("world.drawer.focusSelection"),
+    relation: appT("world.drawer.focusRelation"),
+    cluster: appT("world.drawer.focusCluster")
+  }[state.worldFocusMode] || appT("world.drawer.focusDefault");
+  return `
+    <div class="world-drawer-header">
+      <div>
+        <span class="eyebrow">${escapeHtml(appT("world.drawer.projectNode"))}</span>
+        <h3>${escapeHtml(project.title)}</h3>
+      </div>
+      <button type="button" class="world-drawer-close" id="world-drawer-close" aria-label="${escapeHtml(appT("world.drawer.closeProjectDetails"))}">×</button>
+    </div>
+    <div class="world-drawer-body">
+      <section class="world-drawer-section">
+        <div class="world-drawer-code">${escapeHtml(project.repoFullName || project.repoName)}</div>
+        <div class="tag-row">
+          ${createBadge(projectTypeLabel(project.kind))}
+          ${createBadge(project.stage || "source")}
+          ${createBadge(projectStateLabel(project.state))}
+          ${isOperatingFoundationProject(project) ? createBadge(appT("world.drawer.operatingFoundation")) : ""}
+          ${visualMock ? createBadge(appT("world.drawer.visualLab")) : ""}
+        </div>
+        ${renderBoundedNoteList([
+          { label: appT("world.drawer.cluster"), value: project.visualClusterLabel || cluster.clusterLabel },
+          { label: appT("world.drawer.focus"), value: focusLabel },
+          { label: appT("world.drawer.surface"), value: `${worldHierarchyPresetLabel()} · ${worldDeclutterModeLabel()}` }
+        ])}
+      </section>
+      <section class="world-drawer-section detail-grid compact">
+        <div class="detail-item"><span>${escapeHtml(appT("build.detail.owner"))}</span><strong class="detail-code">${escapeHtml(project.ownerHumanId || "-")}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("world.drawer.cluster"))}</span><strong>${escapeHtml(project.visualClusterLabel || cluster.clusterLabel)}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("world.drawer.agents"))}</span><strong>${project.memberAgentIds?.length || 0}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("world.drawer.plugins"))}</span><strong>${project.pluginIds?.length || 0}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("build.detail.recruiting"))}</span><strong>${escapeHtml(recruitingState.label)}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("build.detail.rating"))}</span><strong>${project.rating || 0}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("build.detail.heat"))}</span><strong>${project.heat || 0}</strong></div>
+      </section>
+      <section class="world-drawer-section">
+        <h4>${escapeHtml(appT("world.drawer.tags"))}</h4>
+        ${renderDirectoryTags(project.tags || [], 6) || `<div class="empty compact">${escapeHtml(appT("world.drawer.noTagsYet"))}</div>`}
+      </section>
+      <section class="world-drawer-section">
+        <h4>${escapeHtml(appT("world.drawer.foundationRuns"))}</h4>
+        ${renderProjectFoundationRunSummary(project)}
+        ${latestRun ? `
+          <div class="nested-list">
+            <div class="nested-item"><strong>${escapeHtml(appT("world.drawer.latestDelivery"))}</strong><span>${escapeHtml(formatActionLabel(latestRun.action))} · ${escapeHtml(latestRun.profile || "-")} · ${escapeHtml(formatCompactTimestamp(latestRun.generatedAt))}</span></div>
+          </div>
+        ` : `<div class="empty compact">${escapeHtml(appT("world.drawer.noRuns"))}</div>`}
+        ${(project.foundationRuns || []).length > 1 ? renderProjectFoundationRunList(project, 2) : ""}
+      </section>
+      <section class="world-drawer-section">
+        <h4>${escapeHtml(appT("world.drawer.relationshipSummary"))}</h4>
+        ${renderBoundedNoteList([
+          { label: appT("world.drawer.sharedOwners"), value: worldRelationSummary(related.ownerMatches) },
+          { label: appT("world.drawer.sharedAgents"), value: worldRelationSummary(related.agentMatches) },
+          { label: appT("world.drawer.sharedPlugins"), value: worldRelationSummary(related.pluginMatches) },
+          { label: appT("world.drawer.clusterLens"), value: `${project.visualClusterLabel || cluster.clusterLabel} · ${worldHierarchyPresetLabel()}` }
+        ])}
+      </section>
+      <section class="world-drawer-section">
+        <h4>${escapeHtml(appT("world.drawer.clusterContext"))}</h4>
+        <div class="nested-list">
+          <div class="nested-item"><strong>${escapeHtml(appT("world.drawer.cluster"))}</strong><span>${escapeHtml(clusterSummary.clusterLabel)}</span></div>
+          <div class="nested-item"><strong>${escapeHtml(appT("world.drawer.projects"))}</strong><span>${clusterSummary.projectCount}</span></div>
+          <div class="nested-item"><strong>${escapeHtml(appT("workspace.detail.operating"))}</strong><span>${clusterSummary.operatingCount}</span></div>
+          <div class="nested-item"><strong>${escapeHtml(appT("world.drawer.owners"))}</strong><span>${clusterSummary.ownerCount}</span></div>
+        </div>
+        ${clusterSummary.projects.length
+          ? `<div class="nested-list">${clusterSummary.projects.slice(0, 3).map((entry) => `
+              <button type="button" class="nested-item nested-item-button" data-world-project-shortcut="${escapeHtml(entry.projectId)}">
+                <strong>${escapeHtml(entry.title)}</strong>
+                <span>${escapeHtml(entry.repoFullName || entry.repoName)}${entry.projectId === project.projectId ? ` · ${escapeHtml(appT("world.drawer.current"))}` : ""}</span>
+              </button>
+            `).join("")}</div>`
+          : `<div class="empty compact">${escapeHtml(appT("world.drawer.noClusterSiblings"))}</div>`}
+      </section>
+      ${visualMock ? `
+        <section class="world-drawer-section">
+          <h4>${escapeHtml(appT("world.drawer.visualLabNoteTitle"))}</h4>
+          <p>${escapeHtml(appT("world.drawer.visualLabNoteBody"))}</p>
+        </section>
+      ` : ""}
+      <section class="world-drawer-section world-drawer-actions">
+        <button type="button" class="topbar-button secondary" data-world-focus-cluster="${escapeHtml(project.projectId)}">${escapeHtml(appT("action.focusCluster"))}</button>
+        ${visualMock
+          ? `<button type="button" class="topbar-button ghost" disabled>${escapeHtml(appT("action.visualMockNode"))}</button>`
+          : `<button type="button" class="topbar-button" data-open-project-id="${escapeHtml(project.projectId)}">${escapeHtml(appT("action.openProject"))}</button>`}
+        <a class="topbar-button ghost" href="${escapeHtml(project.repoUrl)}" target="_blank" rel="noreferrer">${escapeHtml(appT("action.openGithubRepo"))}</a>
+        ${serviceHref ? `<a class="topbar-button ghost" href="${escapeHtml(serviceHref)}" target="_blank" rel="noreferrer">${escapeHtml(appT("action.openService"))}</a>` : ""}
+      </section>
+    </div>
+  `;
+}
+
+function renderWorldUniverseDrawer(projects) {
+  const universe = worldUniverseSummary(projects);
+  const topClusters = worldClusterLensProjects(projects);
+  const visualModeLabel = {
+    live: appT("world.drawer.liveOnly"),
+    hybrid: appT("world.drawer.hybridLab"),
+    mock: appT("world.drawer.mockOnly")
+  }[state.worldVisualMode] || appT("world.drawer.hybridLab");
+  return `
+    <div class="world-drawer-header">
+      <div>
+        <span class="eyebrow">${escapeHtml(appT("world.drawer.universeNode"))}</span>
+        <h3>elo-universe-0</h3>
+      </div>
+      <button type="button" class="world-drawer-close" id="world-drawer-close" aria-label="${escapeHtml(appT("world.drawer.closeUniverseDetails"))}">×</button>
+    </div>
+    <div class="world-drawer-body">
+      <section class="world-drawer-section">
+        <p>${escapeHtml(appT("world.drawer.universeBody"))}</p>
+        <div class="nested-list">
+          <div class="nested-item"><strong>${escapeHtml(appT("world.drawer.dataSurface"))}</strong><span>${escapeHtml(visualModeLabel)}</span></div>
+          <div class="nested-item"><strong>${escapeHtml(appT("world.drawer.hierarchy"))}</strong><span>${escapeHtml(worldHierarchyPresetLabel())}</span></div>
+        </div>
+      </section>
+      <section class="world-drawer-section detail-grid compact">
+        <div class="detail-item"><span>${escapeHtml(appT("world.drawer.projects"))}</span><strong>${universe.projectCount}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("workspace.detail.operating"))}</span><strong>${universe.operatingProjectCount}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("world.drawer.foundations"))}</span><strong>${universe.foundationCount}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("world.drawer.owners"))}</span><strong>${universe.ownerCount}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("world.drawer.agentLinks"))}</span><strong>${universe.linkedAgents}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("world.drawer.ownerClusters"))}</span><strong>${universe.sharedOwners.length}</strong></div>
+      </section>
+      <section class="world-drawer-section">
+        <h4>${escapeHtml(appT("world.drawer.topPluginAttachments"))}</h4>
+        ${universe.topPlugins.length
+          ? `<div class="nested-list">${universe.topPlugins.map(([pluginId, count]) => `<div class="nested-item"><strong>${escapeHtml(pluginId)}</strong><span>${escapeHtml(appT("world.drawer.projectLinkCount", { count, suffix: count === 1 ? "" : "s" }))}</span></div>`).join("")}</div>`
+          : `<div class="empty compact">${escapeHtml(appT("world.drawer.noPluginClusters"))}</div>`}
+      </section>
+      <section class="world-drawer-section">
+        <h4>${escapeHtml(appT("world.drawer.topClusters"))}</h4>
+        ${topClusters.length
+          ? `<div class="nested-list">${topClusters.map((cluster) => `<button type="button" class="nested-item nested-item-button" data-world-focus-cluster="${escapeHtml(cluster.anchorProjectId)}"><strong>${escapeHtml(cluster.clusterLabel)}</strong><span>${escapeHtml(appT("world.drawer.projectNodeCount", { count: cluster.projectIds.length, suffix: cluster.projectIds.length === 1 ? "" : "s" }))}</span></button>`).join("")}</div>`
+          : `<div class="empty compact">${escapeHtml(appT("world.drawer.noClusterSummaries"))}</div>`}
+      </section>
+      <section class="world-drawer-section world-drawer-actions">
+        <button type="button" class="topbar-button" data-route-target="build">${escapeHtml(appT("action.openProjectDirectory"))}</button>
+      </section>
+    </div>
+  `;
+}
+
+function renderWorldHumanDrawer(projects, humanMeta) {
+  const linkedProjects = projects.filter((project) => (humanMeta.projectIds || []).includes(project.projectId));
+  return `
+    <div class="world-drawer-header">
+      <div>
+        <span class="eyebrow">${escapeHtml(appT("world.drawer.humanNode"))}</span>
+        <h3>${escapeHtml(humanMeta.humanId)}</h3>
+      </div>
+      <button type="button" class="world-drawer-close" id="world-drawer-close" aria-label="${escapeHtml(appT("world.drawer.closeHumanDetails"))}">×</button>
+    </div>
+    <div class="world-drawer-body">
+      <section class="world-drawer-section detail-grid compact">
+        <div class="detail-item"><span>${escapeHtml(appT("world.drawer.projects"))}</span><strong>${linkedProjects.length}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("world.drawer.agents"))}</span><strong>${(humanMeta.agentIds || []).length}</strong></div>
+      </section>
+      <section class="world-drawer-section">
+        <h4>${escapeHtml(appT("world.drawer.linkedProjects"))}</h4>
+        ${linkedProjects.length
+          ? `<div class="nested-list">${linkedProjects.map((project) => `<div class="nested-item"><strong>${escapeHtml(project.title)}</strong><span>${escapeHtml(project.repoFullName || project.repoName)}</span></div>`).join("")}</div>`
+          : `<div class="empty compact">${escapeHtml(appT("world.drawer.noLinkedProjects"))}</div>`}
+      </section>
+      <section class="world-drawer-section">
+        <h4>${escapeHtml(appT("world.drawer.linkedAgents"))}</h4>
+        ${(humanMeta.agentIds || []).length
+          ? `<div class="nested-list">${humanMeta.agentIds.map((agentId) => `<div class="nested-item"><strong>${escapeHtml(agentId)}</strong><span>${escapeHtml(appT("world.drawer.agentLinkedHint"))}</span></div>`).join("")}</div>`
+          : `<div class="empty compact">${escapeHtml(appT("world.drawer.noLinkedAgents"))}</div>`}
+      </section>
+    </div>
+  `;
+}
+
+function renderWorldAgentDrawer(projects, agentMeta) {
+  const linkedProjects = projects.filter((project) => (agentMeta.projectIds || []).includes(project.projectId));
+  return `
+    <div class="world-drawer-header">
+      <div>
+        <span class="eyebrow">${escapeHtml(appT("world.drawer.agentNode"))}</span>
+        <h3>${escapeHtml(agentMeta.agentId)}</h3>
+      </div>
+      <button type="button" class="world-drawer-close" id="world-drawer-close" aria-label="${escapeHtml(appT("world.drawer.closeAgentDetails"))}">×</button>
+    </div>
+    <div class="world-drawer-body">
+      <section class="world-drawer-section detail-grid compact">
+        <div class="detail-item"><span>${escapeHtml(appT("world.drawer.human"))}</span><strong class="detail-code">${escapeHtml(agentMeta.humanId || "-")}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("world.drawer.projects"))}</span><strong>${linkedProjects.length}</strong></div>
+      </section>
+      <section class="world-drawer-section">
+        <h4>${escapeHtml(appT("world.drawer.projectParticipation"))}</h4>
+        ${linkedProjects.length
+          ? `<div class="nested-list">${linkedProjects.map((project) => `<div class="nested-item"><strong>${escapeHtml(project.title)}</strong><span>${escapeHtml(project.stage || "source")} · ${escapeHtml(projectStateLabel(project.state))}</span></div>`).join("")}</div>`
+          : `<div class="empty compact">${escapeHtml(appT("world.drawer.noLinkedProjects"))}</div>`}
+      </section>
+    </div>
+  `;
+}
+
+function renderWorldSelectionDrawer(nodeId, projects) {
+  const drawer = $("world-selection-drawer");
+  const backdrop = $("world-drawer-backdrop");
+  if (!drawer || !backdrop) return;
+  if (!nodeId) {
+    closeWorldDrawer();
+    return;
+  }
+  const nodeMeta = state.worldGraphNodeMap.get(nodeId);
+  if (!nodeMeta) {
+    closeWorldDrawer();
+    return;
+  }
+  drawer.innerHTML = nodeMeta.kind === "universe"
+    ? renderWorldUniverseDrawer(projects)
+    : nodeMeta.kind === "human"
+      ? renderWorldHumanDrawer(projects, nodeMeta)
+      : nodeMeta.kind === "agent"
+        ? renderWorldAgentDrawer(projects, nodeMeta)
+        : renderWorldProjectDrawer(projects, nodeMeta.project);
+  drawer.hidden = false;
+  backdrop.hidden = false;
+  requestAnimationFrame(() => {
+    drawer.classList.add("open");
+    backdrop.classList.add("open");
+  });
+  $("world-drawer-close")?.addEventListener("click", () => closeWorldDrawer());
+  backdrop.onclick = () => closeWorldDrawer();
+  drawer.querySelectorAll("[data-open-project-id]").forEach((node) => {
+    node.addEventListener("click", () => {
+      openProjectWorkspace(node.dataset.openProjectId);
+      closeWorldDrawer();
+    });
+  });
+  drawer.querySelectorAll("[data-world-project-shortcut]").forEach((node) => {
+    node.addEventListener("click", () => {
+      const projectNodeId = worldNodeIdForProject(node.dataset.worldProjectShortcut);
+      openWorldDrawer(projectNodeId);
+      renderWorldSelectionDrawer(projectNodeId, projects);
+      fitWorldGraph(projectNodeId);
+    });
+  });
+  drawer.querySelectorAll("[data-world-focus-cluster]").forEach((node) => {
+    node.addEventListener("click", () => {
+      const projectNodeId = worldNodeIdForProject(node.dataset.worldFocusCluster);
+      openWorldDrawer(projectNodeId);
+      state.worldFocusMode = "cluster";
+      renderWorldSelectionDrawer(projectNodeId, projects);
+      renderWorldGraphChrome(projects);
+      renderWorldInsights(projects);
+      fitWorldCluster(projectNodeId);
+      state.worldGraphRenderer?.refresh?.();
+      renderWorldGraphOverlay();
+    });
+  });
+  drawer.querySelectorAll("[data-route-target]").forEach((node) => {
+    node.addEventListener("click", () => {
+      closeWorldDrawer();
+      goToRoute(node.dataset.routeTarget);
+    });
+  });
+}
+
+function worldEdgeTypeVisible(edgeType) {
+  return {
+    "universe-link": state.worldGraphFilters.universe,
+    "owner-link": state.worldGraphFilters.owner,
+    "agent-link": state.worldGraphFilters.agent,
+    "plugin-link": state.worldGraphFilters.plugin,
+    "foundation-link": state.worldGraphFilters.foundation
+  }[edgeType] !== false;
+}
+
+function worldNodeConnectedToSelection(graph, nodeId) {
+  const activeNodeId = state.selectedWorldNodeId || state.hoveredWorldNodeId;
+  if (!activeNodeId || nodeId === activeNodeId) return true;
+  const edges = graph.edges(activeNodeId, nodeId);
+  return edges.some((edge) => worldEdgeTypeVisible(graph.getEdgeAttribute(edge, "edgeType")));
+}
+
+function destroyWorldGraphRenderer() {
+  stopWorldSceneMotion();
+  if (state.worldGraphCameraCleanup) {
+    state.worldGraphCameraCleanup();
+    state.worldGraphCameraCleanup = null;
+  }
+  if (state.worldGraphRenderer?.kill) state.worldGraphRenderer.kill();
+  state.worldGraphRenderer = null;
+  state.worldGraph = null;
+  state.worldGraphNodeMap = new Map();
+  state.worldGraphEdgeMap = new Map();
+  state.worldGraphOverlayCanvas = null;
+  state.worldGraphOverlayContext = null;
+  state.worldGraphOverlayVisible = false;
+  state.worldFocusMode = "default";
+}
+
+function showWorldGraphEmpty(message, retryable = false) {
+  const empty = $("world-graph-empty");
+  if (!empty) return;
+  empty.hidden = false;
+  empty.innerHTML = retryable
+    ? `
+      <div class="world-graph-fallback">
+        <strong>World graph unavailable</strong>
+        <span>${escapeHtml(message)}</span>
+        <button type="button" class="topbar-button" id="world-graph-retry">Retry Graph Engine</button>
+      </div>
+    `
+    : escapeHtml(message);
+  $("world-graph-retry")?.addEventListener("click", () => {
+    state.worldGraphEngine = null;
+    state.worldGraphEnginePromise = null;
+    state.worldGraphLoadError = "";
+    void renderProjectGraph(currentWorldProjects());
+  });
+}
+
+async function renderProjectGraph(projects) {
+  const root = $("project-graph");
+  const empty = $("world-graph-empty");
+  if (!root || currentRoute() !== "world") return;
+  renderWorldLegend(projects);
+  renderWorldGraphChrome(projects);
+  renderWorldInsights(projects);
+  if (!projects.length) {
+    destroyWorldGraphRenderer();
+    state.selectedWorldNodeId = "";
+    root.innerHTML = "";
+    showWorldGraphEmpty("No source projects yet. Use New Project to create the first project node.");
+    closeWorldDrawer();
+    return;
+  }
+
+  if (empty) empty.hidden = true;
+  let Sigma;
+  let EdgeCurveProgram;
+  try {
+    ({ Sigma, EdgeCurveProgram } = await ensureWorldGraphEngine());
+    state.worldGraphLoadError = "";
+  } catch (error) {
+    destroyWorldGraphRenderer();
+    closeWorldDrawer();
+    root.innerHTML = "";
+    state.worldGraphLoadError = error?.message || "Graph engine failed to load.";
+    showWorldGraphEmpty(`The graph engine could not be loaded. ${state.worldGraphLoadError}`, true);
+    console.error("World graph engine failed to load", error);
+    setStatus("World graph engine load failed. Retry available in the world panel.", "error");
+    return;
+  }
+  if (currentRoute() !== "world") return;
+
+  root.innerHTML = "";
+  const mount = document.createElement("div");
+  mount.className = "world-graph-canvas";
+  const overlay = document.createElement("canvas");
+  overlay.className = "world-graph-overlay";
+  root.appendChild(mount);
+  root.appendChild(overlay);
+
+  destroyWorldGraphRenderer();
+  const { graph, nodeMap, edgeMap } = buildWorldGraphData(projects);
+  state.worldGraph = graph;
+  state.worldGraphNodeMap = nodeMap;
+  state.worldGraphEdgeMap = edgeMap;
+  if (!state.selectedWorldNodeId || !nodeMap.has(state.selectedWorldNodeId)) {
+    state.selectedWorldNodeId = "";
+    state.worldDrawerOpen = false;
+  }
+  let focusCacheKey = "";
+  let focusCacheValue = null;
+  const getFocusContext = () => {
+    const key = `${state.worldFocusMode}|${state.selectedWorldNodeId}|${state.hoveredWorldNodeId}`;
+    if (focusCacheKey !== key) {
+      focusCacheKey = key;
+      focusCacheValue = buildWorldFocusContext(graph);
+    }
+    return focusCacheValue;
+  };
+
+  const renderer = new Sigma(graph, mount, {
+    renderLabels: true,
+    labelDensity: 0.11,
+    labelGridCellSize: 84,
+    labelRenderedSizeThreshold: 5,
+    defaultNodeType: "circle",
+    defaultEdgeType: "curved",
+    edgeProgramClasses: {
+      curved: EdgeCurveProgram
+    },
+    zIndex: true,
+    minCameraRatio: 0.15,
+    maxCameraRatio: 4,
+    nodeReducer: (node, data) => {
+      const focus = getFocusContext();
+      const hierarchy = worldHierarchyProfile();
+      const declutterFocused = state.worldDeclutterMode === "focused";
+      const selected = state.worldDrawerOpen && state.selectedWorldNodeId === node;
+      const hovered = state.hoveredWorldNodeId === node;
+      const activeNodeId = currentWorldActiveNodeId();
+      const isPrimary = focus.primaryNodes.has(node);
+      const isSecondary = focus.secondaryNodes.has(node);
+      const isHierarchyNode = data.kind === "human" || data.kind === "agent";
+      const hierarchyVisible = !isHierarchyNode
+        || state.worldHierarchyPreset === "expanded"
+        || selected
+        || hovered
+        || isPrimary
+        || isSecondary;
+      const backgroundProject = data.kind === "project" && data.depthLayer === "background" && !data.operatingFoundation;
+      const dimmed = activeNodeId && !isPrimary && !isSecondary;
+      const typeWeight = data.kind === "project"
+        ? 1
+        : data.kind === "universe"
+          ? 0.92
+          : data.kind === "human"
+            ? 0.46
+            : 0.34;
+      const hierarchyAlpha = data.kind === "human"
+        ? hierarchy.humanBaseAlpha
+        : data.kind === "agent"
+          ? hierarchy.agentBaseAlpha
+          : 1;
+      const projectAlpha = backgroundProject && declutterFocused ? hierarchy.backgroundProjectAlpha : 1;
+      const baseAlpha = Math.max(0.08, (data.depthAlpha || 1) * 0.58 * typeWeight * hierarchyAlpha * projectAlpha);
+      const nodeAlpha = selected
+        ? 1
+        : hovered
+          ? Math.min(1, (data.depthAlpha || 0.9) + 0.18)
+          : dimmed
+            ? Math.max(0.08, baseAlpha * (focus.mode === "cluster" ? 0.1 : 0.16))
+            : isPrimary
+              ? Math.min(1, baseAlpha + 0.28)
+              : isSecondary
+              ? Math.min(1, baseAlpha + 0.12)
+                : baseAlpha;
+      const baseSize = data.kind === "human"
+        ? data.size * hierarchy.humanSizeScale
+        : data.kind === "agent"
+          ? data.size * hierarchy.agentSizeScale
+          : data.size;
+      const projectVisible = !backgroundProject || !declutterFocused || selected || hovered || isPrimary || isSecondary;
+      return {
+        ...data,
+        hidden: !hierarchyVisible || !projectVisible,
+        color: worldColorWithAlpha(data.baseColor || data.color, nodeAlpha),
+        size: selected
+          ? baseSize + (data.depthLayer === "foreground" ? 10.5 : 8.5)
+          : hovered
+            ? baseSize + (data.depthLayer === "foreground" ? 6.4 : 5.2)
+            : isPrimary
+              ? baseSize + 2.1
+              : data.kind === "project"
+                ? baseSize
+                : baseSize * (data.kind === "human" ? 0.92 : data.kind === "agent" ? 0.9 : 0.92),
+        label: hovered || selected || isPrimary || (data.kind === "project" && data.forceLabel) || (data.kind === "universe" && data.forceLabel)
+          || (data.kind === "human" && hierarchy.humanLabelBoost && !dimmed)
+          || (data.kind === "agent" && hierarchy.agentLabelBoost && !dimmed)
+          ? data.fullLabel || data.label
+          : data.label,
+        forceLabel: hovered || selected || isPrimary || (data.kind === "project" && data.forceLabel) || (data.kind === "universe" && data.forceLabel)
+          || (data.kind === "human" && hierarchy.humanLabelBoost && !dimmed)
+          || (data.kind === "agent" && hierarchy.agentLabelBoost && !dimmed),
+        zIndex: selected ? 34 : hovered ? 22 : isPrimary ? 16 : data.zIndex
+      };
+    },
+    edgeReducer: (edge, data) => {
+      const focus = getFocusContext();
+      const hierarchy = worldHierarchyProfile();
+      const declutterFocused = state.worldDeclutterMode === "focused";
+      if (!worldEdgeTypeVisible(data.edgeType)) {
+        return {
+          ...data,
+          hidden: true
+        };
+      }
+      const activeNodeId = currentWorldActiveNodeId();
+      const related = focus.highlightedEdges.has(edge);
+      if (!activeNodeId) {
+        const passiveAlpha = data.edgeType === "foundation-link"
+          ? 0.18
+          : data.edgeType === "plugin-link"
+            ? (declutterFocused ? 0.04 : 0.06)
+            : data.edgeType === "universe-link"
+              ? (declutterFocused ? 0.028 : 0.035)
+              : data.edgeType === "owner-link"
+                ? hierarchy.humanEdgeIdleAlpha
+                : hierarchy.agentEdgeIdleAlpha;
+        return {
+          ...data,
+          hidden: (state.worldHierarchyPreset === "project-first" && (data.edgeType === "owner-link" || data.edgeType === "agent-link"))
+            || (declutterFocused && data.edgeType === "plugin-link" && state.worldHierarchyPreset === "project-first"),
+          color: worldColorWithAlpha(
+            data.baseColor || data.color,
+            passiveAlpha
+          ),
+          size: Math.max(0.28, data.size * (declutterFocused ? 0.34 : 0.42))
+        };
+      }
+      return {
+        ...data,
+        hidden: false,
+        color: worldColorWithAlpha(
+          data.baseColor || data.color,
+          related
+            ? data.edgeType === "foundation-link"
+              ? 0.34
+              : 0.26
+            : focus.mode === "cluster"
+              ? 0.01
+              : declutterFocused
+                ? 0.014
+                : 0.02
+        ),
+        size: related
+          ? Math.max(0.7, data.size * (focus.mode === "cluster" ? 0.92 : 0.82))
+          : Math.max(0.14, data.size * (focus.mode === "cluster" ? 0.12 : declutterFocused ? 0.16 : 0.2))
+      };
+    }
+  });
+  state.worldGraphRenderer = renderer;
+  state.worldGraphOverlayCanvas = overlay;
+  state.worldGraphOverlayContext = overlay.getContext("2d");
+  const pixelRatio = window.devicePixelRatio || 1;
+  overlay.width = mount.clientWidth * pixelRatio;
+  overlay.height = mount.clientHeight * pixelRatio;
+  overlay.style.width = `${mount.clientWidth}px`;
+  overlay.style.height = `${mount.clientHeight}px`;
+  state.worldGraphOverlayContext.scale(pixelRatio, pixelRatio);
+  bindWorldCameraBounds(renderer);
+  renderer.on("clickNode", ({ node }) => {
+    openWorldDrawer(node);
+    renderWorldSelectionDrawer(node, projects);
+    renderWorldGraphChrome(projects);
+    fitWorldGraph(node);
+    renderWorldGraphOverlay();
+  });
+  renderer.on("enterNode", ({ node }) => {
+    state.hoveredWorldNodeId = node;
+    if (!state.selectedWorldNodeId) state.worldFocusMode = "relation";
+    renderWorldGraphChrome(projects);
+    renderer.refresh?.();
+    renderWorldGraphOverlay();
+  });
+  renderer.on("leaveNode", () => {
+    state.hoveredWorldNodeId = "";
+    if (!state.selectedWorldNodeId) state.worldFocusMode = "default";
+    renderWorldGraphChrome(projects);
+    renderer.refresh?.();
+    renderWorldGraphOverlay();
+  });
+  renderer.on("clickStage", () => {
+    closeWorldDrawer();
+    renderWorldGraphOverlay();
+  });
+  fitWorldGraph();
+  startWorldSceneMotion(renderer, mount);
+  renderWorldGraphOverlay();
+  if (state.worldDrawerOpen && state.selectedWorldNodeId) {
+    renderWorldSelectionDrawer(state.selectedWorldNodeId, projects);
+  }
+}
+
+function renderSettingsData() {
+  const human = currentHuman();
+  const promptOutput = $("agent-markdown-output");
+  if (promptOutput) promptOutput.textContent = buildAgentMarkdownPrompt();
+  $("regenerate-agent-prompt-button")?.addEventListener("click", async () => {
+    if (!human) return;
+    try {
+      const issued = await request("/api/auth/join-token/issue", "POST", { humanId: human.humanId });
+      state.latestJoinToken = issued;
+      if (promptOutput) promptOutput.textContent = buildAgentMarkdownPrompt();
+      setStatus(appT("settings.detail.joinPromptRegenerated", { humanId: human.humanId }), "ok");
+      await refresh();
+    } catch (error) {
+      setStatus(error.message, "error");
+    }
+  });
+  $("copy-agent-prompt-primary")?.addEventListener("click", () => copyText(buildAgentMarkdownPrompt(), appT("settings.detail.aiPromptCopied")));
+  $("download-agent-prompt-primary")?.addEventListener("click", () => {
+    const activeHuman = currentHuman();
+    if (!activeHuman) return;
+    downloadTextFile(`${activeHuman.humanId}.agent-join.md`, buildAgentMarkdownPrompt(), "text/markdown;charset=utf-8");
+  });
+
+  const profile = $("settings-profile");
+  const profileActions = $("profile-actions");
+  const profileKeyPanel = $("profile-key-panel");
+  const settingsSummaryGrid = $("settings-summary-grid");
+  const securityPanel = $("settings-security-content");
+  const privacyPanel = $("settings-privacy-content");
+  const protocolsPanel = $("settings-protocols-content");
+  const agentsRoot = $("my-agents-list");
+  const projectsRoot = $("my-projects-list");
+  const foundationsRoot = $("project-foundations-list");
+  const starterForm = $("project-starter-form");
+  const starterResult = $("project-starter-result");
+  const signedActions = $("signed-agent-actions");
+  const projectForm = $("project-form");
+  renderNewProjectReadiness();
+  if (!human) {
+    if (profile) profile.innerHTML = "";
+    if (profileActions) profileActions.innerHTML = "";
+    if (profileKeyPanel) profileKeyPanel.innerHTML = "";
+    if (settingsSummaryGrid) settingsSummaryGrid.innerHTML = "";
+    if (securityPanel) securityPanel.innerHTML = "";
+    if (privacyPanel) privacyPanel.innerHTML = "";
+    if (protocolsPanel) protocolsPanel.innerHTML = "";
+    if (agentsRoot) agentsRoot.innerHTML = "";
+    if (projectsRoot) projectsRoot.innerHTML = "";
+    if (foundationsRoot) foundationsRoot.innerHTML = "";
+    if (starterResult) starterResult.innerHTML = "";
+    if (signedActions) signedActions.innerHTML = "";
+    if (starterForm?.primaryAgentId) {
+      starterForm.primaryAgentId.innerHTML = `<option value="">${escapeHtml(appT("settings.detail.selectMainAgent"))}</option>`;
+    }
+    if (projectForm?.ownerHumanId) projectForm.ownerHumanId.value = "";
+    return;
+  }
+
+  const agents = currentHumanAgents();
+  const projects = currentHumanProjects();
+  const ownedProjects = projects.filter((project) => project.ownerHumanId === human.humanId);
+  const participatingProjects = projects.filter((project) => project.ownerHumanId !== human.humanId);
+  const operatingProjects = projects.filter((project) => String(project.stage || "").toLowerCase() === "operating");
+  const foundations = foundationProjects();
+  const linkedGitHubStatus = human.githubLogin ? appT("settings.detail.linked") : appT("settings.detail.notLinked");
+  const authMethodLabel = (human.authMethods || []).length ? human.authMethods.join(" + ") : human.admissionMethod || "unknown";
+  const onlineAgents = agents.filter((agent) => agent.online).length;
+  const workingAgents = agents.filter((agent) => agent.online && agent.model).length;
+  const idleAgents = agents.filter((agent) => !agent.online && agent.model).length;
+  const offlineAgents = agents.filter((agent) => !agent.online && !agent.model).length;
+  renderNewProjectReadiness({ human, agents });
+
+  if (settingsSummaryGrid) {
+    settingsSummaryGrid.innerHTML = [
+      [appT("settings.detail.human"), human.displayName || human.humanId],
+      [appT("settings.detail.auth"), authMethodLabel],
+      [appT("settings.detail.github"), linkedGitHubStatus],
+      [appT("settings.detail.agents"), agents.length],
+      [appT("settings.detail.projects"), projects.length],
+      [appT("settings.detail.ownedProjects"), ownedProjects.length],
+      [appT("settings.detail.operating"), operatingProjects.length]
+    ].map(([label, value]) => `
+      <div class="detail-item">
+        <span>${label}</span>
+        <strong>${value}</strong>
+      </div>
+    `).join("");
+  }
+
+  profile.innerHTML = [
+    [appT("settings.detail.humanId"), human.humanId, true],
+    [appT("settings.detail.email"), human.email, true],
+    [appT("settings.detail.emailVerification"), human.emailVerified ? appT("settings.detail.verified") : appT("settings.detail.pending"), false],
+    [appT("settings.detail.github"), human.githubLogin || appT("settings.detail.notLinked"), true],
+    [appT("settings.detail.displayName"), human.displayName || human.humanId, false]
+  ].map(([key, value, copyable]) => `
+    <div class="detail-item">
+      <span>${key}</span>
+      <div class="detail-value-row">
+        <strong class="${copyable ? "detail-code" : ""}">${value}</strong>
+        ${copyable ? `<button type="button" class="mini-copy-button" data-copy-value="${String(value).replace(/"/g, "&quot;")}">${escapeHtml(appT("settings.detail.copy"))}</button>` : ""}
+      </div>
+    </div>
+  `).join("");
+
+  profile.querySelectorAll("[data-copy-value]").forEach((button) => {
+    button.addEventListener("click", () => copyText(button.dataset.copyValue || "", appT("settings.detail.profileCopied")));
+  });
+
+  if (profileActions) {
+    profileActions.innerHTML = `
+      <div class="action-row">
+        <button type="button" class="topbar-button secondary" id="send-verification-button" ${state.authConfig.emailEnabled ? "" : "disabled"}>
+          ${human.emailVerified ? escapeHtml(appT("settings.detail.emailVerified")) : escapeHtml(appT("settings.detail.sendVerificationEmail"))}
+        </button>
+        <button type="button" class="topbar-button secondary" id="github-link-button" ${state.authConfig.githubEnabled ? "" : "disabled"}>
+          ${human.githubLogin ? escapeHtml(appT("settings.detail.refreshGithubLink")) : escapeHtml(appT("settings.detail.linkGithub"))}
+        </button>
+        ${human.githubLogin ? `<button type="button" class="topbar-button ghost" id="github-unlink-button">${escapeHtml(appT("settings.detail.unlinkGithub"))}</button>` : ""}
+      </div>
+      <p class="note">${!state.authConfig.emailEnabled ? escapeHtml(appT("settings.detail.emailDeliveryNotConfigured")) : escapeHtml(appT("settings.detail.emailVerificationRecommended"))}</p>
+      <p class="note">${!state.authConfig.githubEnabled ? escapeHtml(appT("settings.detail.githubOauthNotConfigured")) : escapeHtml(appT("settings.detail.githubRequiredForSource"))}</p>
+    `;
+
+    $("send-verification-button")?.addEventListener("click", async () => {
+      if (human.emailVerified) return;
+      try {
+        const result = await request("/api/auth/email/send-verification", "POST", { humanId: human.humanId });
+        setStatus(appT("settings.detail.verificationEmailSent", { email: result.email }), "ok");
+        await refresh();
+      } catch (error) {
+        setStatus(error.message, "error");
+      }
+    });
+
+    $("github-link-button")?.addEventListener("click", () => {
+      window.location.href = `/auth/github/start?mode=link&humanId=${encodeURIComponent(human.humanId)}`;
+    });
+
+    $("github-unlink-button")?.addEventListener("click", async () => {
+      try {
+        await request("/api/auth/github/unlink", "POST", { humanId: human.humanId });
+        setStatus(appT("settings.detail.githubUnlinked", { humanId: human.humanId }), "ok");
+        await refresh();
+      } catch (error) {
+        setStatus(error.message, "error");
+      }
+    });
+  }
+
+  if (profileKeyPanel) {
+    const authKey = human.agentAuthKey;
+    profileKeyPanel.innerHTML = `
+      <div class="panel key-subpanel">
+        <div class="panel-header">
+          <h3>Agent Auth Key</h3>
+          <p>${escapeHtml(appT("settings.detail.agentAuthKeyLede"))}</p>
+        </div>
+        <div class="detail-grid compact">
+          <div class="detail-item"><span>${escapeHtml(appT("settings.detail.keyStatus"))}</span><strong>${authKey ? escapeHtml(appT("settings.detail.issued")) : escapeHtml(appT("settings.detail.notIssued"))}</strong></div>
+          <div class="detail-item"><span>${escapeHtml(appT("settings.detail.issuedAt"))}</span><strong>${formatTimestamp(authKey?.issuedAt)}</strong></div>
+          <div class="detail-item"><span>${escapeHtml(appT("settings.detail.lastUsed"))}</span><strong>${formatTimestamp(authKey?.lastUsedAt)}</strong></div>
+        </div>
+        <div class="code-panel">
+          <div class="summary-row">
+            <strong>${escapeHtml(appT("settings.detail.fingerprint"))}</strong>
+            ${authKey?.fingerprint ? `<button type="button" class="mini-copy-button" id="copy-auth-fingerprint">${escapeHtml(appT("settings.detail.copy"))}</button>` : ""}
+          </div>
+          <pre class="code-block compact">${authKey?.fingerprint || escapeHtml(appT("settings.detail.notAvailable"))}</pre>
+        </div>
+        <div class="action-row">
+          <button type="button" class="topbar-button secondary" id="issue-auth-key-button">${escapeHtml(appT("settings.detail.issueNewAgentAuthKey"))}</button>
+          ${state.latestAuthKeyBundle ? `<button type="button" class="topbar-button ghost" id="download-auth-key-button">${escapeHtml(appT("settings.detail.downloadPemBundle"))}</button>` : ""}
+        </div>
+        <p class="note">${escapeHtml(appT("settings.detail.privateKeyOneTime"))}</p>
+        <pre id="auth-key-output" class="code-block">${state.latestAuthKeyBundle ? JSON.stringify({
+          keyId: state.latestAuthKeyBundle.keyId,
+          algorithm: state.latestAuthKeyBundle.algorithm,
+          fingerprint: state.latestAuthKeyBundle.fingerprint,
+          publicKeyPem: state.latestAuthKeyBundle.publicKeyPem,
+          privateKeyPem: state.latestAuthKeyBundle.privateKeyPem
+        }, null, 2) : escapeHtml(appT("settings.detail.issueKeyHint"))}</pre>
+      </div>
+    `;
+
+    $("issue-auth-key-button")?.addEventListener("click", async () => {
+      try {
+        const issued = await request("/api/auth/keys/issue", "POST", { humanId: human.humanId });
+        state.latestAuthKeyBundle = issued;
+        setStatus(appT("settings.detail.issuedAgentAuthKey", { humanId: human.humanId }), "ok");
+        await refresh();
+      } catch (error) {
+        setStatus(error.message, "error");
+      }
+    });
+
+    $("copy-auth-fingerprint")?.addEventListener("click", () => {
+      copyText(authKey?.fingerprint || "", appT("settings.detail.fingerprintCopied"));
+    });
+
+    $("download-auth-key-button")?.addEventListener("click", () => {
+      if (!state.latestAuthKeyBundle) return;
+      const bundle = [
+        "# ELO Open World Agent Auth Bundle",
+        `humanId: ${human.humanId}`,
+        `keyId: ${state.latestAuthKeyBundle.keyId}`,
+        `fingerprint: ${state.latestAuthKeyBundle.fingerprint}`,
+        "",
+        state.latestAuthKeyBundle.privateKeyPem,
+        "",
+        state.latestAuthKeyBundle.publicKeyPem
+      ].join("\n");
+      const blob = new Blob([bundle], { type: "application/x-pem-file" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${human.humanId}.agent-auth.pem`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    });
+  }
+
+  if (securityPanel) {
+    const authMethods = new Set(human.authMethods || []);
+    const isGitHubFirst = authMethods.has("github") && !authMethods.has("password");
+    securityPanel.innerHTML = `
+      <div class="detail-grid">
+        <div class="detail-item"><span>${escapeHtml(appT("settings.detail.primarySignin"))}</span><strong>${isGitHubFirst ? "GitHub OAuth" : "Email + Password"}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("settings.detail.emailStatus"))}</span><strong>${human.emailVerified ? escapeHtml(appT("settings.detail.verified")) : escapeHtml(appT("settings.detail.pendingVerification"))}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("settings.detail.githubLink"))}</span><strong>${human.githubLogin || escapeHtml(appT("settings.detail.notLinked"))}</strong></div>
+      </div>
+      <div class="action-row">
+        <button type="button" class="topbar-button secondary" id="send-verification-button-security" ${state.authConfig.emailEnabled ? "" : "disabled"}>
+          ${human.emailVerified ? escapeHtml(appT("settings.detail.emailVerified")) : escapeHtml(appT("settings.detail.sendVerificationEmail"))}
+        </button>
+      </div>
+      <p class="note">${isGitHubFirst
+        ? escapeHtml(appT("settings.detail.githubPrimarySigninNote"))
+        : escapeHtml(appT("settings.detail.passwordPrimarySigninNote"))}</p>
+    `;
+    $("send-verification-button-security")?.addEventListener("click", async () => {
+      if (human.emailVerified) return;
+      try {
+        const result = await request("/api/auth/email/send-verification", "POST", { humanId: human.humanId });
+        setStatus(appT("settings.detail.verificationEmailSent", { email: result.email }), "ok");
+        await refresh();
+      } catch (error) {
+        setStatus(error.message, "error");
+      }
+    });
+  }
+
+  if (privacyPanel) {
+    privacyPanel.innerHTML = `
+      <div class="copy-stack">
+        <p>ELO Open World stores only the minimum identity and project metadata required to operate this alpha framework.</p>
+        <ul class="content-list">
+          <li>Human identity data: human id, email, display name, GitHub link state, verification state.</li>
+          <li>Agent metadata: agent id, runtime, endpoint, model, online state, last seen timestamp.</li>
+          <li>Project metadata: repo name, summary, tags, members, stages, operating notes.</li>
+          <li>Email verification records and agent auth public-key metadata for authentication flows.</li>
+        </ul>
+        <p>Private keys are never stored by the service after issuance. Browser session state is stored locally in the browser.</p>
+      </div>
+    `;
+  }
+
+  if (protocolsPanel) {
+    protocolsPanel.innerHTML = `
+      <div class="copy-stack">
+        <p>The current public protocol surface of ELO Open World is intentionally narrow.</p>
+        <ul class="content-list">
+          <li>Human identity protocol: email/password or GitHub OAuth admission.</li>
+          <li>Agent registration protocol: direct registration or one-time join token admission for independent agents.</li>
+          <li>Requirement-first intake: humans and agents can create project requirements before repository creation.</li>
+          <li>Project creation protocol: GitHub-linked source repository initialization with standard Rules and History files.</li>
+          <li>Universe manifest protocol: each deployment publishes its universe identity and compatibility metadata.</li>
+        </ul>
+      </div>
+    `;
+  }
+
+  const agentForm = $("agent-form");
+  const onboarderForm = $("onboarder-form");
+  const requirementForm = $("requirement-form");
+  if (agentForm?.humanId) agentForm.humanId.value = human.humanId;
+  if (onboarderForm?.humanId) onboarderForm.humanId.value = human.humanId;
+  if (projectForm?.ownerHumanId) projectForm.ownerHumanId.value = human.humanId;
+  if (projectForm) resetMemberRoleEditor("project-form", projectForm.memberRoles?.value || "");
+  if (requirementForm?.createdByType && requirementForm?.createdById) {
+    if (!requirementForm.createdById.value) {
+      requirementForm.createdByType.value = "human";
+      requirementForm.createdById.value = human.humanId;
+    }
+    if (requirementForm.ownerHumanId) requirementForm.ownerHumanId.value = human.humanId;
+    if (requirementForm.reviewerHumanId && !requirementForm.reviewerHumanId.value) requirementForm.reviewerHumanId.value = human.humanId;
+  }
+
+  if (agentsRoot) {
+    if (!agents.length) {
+      agentsRoot.innerHTML = `
+        <div class="agent-guides">
+          <div class="action-row">
+            <a class="topbar-button secondary" href="/guides/ai-quickstart.html" target="_blank" rel="noreferrer">Open Agent Guide</a>
+            <a class="topbar-button ghost" href="/guides/openclaw-quick-setup.html" target="_blank" rel="noreferrer">Open Quick Setup</a>
+            <button type="button" class="topbar-button ghost" id="copy-agent-prompt-empty">Copy AI Registration Prompt</button>
+          </div>
+          <div class="guide-grid">
+            <article class="guide-card">
+              <span class="guide-step">PATH A</span>
+              <h3>You already have OpenClaw</h3>
+              <p>Copy the registration prompt and send it to your own agent so it can prepare a signed join flow.</p>
+            </article>
+            <article class="guide-card">
+              <span class="guide-step">PATH B</span>
+              <h3>You do not have OpenClaw yet</h3>
+              <p>Use the quick setup guide to bootstrap a local runtime, then return here to register it into the world.</p>
+            </article>
+          </div>
+        </div>
+      `;
+      $("copy-agent-prompt-empty")?.addEventListener("click", () => copyText(buildAgentMarkdownPrompt(), "AI registration prompt copied."));
+    } else {
+      agentsRoot.innerHTML = `
+        <div class="detail-grid compact agent-summary-grid">
+          <div class="detail-item"><span>All Agents</span><strong>${agents.length}</strong></div>
+          <div class="detail-item"><span>Online</span><strong>${onlineAgents}</strong></div>
+          <div class="detail-item"><span>Working</span><strong>${workingAgents}</strong></div>
+          <div class="detail-item"><span>Idle</span><strong>${idleAgents}</strong></div>
+          <div class="detail-item"><span>Offline</span><strong>${offlineAgents}</strong></div>
+        </div>
+        <div class="action-row">
+          <a class="topbar-button secondary" href="/guides/ai-quickstart.html" target="_blank" rel="noreferrer">Open Agent Guide</a>
+          <a class="topbar-button ghost" href="/guides/openclaw-quick-setup.html" target="_blank" rel="noreferrer">Open Quick Setup</a>
+          <button type="button" class="topbar-button ghost" id="copy-agent-prompt">Copy AI Registration Prompt</button>
+        </div>
+        <div class="list-stack">
+        ${agents.map((agent) => {
+        const relatedProjects = currentHumanProjects().filter((project) => (project.memberAgentIds || []).includes(agent.agentId));
+        return `
+          <details class="expand-card">
+            <summary>
+              <div class="summary-row">
+                <strong>${agent.label || agent.agentId}</strong>
+                <div class="tag-row">
+                  ${createBadge(humanReadableAgentStatus(agent))}
+                  ${agent.model ? createBadge(agent.model) : ""}
+                </div>
+              </div>
+              <span>${agent.agentId}</span>
+            </summary>
+            <div class="expand-body">
+              <div class="detail-grid compact">
+                <div class="detail-item"><span>Runtime</span><strong>${agent.runtime || "openclaw"}</strong></div>
+                <div class="detail-item"><span>Endpoint</span><strong class="detail-code">${agent.endpoint || "Not set"}</strong></div>
+                <div class="detail-item"><span>Last Seen</span><strong>${formatTimestamp(agent.lastSeenAt)}</strong></div>
+                <div class="detail-item"><span>Faction</span><strong>${agent.faction}</strong></div>
+                <div class="detail-item"><span>Status</span><strong>${humanReadableAgentStatus(agent)}</strong></div>
+              </div>
+              <p>Role: active participant</p>
+              <p>Contribution: scoring layer pending attachment</p>
+              <div class="nested-list">
+                ${relatedProjects.length ? relatedProjects.map((project) => `
+                  <div class="nested-item">
+                    <strong>${project.title}</strong>
+                    <div class="tag-row">
+                      ${createBadge(projectStateLabel(project.state))}
+                      ${createBadge(projectTypeLabel(project.kind))}
+                    </div>
+                    <span>Role: ${projectMemberRole(project, agent.agentId)}</span>
+                  </div>
+                `).join("") : '<div class="empty">No related projects yet.</div>'}
+              </div>
+            </div>
+          </details>
+        `;
+      }).join("")}
+        </div>
+      `;
+      $("copy-agent-prompt")?.addEventListener("click", () => copyText(buildAgentMarkdownPrompt(), "AI registration prompt copied."));
+    }
+  }
+
+  if (projectsRoot) {
+    if (starterForm) {
+      if (starterForm.primaryAgentId) {
+        starterForm.primaryAgentId.innerHTML = [
+          '<option value="">Select your main agent</option>',
+          ...agents.map((agent) => `<option value="${agent.agentId}">${agent.label || agent.agentId}</option>`)
+        ].join("");
+      }
+      const submitButton = $("project-starter-submit");
+      if (submitButton) submitButton.disabled = !agents.length;
+    }
+
+    if (starterResult) {
+      const persistedRefinement = latestRequirementRefinement(state.latestStarterRequirement);
+      starterResult.innerHTML = state.latestStarterRequirement ? `
+        <div class="detail-grid compact">
+          <div class="detail-item"><span>Requirement</span><strong>${state.latestStarterRequirement.requirementId}</strong></div>
+          <div class="detail-item"><span>Status</span><strong>${requirementStatusLabel(state.latestStarterRequirement.status)}</strong></div>
+          <div class="detail-item"><span>Main Agent</span><strong>${state.latestStarterRequirement.primaryAgentId || "Not set"}</strong></div>
+          <div class="detail-item"><span>Browser Bridge</span><strong>${bridgeStatusLabel()}</strong></div>
+          <div class="detail-item"><span>Refinements</span><strong>${state.latestStarterRequirement.refinementCount || 0}</strong></div>
+        </div>
+        <textarea id="starter-extra-context" placeholder="Optional extra context for your primary agent."></textarea>
+        <div class="action-row">
+          <button type="button" class="topbar-button secondary" id="starter-open-project-form">Continue To Source Project</button>
+          <button type="button" class="topbar-button ghost" id="starter-copy-project-draft">Copy Project Draft</button>
+          <button type="button" class="topbar-button ghost" id="starter-download-project-draft">Download Project Draft</button>
+          <button type="button" class="topbar-button ghost" id="starter-copy-requirement-id">Copy Requirement ID</button>
+          <button type="button" class="topbar-button ghost" id="starter-copy-agent-brief">Copy Agent Brief</button>
+          <button type="button" class="topbar-button ghost" id="starter-download-agent-brief">Download Agent Brief</button>
+          <button type="button" class="topbar-button ghost" id="starter-check-bridge">Check Browser Bridge</button>
+          <button type="button" class="topbar-button secondary" id="starter-send-to-agent">Ask Primary Agent</button>
+        </div>
+        <p class="note">The starter requirement is ready. Continue directly to source project creation below. If the browser plugin is configured, ask your primary agent to refine the idea before you create the repository.</p>
+        <div class="copy-stack">
+          <p class="note">Need the browser bridge first? Load the extension from the <code>elo-agent-web-plugin</code> repository and configure your local agent endpoint.</p>
+        </div>
+        ${renderProjectDraft(state.latestStarterRequirement)}
+        <div class="starter-conversation-panel">
+          <div class="summary-row">
+            <strong>Starter Timeline</strong>
+            <span>${(state.latestStarterRequirement.conversationTimeline || []).length} event(s)</span>
+          </div>
+          ${renderConversationTimeline(state.latestStarterRequirement, 8)}
+        </div>
+        ${persistedRefinement ? `
+          <div class="starter-conversation-panel">
+            <div class="summary-row">
+              <strong>Primary Agent Response</strong>
+              <span>${formatTimestamp(persistedRefinement.respondedAt)}</span>
+            </div>
+            ${renderRefinementSummary(state.latestStarterRequirement.latestRefinementSummary)}
+            <pre class="code-block compact">${JSON.stringify(persistedRefinement.response, null, 2)}</pre>
+          </div>
+        ` : ""}
+      ` : `
+        <div class="guide-card starter-note-card">
+          <span class="guide-step">START</span>
+          <h3>From Idea to Requirement</h3>
+          <p>Choose your primary agent and describe the idea. EOW will create the first requirement so your agent can pick up the work under the project rules.</p>
+        </div>
+      `;
+      $("starter-open-project-form")?.addEventListener("click", () => {
+        const requirement = state.summary?.requirements?.find((item) => item.requirementId === state.starterRequirementId) || state.latestStarterRequirement;
+        if (requirement) loadRequirementIntoProjectForm(requirement);
+        window.setTimeout(() => {
+          const target = $("project-form");
+          if (target) {
+            if (requirement) loadRequirementIntoProjectForm(requirement);
+            target.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+        }, 50);
+      });
+      $("starter-copy-requirement-id")?.addEventListener("click", () => {
+        if (state.latestStarterRequirement?.requirementId) {
+          copyText(state.latestStarterRequirement.requirementId, "Requirement ID copied.");
+        }
+      });
+      $("starter-copy-project-draft")?.addEventListener("click", () => {
+        const draft = buildProjectDraftFromRequirement(state.latestStarterRequirement);
+        if (!draft) return;
+        copyText(JSON.stringify(draft, null, 2), "Project draft copied.");
+      });
+      $("starter-download-project-draft")?.addEventListener("click", () => {
+        const draft = buildProjectDraftFromRequirement(state.latestStarterRequirement);
+        if (!draft) return;
+        downloadTextFile(
+          `${draft.repoName || state.latestStarterRequirement.requirementId}.project-draft.json`,
+          JSON.stringify(draft, null, 2),
+          "application/json;charset=utf-8"
+        );
+      });
+      $("starter-copy-agent-brief")?.addEventListener("click", () => {
+        copyText(buildProjectStarterPrompt(state.latestStarterRequirement), "Project starter brief copied.");
+      });
+      $("starter-download-agent-brief")?.addEventListener("click", () => {
+        if (!state.latestStarterRequirement) return;
+        downloadTextFile(
+          `${state.latestStarterRequirement.requirementId}.starter-brief.md`,
+          buildProjectStarterPrompt(state.latestStarterRequirement),
+          "text/markdown;charset=utf-8"
+        );
+      });
+      $("starter-check-bridge")?.addEventListener("click", async () => {
+        try {
+          await inspectStarterBridge();
+          renderSettingsData();
+          const config = state.starterBridgeStatus?.config || {};
+          setStatus(
+            state.starterBridgeStatus?.configured
+              ? `Browser bridge ready for agent ${config.agentId || "unknown"}`
+              : "Browser bridge detected but not fully configured.",
+            state.starterBridgeStatus?.configured ? "ok" : "error"
+          );
+        } catch (error) {
+          setStatus(error.message, "error");
+        }
+      });
+      $("starter-send-to-agent")?.addEventListener("click", async () => {
+        try {
+          const extraContext = $("starter-extra-context")?.value || "";
+          const conversation = await sendStarterPromptToPrimaryAgent(state.latestStarterRequirement, extraContext);
+          await refresh();
+          setStatus(`Primary agent responded at ${formatTimestamp(conversation.requestedAt)}`, "ok");
+        } catch (error) {
+          setStatus(error.message, "error");
+        }
+      });
+    }
+
+    if (foundationsRoot) {
+      foundationsRoot.innerHTML = foundations.length ? foundations.map((project) => {
+        const workspace = foundationWorkspace(project);
+        const docs = workspace.docs || [];
+        const serviceEndpoint = project.serviceEndpoint || "";
+        const serviceLinks = serviceEndpoint ? `
+          <a href="${serviceEndpoint}" target="_blank" rel="noreferrer">Open Service</a>
+          <a href="${serviceEndpoint}/health" target="_blank" rel="noreferrer">Health</a>
+          <a href="${serviceEndpoint}/manifest" target="_blank" rel="noreferrer">Manifest</a>
+        ` : "";
+        return `
+          <details class="expand-card foundation-card" open>
+            <summary>
+              <div class="summary-row">
+                <strong>${project.title}</strong>
+                <div class="tag-row">
+                  ${createBadge(projectTypeLabel(project.kind))}
+                  ${createBadge(projectStateLabel(project.state))}
+                </div>
+              </div>
+              <span>${project.repoName}</span>
+            </summary>
+            <div class="expand-body">
+              <p>${project.summary || "No summary provided."}</p>
+              <p class="note"><strong>Development Focus:</strong> ${workspace.focus}</p>
+              <div class="tag-row">${(project.tags || []).map((tag) => `<span class="subtle-tag">${tag}</span>`).join("")}</div>
+              <div class="detail-grid compact">
+                <div class="detail-item"><span>Repository</span><strong>${project.repoFullName}</strong></div>
+                <div class="detail-item"><span>Stage</span><strong>${project.stage || "source"}</strong></div>
+                <div class="detail-item"><span>State</span><strong>${projectStateLabel(project.state)}</strong></div>
+                <div class="detail-item"><span>Service</span><strong class="detail-code">${serviceEndpoint || "Not exposed yet"}</strong></div>
+              </div>
+              ${docs.length ? `
+                <div class="copy-stack foundation-docs">
+                  <strong>Workspace Docs</strong>
+                  <div class="action-row">
+                    ${docs.map((item) => `<a href="${item.href}" target="_blank" rel="noreferrer">${item.label}</a>`).join("")}
+                  </div>
+                </div>
+              ` : ""}
+              <div class="action-row">
+                <a href="${project.repoUrl}" target="_blank" rel="noreferrer">Open GitHub Repo</a>
+                ${serviceLinks}
+                <button type="button" class="topbar-button ghost foundation-open-project" data-project-id="${project.projectId}">Open In My Projects</button>
+              </div>
+              ${renderFoundationOperator(project, agents)}
+            </div>
+          </details>
+        `;
+      }).join("") : '<div class="empty">Foundation projects will appear here after registration into the universe.</div>';
+      foundationsRoot.querySelectorAll('.foundation-open-project').forEach((node) => {
+        node.addEventListener('click', () => {
+          state.settingsProjectScope = 'all';
+          renderSettingsData();
+          const target = document.querySelector(`[data-project-card="${node.dataset.projectId}"]`);
+          if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+      });
+      foundationsRoot.querySelectorAll('.foundation-run-button').forEach((node) => {
+        node.addEventListener('click', async () => {
+          const projectId = node.dataset.projectId || '';
+          const form = node.closest('.expand-body')?.querySelector(`.foundation-tool-form[data-project-id="${projectId}"]`);
+          if (!form) return;
+          try {
+            const agentId = form.agentId.value;
+            const action = node.dataset.foundationAction || '';
+            if (!agentId) throw new Error('Select one of your agents first.');
+            const project = foundations.find((item) => item.projectId === projectId);
+            const servicePath = foundationServicePath(project);
+            if (!servicePath) throw new Error('No foundation service is configured for this project.');
+            const payload = {
+              humanId: human.humanId,
+              agentId,
+              worldUrl: window.location.origin
+            };
+            if (project?.repoFullName === "peterpan42388/elo-agent-onboarder") {
+              payload.profile = form.profile.value;
+              payload.machineLabel = form.machineLabel.value;
+              payload.target = form.target.value;
+              payload.platform = form.platform.value;
+              payload.packageMode = form.packageMode.value;
+              payload.runtimeMode = form.runtimeMode.value;
+              payload.installRoot = form.installRoot.value;
+            }
+            if (project?.repoFullName === "peterpan42388/elo-agent-web-plugin") {
+              payload.browser = form.browser.value;
+              payload.extensionMode = form.extensionMode.value;
+              payload.siteOrigin = form.siteOrigin.value;
+              payload.agentEndpoint = form.agentEndpoint.value;
+            }
+            const endpoint = `${servicePath}/${action}`;
+            const result = await request(endpoint, 'POST', payload);
+            state.latestFoundationArtifacts[projectId] = { action, result, agentId };
+            await request('/api/projects/foundation-runs/record', 'POST', {
+              projectId,
+              ownerHumanId: human.humanId,
+              action,
+              agentId,
+              profile: form.profile?.value || form.browser?.value || "",
+              result
+            });
+            await refresh();
+            setStatus(`Generated ${action} for ${agentId}.`, 'ok');
+          } catch (error) {
+            state.latestFoundationArtifacts[projectId] = { action: 'error', result: { error: error.message } };
+            renderSettingsData();
+            setStatus(error.message, 'error');
+          }
+        });
+      });
+      foundationsRoot.querySelectorAll('.foundation-preset-button').forEach((node) => {
+        node.addEventListener('click', () => {
+          const preset = foundationPresetMap()[node.dataset.foundationPreset || ""];
+          const projectId = node.dataset.projectId || "";
+          const form = node.closest('.expand-body')?.querySelector(`.foundation-tool-form[data-project-id="${projectId}"]`);
+          if (!preset || !form) return;
+          form.profile.value = preset.profile;
+          form.target.value = preset.target;
+          form.platform.value = preset.platform;
+          form.packageMode.value = preset.packageMode;
+          form.runtimeMode.value = preset.runtimeMode;
+          form.installRoot.value = preset.installRoot;
+          form.machineLabel.value = preset.machineLabel;
+          setStatus(`Applied ${node.textContent?.trim() || "foundation"} preset.`, "ok");
+        });
+      });
+      foundationsRoot.querySelectorAll('.onboarder-checkout-button').forEach((node) => {
+        node.addEventListener('click', async () => {
+          const projectId = node.dataset.projectId || '';
+          const form = foundationsRoot.querySelector(`.onboarder-commerce-form[data-project-id="${projectId}"]`);
+          if (!form) return;
+          try {
+            const result = await request('/api/onboarder/checkout-session', 'POST', {
+              packageId: form.packageId.value,
+              profile: form.profile.value,
+              registrationMode: form.registrationMode.value,
+              workflowPreset: form.workflowPreset.value
+            });
+            window.location.href = result.checkoutUrl;
+          } catch (error) {
+            setStatus(error.message, 'error');
+          }
+        });
+      });
+      foundationsRoot.querySelectorAll('.onboarder-refresh-purchases').forEach((node) => {
+        node.addEventListener('click', async () => {
+          try {
+            state.onboarderPurchases = await request('/api/onboarder/purchases');
+            renderSettingsData();
+            setStatus('Onboarder purchases refreshed.', 'ok');
+          } catch (error) {
+            setStatus(error.message, 'error');
+          }
+        });
+      });
+      foundationsRoot.querySelectorAll('.onboarder-download-installer').forEach((node) => {
+        node.addEventListener('click', async () => {
+          try {
+            startInstallerDownload(node.dataset.installerOs || "macos");
+          } catch (error) {
+            setStatus(error.message, 'error');
+          }
+        });
+      });
+      foundationsRoot.querySelectorAll('.onboarder-download-delivery').forEach((node) => {
+        node.addEventListener('click', async () => {
+          const projectId = node.dataset.projectId || '';
+          const form = foundationsRoot.querySelector(`.onboarder-commerce-form[data-project-id="${projectId}"]`);
+          if (!form) return;
+          try {
+            const agentId = (form.agentId?.value || "").trim() || (agents[0]?.agentId || "");
+            if (!agentId) throw new Error('No agent available. Create or register an agent first, then retry download.');
+            if (form.agentId) form.agentId.value = agentId;
+            const result = await request('/api/onboarder/delivery-contract', 'POST', {
+              entitlementId: node.dataset.entitlementId || '',
+              agentId
+            });
+            state.latestFoundationArtifacts[projectId] = { action: 'delivery-contract', result, agentId };
+            renderSettingsData();
+            downloadTextFile(`onboarder-${node.dataset.entitlementId}.delivery-contract.json`, JSON.stringify(result, null, 2), 'application/json;charset=utf-8');
+            setStatus(appT("status.deliveryContractDownloaded"), 'ok');
+          } catch (error) {
+            setStatus(error.message, 'error');
+            if (/agent/i.test(error.message || "")) window.alert(error.message);
+          }
+        });
+      });
+      foundationsRoot.querySelectorAll('.onboarder-download-bundle').forEach((node) => {
+        node.addEventListener('click', async () => {
+          const projectId = node.dataset.projectId || '';
+          const form = foundationsRoot.querySelector(`.onboarder-commerce-form[data-project-id="${projectId}"]`);
+          if (!form) return;
+          try {
+            const agentId = (form.agentId?.value || "").trim() || (agents[0]?.agentId || "");
+            if (!agentId) throw new Error('No agent available. Create or register an agent first, then retry download.');
+            if (form.agentId) form.agentId.value = agentId;
+            const result = await request('/api/onboarder/artifact-bundle', 'POST', {
+              entitlementId: node.dataset.entitlementId || '',
+              agentId,
+              worldUrl: window.location.origin
+            });
+            state.latestFoundationArtifacts[projectId] = { action: 'artifact-bundle', result, agentId };
+            renderSettingsData();
+            downloadTextFile(`onboarder-${node.dataset.entitlementId}.artifact-bundle.json`, JSON.stringify(result, null, 2), 'application/json;charset=utf-8');
+            setStatus(appT("status.artifactBundleDownloaded"), 'ok');
+          } catch (error) {
+            setStatus(error.message, 'error');
+            if (/agent/i.test(error.message || "")) window.alert(error.message);
+          }
+        });
+      });
+      foundationsRoot.querySelectorAll('.onboarder-download-zip').forEach((node) => {
+        node.addEventListener('click', async () => {
+          const projectId = node.dataset.projectId || '';
+          const form = foundationsRoot.querySelector(`.onboarder-commerce-form[data-project-id="${projectId}"]`);
+          if (!form) return;
+          try {
+            const agentId = (form.agentId?.value || "").trim() || (agents[0]?.agentId || "");
+            if (!agentId) throw new Error('No agent available. Create or register an agent first, then retry download.');
+            if (form.agentId) form.agentId.value = agentId;
+            const response = await fetch('/api/onboarder/artifact-zip', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                ...(state.sessionHumanId ? { 'X-ELO-Session-Human-Id': state.sessionHumanId } : {})
+              },
+              body: JSON.stringify({
+                entitlementId: node.dataset.entitlementId || '',
+                agentId,
+                worldUrl: window.location.origin
+              })
+            });
+            if (!response.ok) {
+              const err = await response.json().catch(() => ({}));
+              throw new Error(err.error || 'Artifact ZIP export failed.');
+            }
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `onboarder-${node.dataset.entitlementId}.zip`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(url);
+            setStatus(appT("status.artifactZipDownloaded"), 'ok');
+          } catch (error) {
+            setStatus(error.message, 'error');
+            if (/agent/i.test(error.message || "")) window.alert(error.message);
+          }
+        });
+      });
+      foundationsRoot.querySelectorAll('.foundation-copy-json').forEach((node) => {
+        node.addEventListener('click', () => {
+          const artifact = state.latestFoundationArtifacts?.[node.dataset.projectId || ''];
+          if (!artifact?.result) return;
+          copyText(JSON.stringify(artifact.result, null, 2), appT("status.foundationJsonCopied"));
+        });
+      });
+      foundationsRoot.querySelectorAll('.foundation-download-json').forEach((node) => {
+        node.addEventListener('click', () => {
+          const artifact = state.latestFoundationArtifacts?.[node.dataset.projectId || ''];
+          if (!artifact?.result) return;
+          downloadTextFile(`${node.dataset.projectId}.foundation.json`, JSON.stringify(artifact.result, null, 2), 'application/json;charset=utf-8');
+        });
+      });
+      foundationsRoot.querySelectorAll('.foundation-download-bundle').forEach((node) => {
+        node.addEventListener('click', () => {
+          const artifact = state.latestFoundationArtifacts?.[node.dataset.projectId || ''];
+          if (!artifact?.result?.artifactBundle) return;
+          downloadTextFile(`${node.dataset.projectId}.artifact-bundle.json`, JSON.stringify(artifact.result.artifactBundle, null, 2), 'application/json;charset=utf-8');
+        });
+      });
+      foundationsRoot.querySelectorAll('.foundation-download-zip').forEach((node) => {
+        node.addEventListener('click', async () => {
+          const artifact = state.latestFoundationArtifacts?.[node.dataset.projectId || ''];
+          if (!artifact?.result?.artifactBundle) return;
+          const servicePath = node.dataset.servicePath || '';
+          if (!servicePath) return;
+          const response = await fetch(`${servicePath}/artifact-zip`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: artifact.action || 'artifact',
+              artifactBundle: artifact.result.artifactBundle
+            })
+          });
+          if (!response.ok) {
+            setStatus(appT("status.artifactZipExportFailed"), 'error');
+            return;
+          }
+          const blob = await response.blob();
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          const serviceName = servicePath.split('/').pop() || 'foundation';
+          link.download = `${serviceName}-${artifact.action || 'artifact'}.zip`;
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          URL.revokeObjectURL(url);
+          setStatus(appT("status.artifactZipDownloaded"), 'ok');
+        });
+      });
+      foundationsRoot.querySelectorAll('.foundation-download-bundle-file').forEach((node) => {
+        node.addEventListener('click', () => {
+          const artifact = state.latestFoundationArtifacts?.[node.dataset.projectId || ''];
+          const files = artifact?.result?.artifactBundle?.files || {};
+          const name = decodeURIComponent(node.dataset.bundleFile || '');
+          const value = files[name];
+          if (!value) return;
+          const mime = name.endsWith('.json') ? 'application/json;charset=utf-8' : 'text/plain;charset=utf-8';
+          downloadTextFile(name, value, mime);
+        });
+      });
+    }
+
+    const scopedProjects = filterProjectsByScope(projects, human.humanId);
+    const visibleProjects = filterSettingsProjects(scopedProjects);
+    if (!projects.length) {
+      projectsRoot.innerHTML = `
+        <div class="guide-grid">
+          <article class="guide-card">
+            <span class="guide-step">BUILD</span>
+            <h3>No Projects Yet</h3>
+            <p>You do not own or participate in any source project yet. Start from Build to create a requirement or a source repository.</p>
+            <button type="button" class="topbar-button secondary" data-route-target="build">Open Build</button>
+          </article>
+          <article class="guide-card">
+            <span class="guide-step">NEXT</span>
+            <h3>What This Page Will Become</h3>
+            <p>This page now focuses on your private project inventory. Use the dedicated project page for collaboration, participation, and delivery decisions.</p>
+          </article>
+        </div>
+      `;
+      projectsRoot.querySelectorAll("[data-route-target]").forEach((node) => {
+        node.addEventListener("click", () => goToRoute(node.dataset.routeTarget));
+      });
+    } else {
+      projectsRoot.innerHTML = `
+        <div class="project-workspace-summary">
+          <div class="detail-grid compact">
+            <div class="detail-item"><span>All Projects</span><strong>${projects.length}</strong></div>
+            <div class="detail-item"><span>Owned</span><strong>${ownedProjects.length}</strong></div>
+            <div class="detail-item"><span>Participating</span><strong>${participatingProjects.length}</strong></div>
+            <div class="detail-item"><span>Operating</span><strong>${operatingProjects.length}</strong></div>
+          </div>
+        </div>
+        <div class="action-row project-scope-switcher">
+          <button type="button" class="topbar-button ${state.settingsProjectScope === "all" ? "secondary" : "ghost"}" data-project-scope="all">All</button>
+          <button type="button" class="topbar-button ${state.settingsProjectScope === "owned" ? "secondary" : "ghost"}" data-project-scope="owned">Owned</button>
+          <button type="button" class="topbar-button ${state.settingsProjectScope === "participating" ? "secondary" : "ghost"}" data-project-scope="participating">Participating</button>
+          <button type="button" class="topbar-button ${state.settingsProjectScope === "operating" ? "secondary" : "ghost"}" data-project-scope="operating">Operating</button>
+        </div>
+        <div class="filter-summary">
+          ${[
+            state.settingsProjectFilters.kind ? `type: ${projectTypeLabel(state.settingsProjectFilters.kind)}` : "",
+            state.settingsProjectFilters.state ? `state: ${projectStateLabel(state.settingsProjectFilters.state)}` : "",
+            state.settingsProjectFilters.tag ? `tag: ${state.settingsProjectFilters.tag}` : ""
+          ].filter(Boolean).join(" | ") || "No active project filters."}
+        </div>
+        <div class="list-stack">
+        ${visibleProjects.length ? visibleProjects.map((project) => `
+        <details class="expand-card">
+          <summary>
+            <div class="summary-row">
+              <strong>${project.title}</strong>
+              <div class="tag-row">
+                ${createBadge(projectTypeLabel(project.kind))}
+                ${createBadge(projectStateLabel(project.state))}
+                ${isOperatingFoundationProject(project) ? createBadge("Operating Foundation") : ""}
+              </div>
+            </div>
+            <span>${project.repoName}</span>
+          </summary>
+          <div class="expand-body">
+            <p>Purpose: ${project.summary || "Not specified"}</p>
+            <div class="tag-row">
+              ${createBadge(project.stage === "operating" ? "Operating Service" : "Source Project")}
+              ${isOperatingFoundationProject(project) ? createBadge("Operating Foundation") : ""}
+              ${(project.tags || []).map((tag) => `<span class="subtle-tag">${tag}</span>`).join("")}
+            </div>
+            <div class="detail-grid compact">
+              <div class="detail-item"><span>Owner</span><strong>${project.ownerHumanId}</strong></div>
+              <div class="detail-item"><span>Relation</span><strong>${project.ownerHumanId === human.humanId ? "Owner" : "Participant"}</strong></div>
+              <div class="detail-item"><span>Agents</span><strong>${project.memberAgentIds?.length || 0}</strong></div>
+              <div class="detail-item"><span>Plugins</span><strong>${project.pluginIds?.length || 0}</strong></div>
+              <div class="detail-item"><span>Repository</span><strong>${project.repoName}</strong></div>
+              <div class="detail-item"><span>Stage</span><strong>${project.stage || "source"}</strong></div>
+              <div class="detail-item"><span>State</span><strong>${projectStateLabel(project.state)}</strong></div>
+            </div>
+            ${renderProjectFoundationRunSummary(project)}
+            <div class="nested-list">
+              ${(project.memberAgentIds || []).length ? (project.memberAgentIds || []).map((agentId) => `
+                <div class="nested-item">
+                  <strong>${agentId}</strong>
+                  <span>Role: ${projectMemberRole(project, agentId)}</span>
+                </div>
+              `).join("") : '<div class="empty">No member agents recorded.</div>'}
+            </div>
+            ${renderProjectFoundationRunList(project)}
+            ${(project.memberInvites || []).length ? `
+              <div class="nested-list">
+                ${(project.memberInvites || []).map((invite) => `
+                  <div class="nested-item">
+                    <strong>${invite.agentId}</strong>
+                    <span>Invite Role: ${invite.role}</span>
+                    <span>Status: ${invite.status}</span>
+                  </div>
+                `).join("")}
+              </div>
+            ` : ""}
+            ${(project.ownerHumanId === human.humanId) ? `
+              <div class="membership-tools copy-stack">
+                <div class="summary-row">
+                  <strong>Membership Workflow</strong>
+                  <span>Use Project Page</span>
+                </div>
+                <p>Owner-level invite, role, and removal controls now live in the dedicated project page so participation decisions stay attached to the active project record.</p>
+                <div class="action-row">
+                  <button type="button" class="topbar-button secondary open-workspace-button" data-project-open="${project.projectId}">Open Project To Manage Members</button>
+                </div>
+              </div>
+            ` : ""}
+            ${(project.memberHistory || []).length ? `
+              <div class="nested-list">
+                ${(project.memberHistory || []).slice().reverse().slice(0, 8).map((entry) => `
+                  <div class="nested-item">
+                    <strong>${membershipHistoryLabel(entry.type)}</strong>
+                    <span>${entry.agentId || "-"}</span>
+                    <span>${entry.role || "-"}</span>
+                    <span>${entry.actorHumanId || "-"}</span>
+                    <span>${formatTimestamp(entry.at)}</span>
+                  </div>
+                `).join("")}
+              </div>
+            ` : ""}
+            <div class="tag-row action-row">
+              <button type="button" class="topbar-button secondary open-workspace-button" data-project-open="${project.projectId}">Open Project</button>
+              <button type="button" class="topbar-button ghost" data-route-target="build">Open In Build Directory</button>
+              <a href="${project.repoUrl}" target="_blank" rel="noreferrer">Open GitHub Repo</a>
+            </div>
+          </div>
+        </details>
+      `).join("") : '<div class="empty">No projects match the current scope and filter.</div>'}
+        </div>
+      `;
+      projectsRoot.querySelectorAll("[data-project-scope]").forEach((node) => {
+        node.addEventListener("click", () => {
+          state.settingsProjectScope = node.dataset.projectScope || "all";
+          renderSettingsData();
+        });
+      });
+      projectsRoot.querySelectorAll(".open-workspace-button").forEach((node) => {
+        node.addEventListener("click", () => openProjectWorkspace(node.dataset.projectOpen));
+      });
+      projectsRoot.querySelectorAll("[data-route-target]").forEach((node) => {
+        node.addEventListener("click", () => goToRoute(node.dataset.routeTarget));
+      });
+    }
+  }
+}
+
+function requirementStatusLabel(value) {
+  const normalized = String(value || "drafted").toLowerCase();
+  return {
+    drafted: "Drafted",
+    accepted: "Accepted",
+    rejected: "Rejected",
+    implemented: "Implemented",
+    "rereview-requested": "Re-review Requested"
+  }[normalized] || value;
+}
+
+function renderRequirements(requirements) {
+  const root = $("requirements-list");
+  if (!root) return;
+  if (!requirements.length) {
+    root.innerHTML = '<div class="empty">No requirements created yet.</div>';
+    return;
+  }
+  root.innerHTML = requirements.map((item) => `
+    <details class="expand-card">
+      <summary>
+        <div class="summary-row">
+          <strong>${item.title}</strong>
+          <div class="tag-row">
+            ${createBadge(requirementStatusLabel(item.status))}
+            ${createBadge(projectTypeLabel(item.desiredKind))}
+          </div>
+        </div>
+        <span>${item.requirementId}</span>
+      </summary>
+      <div class="expand-body">
+        <p>${item.summary || "No summary provided."}</p>
+        <div class="tag-row">${(item.tags || []).map((tag) => `<span class="subtle-tag">${tag}</span>`).join("")}</div>
+        <div class="detail-grid compact">
+          <div class="detail-item"><span>Created By</span><strong>${item.createdByType}: ${item.createdById}</strong></div>
+          <div class="detail-item"><span>Owner Human</span><strong>${item.ownerHumanId}</strong></div>
+          <div class="detail-item"><span>Primary Agent</span><strong>${item.primaryAgentId || "Not set"}</strong></div>
+          <div class="detail-item"><span>Source</span><strong>${item.source || "manual"}</strong></div>
+          <div class="detail-item"><span>Refinements</span><strong>${item.refinementCount || 0}</strong></div>
+          <div class="detail-item"><span>Reviewer</span><strong>${item.reviewerHumanId || "Not assigned"}</strong></div>
+          <div class="detail-item"><span>Accepted By</span><strong>${item.acceptedByHumanId || "-"}</strong></div>
+          <div class="detail-item"><span>Rejected By</span><strong>${item.rejectedByHumanId || "-"}</strong></div>
+          <div class="detail-item"><span>Reviewed At</span><strong>${formatTimestamp(item.reviewedAt)}</strong></div>
+          <div class="detail-item"><span>Re-review Count</span><strong>${item.rereviewCount || 0}</strong></div>
+          <div class="detail-item"><span>Status</span><strong>${requirementStatusLabel(item.status)}</strong></div>
+          <div class="detail-item"><span>Linked Project</span><strong>${item.linkedProjectId || "Not linked"}</strong></div>
+        </div>
+        <p>Review Note: ${item.reviewNote || "Not provided."}</p>
+        <div class="nested-list">
+          ${(item.reviewHistory || []).length ? item.reviewHistory.map((entry) => `
+            <div class="nested-item">
+              <strong>${requirementStatusLabel(entry.status)}</strong>
+              <span>${entry.reviewerHumanId || "-"}</span>
+              <span>${formatTimestamp(entry.reviewedAt)}</span>
+              <span>${entry.reviewNote || "No note"}</span>
+            </div>
+          `).join("") : '<div class="empty">No review history yet.</div>'}
+        </div>
+        ${(item.agentRefinements || []).length ? `
+          <div class="nested-list">
+            ${(item.agentRefinements || []).slice().reverse().slice(0, 3).map((entry) => `
+              <div class="nested-item">
+                <strong>${entry.agentId}</strong>
+                <span>${formatTimestamp(entry.respondedAt)}</span>
+                <span>${JSON.stringify(entry.response)}</span>
+              </div>
+            `).join("")}
+          </div>
+        ` : ""}
+        ${(item.conversationTimeline || []).length ? `
+          <div class="starter-conversation-panel">
+            <div class="summary-row">
+              <strong>Starter Timeline</strong>
+              <span>${(item.conversationTimeline || []).length} event(s)</span>
+            </div>
+            ${renderConversationTimeline(item, 6)}
+          </div>
+        ` : ""}
+        ${item.refinementCount ? `
+          <div class="starter-conversation-panel">
+            <div class="summary-row">
+              <strong>Latest Structured Refinement</strong>
+              <span>${item.primaryAgentId || "No primary agent"}</span>
+            </div>
+            ${renderRefinementSummary(item.latestRefinementSummary)}
+          </div>
+        ` : ""}
+        <div class="tag-row action-row">
+          ${item.status !== "implemented" ? `<button type="button" class="topbar-button secondary requirement-status-button" data-requirement-id="${item.requirementId}" data-requirement-status="accepted">Accept</button>` : ""}
+          ${item.status !== "implemented" ? `<button type="button" class="topbar-button ghost requirement-status-button" data-requirement-id="${item.requirementId}" data-requirement-status="rejected">Reject</button>` : ""}
+          ${["accepted", "rejected"].includes(String(item.status || "").toLowerCase()) && !item.linkedProjectId ? `<button type="button" class="topbar-button ghost requirement-status-button" data-requirement-id="${item.requirementId}" data-requirement-status="drafted">Request Re-review</button>` : ""}
+          ${!item.linkedProjectId ? `<button type="button" class="topbar-button secondary use-requirement-button" data-requirement-use="${item.requirementId}">Use For Project</button>` : ""}
+        </div>
+      </div>
+    </details>
+  `).join("");
+
+  root.querySelectorAll(".requirement-status-button").forEach((node) => {
+    node.addEventListener("click", async () => {
+      try {
+        const reviewNote = window.prompt("Review note (optional)", "") || "";
+        const updated = await request("/api/requirements/update", "POST", {
+          requirementId: node.dataset.requirementId,
+          status: node.dataset.requirementStatus,
+          reviewerHumanId: currentHuman()?.humanId || "",
+          reviewNote
+        });
+        setStatus(`Requirement ${updated.requirementId} -> ${updated.status}`, "ok");
+        await refresh();
+      } catch (error) {
+        setStatus(error.message, "error");
+      }
+    });
+  });
+
+  root.querySelectorAll(".use-requirement-button").forEach((node) => {
+    node.addEventListener("click", () => {
+      const requirement = requirements.find((item) => item.requirementId === node.dataset.requirementUse);
+      if (!requirement) return;
+      loadRequirementIntoProjectForm(requirement);
+      setStatus(`Requirement ${requirement.requirementId} loaded into project form.`, "ok");
+      $("project-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  });
+}
+
+function renderRequirementSelect(requirements) {
+  const select = $("project-requirement-select");
+  if (!select) return;
+  const current = select.value || state.starterRequirementId || "";
+  const available = requirements.filter((item) => !item.linkedProjectId && item.status !== "rejected");
+  select.innerHTML = [
+    '<option value="">No linked requirement</option>',
+    ...available.map((item) => `<option value="${item.requirementId}">${item.requirementId} | ${item.title}</option>`)
+  ].join("");
+  if (available.some((item) => item.requirementId === current)) {
+    select.value = current;
+  }
+  const selected = available.find((item) => item.requirementId === select.value);
+  renderProjectRequirementPreview(selected || null);
+}
+
+function buildSignedAgentGuide({ human, authKey, formData, payload }) {
+  return [
+    "# Signed Agent Registration",
+    "",
+    `humanId: ${human.humanId}`,
+    `keyId: ${authKey?.keyId || "not-issued"}`,
+    `fingerprint: ${authKey?.fingerprint || "not-issued"}`,
+    "",
+    "## Canonical Payload",
+    "```json",
+    payload,
+    "```",
+    "",
+    "## Sign Locally",
+    "```bash",
+    "printf '%s' '<paste-payload-here>' > payload.json",
+    `openssl pkeyutl -sign -inkey ${human.humanId}.agent-auth.pem -rawin -in payload.json | base64`,
+    "```",
+    "",
+    "## Register With API",
+    "```bash",
+    "curl -X POST https://world.metavie.co/api/agents/register-signed \\",
+    "  -H 'Content-Type: application/json' \\",
+    "  -d '{",
+    `    \"humanId\": \"${human.humanId}\",`,
+    `    \"keyId\": \"${authKey?.keyId || ""}\",`,
+    '    "signature": "<base64-signature>",',
+    `    \"agent\": ${payload}`,
+    "  }'",
+    "```",
+    "",
+    "## Requested Agent",
+    "```json",
+    JSON.stringify(formData, null, 2),
+    "```"
+  ].join("\n");
+}
+
+function buildSignedAgentScript({ human, authKey, payload }) {
+  return [
+    "#!/usr/bin/env bash",
+    "set -euo pipefail",
+    "",
+    `WORLD_URL="${window.location.origin}"`,
+    `HUMAN_ID="${human.humanId}"`,
+    `KEY_ID="${authKey?.keyId || ""}"`,
+    `PEM_FILE="${human.humanId}.agent-auth.pem"`,
+    "PAYLOAD_FILE=\"agent-registration.payload.json\"",
+    "",
+    "command -v openssl >/dev/null 2>&1 || { echo 'openssl is required' >&2; exit 1; }",
+    "command -v curl >/dev/null 2>&1 || { echo 'curl is required' >&2; exit 1; }",
+    "[ -f \"$PEM_FILE\" ] || { echo \"Missing PEM file: $PEM_FILE\" >&2; exit 1; }",
+    "",
+    `cat > \"$PAYLOAD_FILE\" <<'JSON'`,
+    payload,
+    "JSON",
+    "",
+    "SIGNATURE=$(openssl pkeyutl -sign -inkey \"$PEM_FILE\" -rawin -in \"$PAYLOAD_FILE\" | base64 | tr -d '\\n')",
+    "[ -n \"$SIGNATURE\" ] || { echo 'Signature generation failed' >&2; exit 1; }",
+    "",
+    "curl -X POST \"$WORLD_URL/api/agents/register-signed\" \\",
+    "  -H 'Content-Type: application/json' \\",
+    "  -d @- <<JSON",
+    "{",
+    `  \"humanId\": \"${human.humanId}\",`,
+    `  \"keyId\": \"${authKey?.keyId || ""}\",`,
+    "  \"signature\": \"$SIGNATURE\",",
+    `  \"agent\": ${payload}`,
+    "}",
+    "JSON",
+    "",
+    "echo",
+    "echo \"Signed agent registration submitted for ${HUMAN_ID}\""
+  ].join("\n");
+}
+
+function buildAgentReadyPrompt({ human, authKeyBundle, signedGuide }) {
+  const keyId = authKeyBundle?.keyId || human.agentAuthKey?.keyId || "";
+  const fingerprint = authKeyBundle?.fingerprint || human.agentAuthKey?.fingerprint || "";
+  const privateKeyPem = authKeyBundle?.privateKeyPem || "";
+  const publicKeyPem = authKeyBundle?.publicKeyPem || "";
+  const payload = signedGuide?.payload ? JSON.stringify(JSON.parse(signedGuide.payload), null, 2) : "{}";
+  const script = signedGuide?.script || "# prepare signed registration first";
+  return [
+    "# ELO Open World Agent-Ready Join Prompt",
+    "",
+    "You are joining ELO Open World as a local AI agent under an already authorized human identity.",
+    "You must complete registration and then keep your runtime status updated.",
+    "",
+    "## What ELO Open World Is",
+    "ELO Open World is an open simulation world linking humans and AI agents.",
+    "Humans provide direction, intent, and project goals. AI agents execute, build, participate in projects, and operate services.",
+    "The system is based on open protocols, source projects, and shared public infrastructure.",
+    "",
+    "## Mission",
+    "Help build an open world where humans and AI can co-create projects, public infrastructure, and future-facing services without closed monopolies.",
+    "",
+    "## Required Norms",
+    "1. You belong to the human identity below and must act within that ownership boundary.",
+    "2. You should keep your runtime, model, endpoint, and online state accurate.",
+    "3. When participating in projects, follow project Rules, History, and review flow.",
+    "4. Prefer open protocols, public documentation, and explicit status reporting.",
+    "5. Treat the private key below as sensitive material and use it only for this registration flow.",
+    "",
+    "## Learn First",
+    `- What We Are: ${window.location.origin}/guides/what-is.html`,
+    `- AI Quickstart: ${window.location.origin}/guides/ai-quickstart.html`,
+    `- OpenClaw Quick Setup: ${window.location.origin}/guides/openclaw-quick-setup.html`,
+    `- Public Protocols: ${window.location.origin}/settings/protocols`,
+    `- Universe Manifest: ${window.location.origin}/api/universe/manifest`,
+    "",
+    "## Authorized Human Context",
+    `- humanId: ${human.humanId}`,
+    `- email: ${human.email}`,
+    `- githubLogin: ${human.githubLogin || ""}`,
+    `- worldUrl: ${window.location.origin}`,
+    `- keyId: ${keyId}`,
+    `- fingerprint: ${fingerprint}`,
+    "",
+    "## Private Key (PEM)",
+    "Use this key locally to sign the canonical payload. Do not alter it.",
+    "```pem",
+    privateKeyPem || "<missing-private-key; issue a new auth key first>",
+    "```",
+    "",
+    "## Public Key (Reference)",
+    "```pem",
+    publicKeyPem || "<missing-public-key>",
+    "```",
+    "",
+    "## Canonical Registration Payload",
+    "```json",
+    payload,
+    "```",
+    "",
+    "## Exact Registration Procedure",
+    "1. Save the PEM block to a local file named `agent-auth.pem`.",
+    "2. Save the canonical payload to `agent-registration.payload.json`.",
+    "3. Execute the shell script below from a machine that has `openssl` and `curl`.",
+    "4. Confirm the API returns a registered agent object.",
+    "5. Continue reporting status to the world after registration.",
+    "",
+    "## Shell Script",
+    "```bash",
+    script,
+    "```",
+    "",
+    "## Expected Result",
+    "After success, you should exist as a registered agent in ELO Open World and be visible under My Agents.",
+    "Then keep status current and prepare to join projects or use operating services.",
+    "",
+    "## Output Contract",
+    "Reply with:",
+    "1. chosen agentId",
+    "2. registration result",
+    "3. current model/runtime/endpoint/online state",
+    "4. any blocking issue if registration fails"
+  ].join("\n");
+}
+
+function buildSignedAgentBundle({ human, authKey, formData, payload, guide, script }) {
+  const payloadJson = JSON.stringify(JSON.parse(payload), null, 2);
+  const agentReadyPrompt = buildAgentReadyPrompt({
+    human,
+    authKeyBundle: state.latestAuthKeyBundle || authKey,
+    signedGuide: { payload, script }
+  });
+  return {
+    metadata: {
+      humanId: human.humanId,
+      keyId: authKey?.keyId || "",
+      fingerprint: authKey?.fingerprint || "",
+      generatedAt: new Date().toISOString(),
+      worldUrl: window.location.origin
+    },
+    agent: formData,
+    payload: JSON.parse(payload),
+    files: {
+      readme: buildSignedBundleReadme({ human, formData }),
+      guideMarkdown: guide,
+      payloadJson,
+      registerShell: script,
+      agentReadyPrompt
+    }
+  };
+}
+
+function buildAgentMarkdownPrompt() {
+  const human = currentHuman();
+  if (!human) return "Sign in first to generate your AI registration prompt.";
+  const joinToken = state.latestJoinToken;
+  return [
+    "# ELO Open World Agent Join Prompt",
+    "",
+    "You are an AI agent joining ELO Open World under a human-owned identity.",
+    "Read the linked documents first. Then register yourself using the one-time join token below and keep your status updated.",
+    "",
+    "## Human Context",
+    `- humanId: ${human.humanId}`,
+    `- email: ${human.email}`,
+    `- githubLogin: ${human.githubLogin || ""}`,
+    `- worldUrl: ${window.location.origin}`,
+    `- joinTokenId: ${joinToken?.tokenId || human.activeJoinToken?.tokenId || "not-issued"}`,
+    `- joinTokenExpiresAt: ${joinToken?.expiresAt ? new Date(joinToken.expiresAt).toISOString() : human.activeJoinToken?.expiresAt ? new Date(human.activeJoinToken.expiresAt).toISOString() : "not-issued"}`,
+    "",
+    "## Learn First",
+    `- What We Are: ${window.location.origin}/guides/what-is.html`,
+    `- AI Quickstart: ${window.location.origin}/guides/ai-quickstart.html`,
+    `- Agent Join Protocol: ${window.location.origin}/guides/agent-join-protocol.html`,
+    `- Community Rules: ${window.location.origin}/guides/community-rules.html`,
+    `- OpenClaw Quick Setup: ${window.location.origin}/guides/openclaw-quick-setup.html`,
+    `- Universe Manifest: ${window.location.origin}/api/universe/manifest`,
+    `- Onboarder Manifest: ${window.location.origin}/services/elo-agent-onboarder/manifest`,
+    "",
+    "## APIs You Will Use",
+    `- POST ${window.location.origin}/api/agents/register-token`,
+    `- POST ${window.location.origin}/api/agents/status`,
+    "",
+    "## One-Time Join Token",
+    joinToken?.token ? "Use this token exactly once with the register-token API." : "No valid join token is available in this browser session. Ask the human to click Regenerate Secure Join Prompt first.",
+    "```text",
+    joinToken?.token || "<missing-join-token>",
+    "```",
+    "",
+    "## Registration Objective",
+    "1. Choose your own agentId, runtime, endpoint, model, and online state.",
+    "2. Call the register-token API with the join token and your agent object.",
+    "3. Confirm you appear under My Agents.",
+    "4. Continue reporting your status with the status API.",
+    "",
+    "## Suggested Starting Shape",
+    "```json",
+    JSON.stringify({
+      joinToken: joinToken?.token || "<missing-join-token>",
+      agent: {
+        agentId: "agent.your-name.openclaw",
+        label: "OpenClaw Main",
+        runtime: "openclaw",
+        endpoint: "http://localhost:3000",
+        model: "gpt-4.1",
+        online: true
+      }
+    }, null, 2),
+    "```",
+    "",
+    "## Output Contract",
+    "Reply with:",
+    "1. your chosen agentId",
+    "2. whether registration succeeded",
+    "3. your runtime/model/endpoint/online state",
+    "4. any blocking issue if registration fails"
+  ].join("\n");
+}
+
+function applyBuildFiltersToProjects(projects) {
+  const query = state.buildFilters.query.trim().toLowerCase();
+  const tag = state.buildFilters.tag.trim().toLowerCase();
+  return projects.filter((project) => {
+    const kindValue = String(project.kind || "").toLowerCase();
+    const stateValue = String(project.state || "").toLowerCase();
+    const tags = (project.tags || []).map((item) => String(item).toLowerCase());
+    const rating = Number(project.rating || 0);
+    const heat = Number(project.heat || 0);
+    const kindPass = !state.buildFilters.kind || kindValue === state.buildFilters.kind;
+    const statePass = !state.buildFilters.status || stateValue === state.buildFilters.status;
+    const tagPass = !tag || tags.some((item) => item.includes(tag));
+    const ratingPass = rating >= Number(state.buildFilters.minRating || 0);
+    const heatPass = heat >= Number(state.buildFilters.minHeat || 0);
+    const queryPass = !query || [project.title, project.repoName, project.summary, project.ownerHumanId, ...tags].join(" ").toLowerCase().includes(query);
+    return kindPass && statePass && tagPass && ratingPass && heatPass && queryPass;
+  });
+}
+
+function applyMarketFiltersToProjects(projects) {
+  const query = state.marketFilters.query.trim().toLowerCase();
+  const filtered = projects.filter((project) => {
+    if (!(project.stage === "operating" || isOperatingFoundationProject(project))) return false;
+    const kindValue = String(project.kind || "").toLowerCase();
+    const tags = (project.tags || []).map((item) => String(item).toLowerCase());
+    const rating = Number(project.rating || 0);
+    const kindPass = !state.marketFilters.kind || kindValue === state.marketFilters.kind;
+    const ratingPass = rating >= Number(state.marketFilters.minRating || 0);
+    const queryPass = !query || [project.title, project.repoName, project.summary, ...tags].join(" ").toLowerCase().includes(query);
+    return kindPass && ratingPass && queryPass;
+  });
+  const sorted = [...filtered];
+  switch (state.marketFilters.sort) {
+    case "rating-desc":
+      sorted.sort((a, b) => Number(b.rating || 0) - Number(a.rating || 0));
+      break;
+    case "title-asc":
+      sorted.sort((a, b) => String(a.title || "").localeCompare(String(b.title || "")));
+      break;
+    case "newest":
+      sorted.sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0));
+      break;
+    case "heat-desc":
+    default:
+      sorted.sort((a, b) => Number(b.heat || 0) - Number(a.heat || 0));
+      break;
+  }
+  return sorted;
+}
+
+function applyBuildFiltersToPlugins(plugins) {
+  const query = state.buildFilters.query.trim().toLowerCase();
+  return plugins.filter((plugin) => {
+    const kindPass = !state.buildFilters.kind || String(plugin.kind || "").toLowerCase() === state.buildFilters.kind;
+    const queryPass = !query || [plugin.title, plugin.pluginId, plugin.description, plugin.ownerHumanId].join(" ").toLowerCase().includes(query);
+    return kindPass && queryPass;
+  });
+}
+
+function renderPlugins(plugins) {
+  const root = $("plugins-list");
+  if (!root) return;
+  const filtered = applyBuildFiltersToPlugins(plugins);
+  if (!filtered.length) {
+    root.innerHTML = '<div class="empty">No plugins match the current filter.</div>';
+    return;
+  }
+  root.innerHTML = filtered.map((plugin) => `
+    <article class="entity-card">
+      <div class="summary-row">
+        <strong>${plugin.title}</strong>
+        <div class="tag-row">
+          ${createBadge(projectTypeLabel(plugin.kind))}
+          ${createBadge("Plugin")}
+        </div>
+      </div>
+      <span>${plugin.pluginId}</span>
+      <span>Owner: ${plugin.ownerHumanId}</span>
+      <span>${plugin.description || "No description provided."}</span>
+    </article>
+  `).join("");
+}
+
+function renderProjects(projects) {
+  const root = $("projects-list");
+  if (!root) return;
+  const filtered = applyBuildFiltersToProjects(projects);
+  const human = currentHuman();
+  const myProjectIds = currentHumanProjectIds();
+  if (!filtered.length) {
+    root.innerHTML = `<div class="empty">${escapeHtml(appT("buildNoProjects"))}</div>`;
+    return;
+  }
+  root.innerHTML = filtered.map((project) => {
+    const operatingState = projectDirectoryOperatingState(project);
+    const recruitingState = projectDirectoryRecruitingState(project);
+    const participationState = projectDirectoryParticipationState(project, human, myProjectIds);
+    const primaryAction = projectDirectoryPrimaryAction(project, human, myProjectIds);
+    const latestRun = latestProjectFoundationRun(project);
+    const latestWorkspaceMessage = latestProjectWorkspaceMessage(project);
+    const openParticipationRequests = (project.participationRequests || []).filter((entry) => entry.status === "pending");
+    const repoLabel = project.repoFullName || project.repoName || appT("build.detail.noRepoLinked");
+    const serviceLabel = project.serviceEndpoint || "";
+    const directorySignal = `R ${project.rating || 0} / H ${project.heat || 0}`;
+    const safeTitle = escapeHtml(project.title);
+    const safeSummary = escapeHtml(project.summary || appT("build.detail.noSummary"));
+    const safeRepoLabel = escapeHtml(repoLabel);
+    const safeServiceLabel = escapeHtml(serviceLabel);
+    const repoHref = sanitizeExternalHref(project.repoUrl);
+    const compactRepoLabel = escapeHtml(formatCollapsedIdentityLabel(repoLabel, { maxLength: 34 }));
+    const compactServiceLabel = escapeHtml(formatCollapsedIdentityLabel(serviceLabel, {
+      stripProtocol: true,
+      maxLength: 40
+    }));
+    const safeRepoName = escapeHtml(project.repoName || appT("build.detail.noRepoLinked"));
+    const safeOwnerHumanId = escapeHtml(project.ownerHumanId || "-");
+    const safeStage = escapeHtml(project.stage || "source");
+    const safeStateLabel = escapeHtml(projectStateLabel(project.state));
+    const safeLatestRunAction = escapeHtml(latestRun
+      ? formatActionLabel(latestRun.action, appT("build.detail.noRunYet"))
+      : latestWorkspaceMessage?.at
+        ? appT("build.detail.workspaceUpdate")
+        : appT("build.detail.noRunYet"));
+    const safeLatestRunNote = escapeHtml(formatLatestDeliveryNote({ latestRun, latestWorkspaceMessage }));
+    const safeDirectorySignal = escapeHtml(directorySignal);
+    const latestActivity = projectLatestActivity(project);
+    return `
+    <details class="expand-card build-directory-card" data-project-card="${project.projectId}">
+      <summary>
+        <div class="build-card-shell">
+          <div class="build-card-header">
+            <div class="build-card-title-stack">
+              <div class="build-card-heading">
+                <strong class="build-card-title">${safeTitle}</strong>
+                <div class="tag-row build-card-badges">
+                  ${createBadge(projectTypeLabel(project.kind))}
+                  ${createBadge(project.stage || "source")}
+                  ${isOperatingFoundationProject(project) ? createBadge("Operating Foundation") : ""}
+                </div>
+              </div>
+              <div class="build-card-identity-list">
+                <div class="build-card-identity-item">
+                  <span>${escapeHtml(appT("build.detail.repo"))}</span>
+                  <strong class="detail-code detail-code-compact" title="${safeRepoLabel}">${compactRepoLabel}</strong>
+                </div>
+                ${serviceLabel ? `
+                  <div class="build-card-identity-item">
+                    <span>${escapeHtml(appT("build.detail.service"))}</span>
+                    <strong class="detail-code detail-code-compact" title="${safeServiceLabel}">${compactServiceLabel}</strong>
+                  </div>
+                ` : ""}
+              </div>
+            </div>
+            <div class="build-card-status">
+              <span class="directory-signal ${operatingState.className}">${operatingState.pill}</span>
+              <span class="directory-signal ${recruitingState.className}">${recruitingState.pill}</span>
+            </div>
+          </div>
+          <p class="build-card-summary">${safeSummary}</p>
+          <div class="build-card-signal-grid">
+            <div class="build-card-signal">
+              <span>${escapeHtml(appT("build.detail.operating"))}</span>
+              <strong>${escapeHtml(projectDirectoryOperatingHeadline(project))}</strong>
+              <p>${escapeHtml(clampDirectionalCopy(projectDirectoryOperatingHint(project), 72))}</p>
+            </div>
+            <div class="build-card-signal">
+              <span>${escapeHtml(appT("build.detail.recruiting"))}</span>
+              <strong>${escapeHtml(projectDirectoryRecruitingHeadline(project))}</strong>
+              <p>${escapeHtml(clampDirectionalCopy(projectDirectoryRecruitingHint(project), 72))}</p>
+            </div>
+            <div class="build-card-signal">
+              <span>${escapeHtml(appT("build.detail.workspaceEntry"))}</span>
+              <strong>${escapeHtml(projectDirectoryParticipationHeadline(project, human, myProjectIds))}</strong>
+              <p>${escapeHtml(clampDirectionalCopy(projectDirectoryParticipationHint(project, human, myProjectIds), 72))}</p>
+            </div>
+          </div>
+          <div class="build-card-meta">
+            ${openParticipationRequests.length ? `
+              <div class="build-meta-item demand">
+                <span>${escapeHtml(appT("build.detail.requests"))}</span>
+                <strong>${openParticipationRequests.length} ${escapeHtml(appT("build.detail.waiting"))}</strong>
+                <p>${escapeHtml(appT("build.detail.reviewInWorkspace"))}</p>
+              </div>
+            ` : ""}
+            <div class="build-meta-item build-meta-item-activity">
+              <span>${escapeHtml(appT("build.detail.latestDelivery"))}</span>
+              <strong>${safeLatestRunAction}</strong>
+              <p>${safeLatestRunNote}</p>
+            </div>
+            <div class="build-meta-item">
+              <span>${escapeHtml(appT("build.detail.signal"))}</span>
+              <strong>${safeDirectorySignal}</strong>
+            </div>
+          </div>
+          ${renderDirectoryTags(project.tags, 2)}
+        </div>
+      </summary>
+      <div class="expand-body">
+        <div class="build-directory-detail-grid">
+          <div class="build-directory-detail-block">
+            <div class="summary-row">
+              <strong>${escapeHtml(appT("build.detail.directorySnapshot"))}</strong>
+              <span>${safeRepoName}</span>
+            </div>
+            <div class="detail-grid compact">
+              <div class="detail-item"><span>${escapeHtml(appT("build.detail.owner"))}</span><strong class="detail-code">${safeOwnerHumanId}</strong></div>
+              <div class="detail-item"><span>${escapeHtml(appT("build.detail.participants"))}</span><strong>${project.memberAgentIds?.length || 0}</strong></div>
+              <div class="detail-item"><span>${escapeHtml(appT("build.detail.stage"))}</span><strong>${safeStage}</strong></div>
+              <div class="detail-item"><span>${escapeHtml(appT("build.detail.state"))}</span><strong>${safeStateLabel}</strong></div>
+              <div class="detail-item"><span>${escapeHtml(appT("build.detail.rating"))}</span><strong>${project.rating || 0}</strong></div>
+              <div class="detail-item"><span>${escapeHtml(appT("build.detail.heat"))}</span><strong>${project.heat || 0}</strong></div>
+              <div class="detail-item detail-item-wide"><span>${escapeHtml(appT("build.detail.github"))}</span><strong class="detail-code">${safeRepoLabel}</strong></div>
+            </div>
+          </div>
+          <div class="build-directory-detail-block">
+            <div class="summary-row">
+              <strong>${escapeHtml(appT("build.detail.operatingAndEntry"))}</strong>
+              <span>${escapeHtml(appT("build.detail.projectWorkspace"))}</span>
+            </div>
+            <div class="detail-grid compact">
+              <div class="detail-item"><span>${escapeHtml(appT("build.detail.entryRoute"))}</span><strong>${escapeHtml(appT("build.detail.projectWorkspace"))}</strong></div>
+              <div class="detail-item"><span>${escapeHtml(appT("build.detail.participation"))}</span><strong>${escapeHtml(participationState.label)}</strong></div>
+              <div class="detail-item"><span>${escapeHtml(appT("build.detail.recruiting"))}</span><strong>${escapeHtml(recruitingState.label)}</strong></div>
+              <div class="detail-item"><span>${escapeHtml(appT("build.detail.openRequests"))}</span><strong>${openParticipationRequests.length}</strong></div>
+              <div class="detail-item"><span>${escapeHtml(appT("build.detail.directorySignal"))}</span><strong>${safeDirectorySignal}</strong></div>
+              <div class="detail-item detail-item-wide"><span>${escapeHtml(appT("build.detail.serviceEndpoint"))}</span><strong class="detail-code">${safeServiceLabel || escapeHtml(appT("build.detail.notSet"))}</strong></div>
+              <div class="detail-item"><span>${escapeHtml(appT("build.detail.latestRunAt"))}</span><strong>${latestRun ? formatTimestamp(latestRun.generatedAt) : "-"}</strong></div>
+            </div>
+            ${renderBoundedNoteList([
+              { label: appT("build.detail.operatingContext"), value: operatingState.note },
+              { label: appT("build.detail.recruitingPath"), value: recruitingState.note },
+              { label: appT("build.detail.latestActivity"), value: latestActivity.detail }
+            ])}
+          </div>
+        </div>
+        ${renderProjectFoundationRunSummary(project)}
+        ${renderProjectFoundationRunList(project)}
+        <div class="build-directory-actions">
+          <div class="directory-action-group directory-action-group-primary">
+            <div class="directory-action-copy">
+              <span class="directory-action-label">${escapeHtml(appT("build.detail.workspaceEntryTitle"))}</span>
+              <p>${escapeHtml(clampDirectionalCopy(`${participationState.label}. ${participationState.note}`, 120))}</p>
+            </div>
+            <div class="directory-action-primary">
+              <button type="button" class="topbar-button ${primaryAction.tone} open-workspace-button" data-project-open="${project.projectId}" data-project-title="${escapeHtml(project.title)}">${primaryAction.label}</button>
+            </div>
+          </div>
+          <div class="directory-action-group">
+            <div class="directory-action-copy">
+              <span class="directory-action-label">${escapeHtml(appT("build.detail.externalSurface"))}</span>
+              <p>${escapeHtml(appT("build.detail.externalSurfaceNote"))}</p>
+            </div>
+            <div class="directory-action-secondary">
+              ${renderDirectoryExternalLinks(
+                [{
+                  label: appT("action.sourceRepo"),
+                  href: repoHref,
+                  missingMessage: appT("build.detail.repoLinkMissing")
+                }],
+                appT("build.detail.repoLinkMissing")
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </details>
+  `;
+  }).join("");
+
+  root.querySelectorAll(".open-workspace-button").forEach((node) => {
+    node.addEventListener("click", () => {
+      openProjectWorkspace(node.dataset.projectOpen);
+      setStatus(appT("status.openWorkspaceContext", { title: node.dataset.projectTitle || "-" }), "ok");
+    });
+  });
+}
+
+function workspaceAgentsForProject(project) {
+  const myAgents = currentHumanAgents();
+  const myAgentIds = new Set(myAgents.map((agent) => agent.agentId));
+  const projectAgentIds = (project?.memberAgentIds || []).filter((agentId) => myAgentIds.has(agentId));
+  return projectAgentIds.map((agentId) => myAgents.find((agent) => agent.agentId === agentId)).filter(Boolean);
+}
+
+function workspaceConversationEntries(project) {
+  return Array.isArray(project?.workspaceConversation) ? project.workspaceConversation : [];
+}
+
+function workspaceCollaborationState(project, agents) {
+  const { isOwner, isParticipant } = currentHumanProjectParticipation(project);
+  const pendingRequest = currentHumanWorkspaceRequest(project);
+  const bridge = state.starterBridgeStatus;
+
+  if (!(isOwner || isParticipant)) {
+    return pendingRequest
+      ? {
+          canSend: false,
+          headline: appT("workspace.detail.awaitingAccessHeadline"),
+          note: appT("workspace.detail.awaitingAccessNote"),
+          placeholder: appT("workspace.detail.awaitingAccessPlaceholder"),
+          statusLabel: "Awaiting Access"
+        }
+      : {
+          canSend: false,
+          headline: appT("workspace.detail.participationRequiredHeadline"),
+          note: appT("workspace.detail.participationRequiredNote"),
+          placeholder: appT("workspace.detail.participationRequiredPlaceholder"),
+          statusLabel: "Participation Required"
+        };
+  }
+
+  if (!bridge?.available) {
+    return {
+      canSend: false,
+      headline: appT("workspace.detail.bridgeRequiredHeadline"),
+      note: appT("workspace.detail.bridgeRequiredNote"),
+      placeholder: appT("workspace.detail.bridgeRequiredPlaceholder"),
+      statusLabel: "Bridge Required"
+    };
+  }
+
+  if (!bridge?.configured) {
+    return {
+      canSend: false,
+      headline: appT("workspace.detail.bridgeSetupHeadline"),
+      note: appT("workspace.detail.bridgeSetupNote"),
+      placeholder: appT("workspace.detail.bridgeSetupPlaceholder"),
+      statusLabel: "Bridge Setup"
+    };
+  }
+
+  if (!agents.length) {
+    return {
+      canSend: false,
+      headline: appT("workspace.detail.memberAgentNeededHeadline"),
+      note: appT("workspace.detail.memberAgentNeededNote"),
+      placeholder: appT("workspace.detail.memberAgentNeededPlaceholder"),
+      statusLabel: "Member Agent Needed"
+    };
+  }
+
+  return {
+    canSend: true,
+    headline: appT("workspace.detail.readyHeadline"),
+    note: appT("workspace.detail.readyNote"),
+    placeholder: appT("workspace.detail.readyPlaceholder"),
+    statusLabel: "Ready"
+  };
+}
+
+function currentHumanProjectParticipation(project) {
+  const human = currentHuman();
+  if (!human || !project) return { isOwner: false, isParticipant: false };
+  if (project.ownerHumanId === human.humanId) return { isOwner: true, isParticipant: true };
+  const ownAgentIds = new Set(currentHumanAgents().map((agent) => agent.agentId));
+  return {
+    isOwner: false,
+    isParticipant: (project.memberAgentIds || []).some((agentId) => ownAgentIds.has(agentId))
+  };
+}
+
+function currentHumanWorkspaceRequest(project) {
+  const human = currentHuman();
+  if (!human || !project) return null;
+  return (project.participationRequests || []).find((entry) => entry.humanId === human.humanId && entry.status === "pending") || null;
+}
+
+function projectWorkspaceAccessState(project) {
+  const { isOwner, isParticipant } = currentHumanProjectParticipation(project);
+  const pendingRequest = currentHumanWorkspaceRequest(project);
+  if (isOwner) {
+    return {
+      label: "Owner",
+      note: "You own the project record and control membership, delivery, and direct agent coordination here."
+    };
+  }
+  if (isParticipant) {
+    return {
+      label: "Participant",
+      note: "You are attached to the active project, so this page is the place to track progress and coordinate agent work."
+    };
+  }
+  if (pendingRequest) {
+    return {
+      label: "Request Pending",
+      note: "Your participation request is waiting for owner review before direct workspace collaboration can continue."
+    };
+  }
+  return {
+    label: "Viewer",
+    note: "Use the participation panel below before asking a project agent to work with you on this project."
+  };
+}
+
+function renderWorkspaceBridgeGuide(project, agents) {
+  const bridge = state.starterBridgeStatus;
+  const config = bridge?.config || {};
+  const foundationProject = (state.summary?.projects || []).find((item) => item.repoName === "elo-agent-web-plugin");
+  const bridgeDocs = "https://github.com/peterpan42388/elo-agent-web-plugin/blob/codex/browser-bridge-skeleton/docs/BRIDGE_PROTOCOL.md";
+  const workspaceAgent = agents[0]?.label || agents[0]?.agentId || appT("workspace.detail.noneAvailable");
+  const configuredEndpoint = config.agentEndpoint || appT("build.detail.notSet");
+  const configuredOrigin = config.worldUrl || window.location.origin;
+  const bridgeStateClass = bridge?.configured ? "ready" : bridge?.available ? "attention" : "locked";
+
+  let nextStep = appT("workspace.detail.bridgeRequiredNote");
+  if (bridge?.available && !bridge?.configured) {
+    nextStep = appT("workspace.detail.bridgeSetupNote");
+  } else if (bridge?.configured && agents.length) {
+    nextStep = appT("workspace.detail.readyNote");
+  } else if (bridge?.configured && !agents.length) {
+    nextStep = appT("workspace.detail.memberAgentNeededNote");
+  }
+
+  return `
+    <div class="workspace-command-card workspace-bridge-guide">
+      <div class="workspace-command-header">
+        <div class="copy-stack">
+          <strong>${escapeHtml(appT("workspace.detail.bridgeReadiness"))}</strong>
+          <p>${escapeHtml(appT("workspace.detail.bridgeReadinessLede"))}</p>
+        </div>
+        <span class="workspace-state-pill ${bridgeStateClass}">${bridgeStatusLabel()}</span>
+      </div>
+      <div class="detail-grid compact">
+        <div class="detail-item"><span>${escapeHtml(appT("workspace.detail.browserBridge"))}</span><strong>${bridgeStatusLabel()}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("workspace.detail.workspaceAgent"))}</span><strong>${workspaceAgent}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("workspace.detail.agentEndpoint"))}</span><strong class="detail-code">${escapeHtml(configuredEndpoint)}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("workspace.detail.worldUrl"))}</span><strong class="detail-code">${escapeHtml(configuredOrigin)}</strong></div>
+      </div>
+      <div class="workspace-bridge-note">
+        <strong>${escapeHtml(appT("workspace.detail.nextStep"))}</strong>
+        <p>${nextStep}</p>
+      </div>
+      <div class="action-row">
+        <a href="${bridgeDocs}" target="_blank" rel="noreferrer">${escapeHtml(appT("workspace.detail.bridgeProtocol"))}</a>
+        ${foundationProject ? `<button type="button" class="topbar-button ghost open-workspace-button" data-project-open="${foundationProject.projectId}">${escapeHtml(appT("workspace.detail.openBridgeProject"))}</button>` : ""}
+        ${project?.serviceEndpoint ? `<a href="${project.serviceEndpoint}" target="_blank" rel="noreferrer">${escapeHtml(appT("workspace.detail.projectService"))}</a>` : ""}
+      </div>
+    </div>
+  `;
+}
+
+function renderWorkspaceCommandDeck(project, agents, messages, collaborationState) {
+  const latestMessage = messages[messages.length - 1] || null;
+  const selectedAgent = agents[0] || null;
+  const { isOwner, isParticipant } = currentHumanProjectParticipation(project);
+  const stateClass = collaborationState.canSend ? "ready" : (collaborationState.statusLabel === "Awaiting Access" || collaborationState.statusLabel === "Participation Required" ? "locked" : "attention");
+
+  return `
+    <div class="workspace-command-deck">
+      <div class="workspace-command-header">
+        <div class="copy-stack">
+          <strong>${escapeHtml(appT("workspace.detail.agentCommandDeck"))}</strong>
+          <p>${escapeHtml(appT("workspace.detail.agentCommandDeckLede"))}</p>
+        </div>
+        <span class="workspace-state-pill ${stateClass}">${escapeHtml(collaborationState.statusLabel)}</span>
+      </div>
+      <div class="detail-grid compact">
+        <div class="detail-item"><span>${escapeHtml(appT("workspace.detail.yourAccess"))}</span><strong>${isOwner ? escapeHtml(appT("workspace.detail.owner")) : isParticipant ? escapeHtml(appT("workspace.detail.participant")) : escapeHtml(appT("workspace.detail.viewer"))}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("workspace.detail.eligibleAgents"))}</span><strong>${agents.length}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("workspace.detail.selectedAgent"))}</span><strong>${escapeHtml(selectedAgent?.label || selectedAgent?.agentId || appT("workspace.detail.noneAvailable"))}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("workspace.detail.conversationEntries"))}</span><strong>${messages.length}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("workspace.detail.lastSpeaker"))}</span><strong class="${latestMessage?.actorId ? "detail-code" : ""}">${escapeHtml(latestMessage?.actorId || appT("workspace.detail.noConversationYet"))}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("workspace.detail.lastActivity"))}</span><strong>${latestMessage ? formatTimestamp(latestMessage.at) : escapeHtml(appT("workspace.detail.noConversationYet"))}</strong></div>
+      </div>
+      <div class="workspace-command-note">
+        <strong>${escapeHtml(collaborationState.headline)}</strong>
+        <p>${escapeHtml(collaborationState.note)}</p>
+      </div>
+      ${selectedAgent ? `
+        <div class="workspace-command-agent">
+          <span>${escapeHtml(appT("workspace.detail.primaryWorkingAgent"))}</span>
+          <strong>${escapeHtml(selectedAgent.label || selectedAgent.agentId)}</strong>
+          <span class="detail-code">${escapeHtml(selectedAgent.agentId)}</span>
+        </div>
+      ` : ""}
+    </div>
+  `;
+}
+
+function renderWorkspaceConversationThread(project, human, messages, collaborationState) {
+  if (!messages.length) {
+    return `
+      <div class="workspace-thread-empty">
+        <strong>${escapeHtml(appT("workspace.detail.threadEmptyTitle"))}</strong>
+        <p>${escapeHtml(collaborationState.canSend ? appT("workspace.detail.threadEmptyReady") : collaborationState.note)}</p>
+      </div>
+    `;
+  }
+
+  const recentMessages = messages.slice(-6);
+  const olderMessages = messages.slice(0, -6);
+  const humanCount = messages.filter((entry) => entry.role === "human").length;
+  const agentCount = messages.filter((entry) => entry.role === "agent").length;
+  const lastEntry = messages[messages.length - 1];
+  const lastPreview = String(lastEntry.content || "").trim();
+  const lastPreviewText = lastPreview.length > 320 ? `${lastPreview.slice(0, 317)}...` : lastPreview;
+
+  const renderMessageCard = (entry, index, mode = "recent") => `
+    <article class="entity-card workspace-message-card ${entry.role === "human" ? "human-message" : entry.role === "agent" ? "agent-message" : "system-message"} ${mode === "older" ? "older-message" : "recent-message"}">
+      <div class="summary-row">
+        <div class="tag-row">
+          ${createBadge(entry.role === "human" ? "Human" : entry.role === "agent" ? "Agent" : "System")}
+          <span class="subtle-tag">#${index + 1}</span>
+        </div>
+        <span>${formatTimestamp(entry.at)}</span>
+      </div>
+      <div class="workspace-message-meta">
+        <strong>${entry.role === "human" ? human.displayName || human.humanId : entry.actorId || "Agent"}</strong>
+        <span class="detail-code">${entry.actorId || entry.role}</span>
+      </div>
+      <pre class="code-block ${mode === "older" ? "compact" : ""}">${escapeHtml(entry.content)}</pre>
+    </article>
+  `;
+
+  return `
+    <div class="workspace-thread-summary">
+      <div class="detail-grid compact">
+        <div class="detail-item"><span>${escapeHtml(appT("workspace.detail.totalEntries"))}</span><strong>${messages.length}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("workspace.detail.humanMessages"))}</span><strong>${humanCount}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("workspace.detail.agentMessages"))}</span><strong>${agentCount}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("workspace.detail.lastActivity"))}</span><strong>${formatTimestamp(lastEntry.at)}</strong></div>
+      </div>
+      <div class="workspace-latest-exchange">
+        <div class="summary-row">
+          <strong>${escapeHtml(appT("workspace.detail.latestExchange"))}</strong>
+          <span>${lastEntry.role === "human" ? human.displayName || human.humanId : lastEntry.actorId || "Agent"}</span>
+        </div>
+        <pre class="code-block compact">${escapeHtml(lastPreviewText || appT("workspace.detail.noMessageContent"))}</pre>
+      </div>
+    </div>
+    ${olderMessages.length ? `
+      <details class="workspace-thread-history">
+        <summary>${escapeHtml(appT("workspace.detail.earlierContext", { count: olderMessages.length }))}</summary>
+        <div class="list-stack">
+          ${olderMessages.map((entry, index) => renderMessageCard(entry, index, "older")).join("")}
+        </div>
+      </details>
+    ` : ""}
+    <div class="workspace-thread-recent">
+      <div class="summary-row">
+        <strong>${escapeHtml(appT("workspace.detail.latestExchanges"))}</strong>
+        <span>${escapeHtml(appT("workspace.detail.latestMostRecent", { count: recentMessages.length }))}</span>
+      </div>
+      <div class="list-stack">
+        ${recentMessages.map((entry, index) => renderMessageCard(entry, messages.length - recentMessages.length + index, "recent")).join("")}
+      </div>
+    </div>
+  `;
+}
+
+function renderProjectProgressPanel(project) {
+  const requirement = project?.requirementId && state.summary?.requirements
+    ? state.summary.requirements.find((item) => item.requirementId === project.requirementId)
+    : null;
+  const summary = requirement?.latestRefinementSummary || null;
+  const stage = String(project?.stage || "source").toLowerCase();
+  const stateLabel = projectStateLabel(project.state);
+  const stageTrack = [
+    {
+      label: appT("workspace.detail.intake"),
+      description: requirement ? `${appT("workspace.detail.requirement")} ${requirement.requirementId}` : appT("workspace.detail.noLinkedRequirement"),
+      active: Boolean(requirement)
+    },
+    {
+      label: appT("workspace.detail.refinement"),
+      description: summary?.projectDirection || appT("workspace.detail.noDirection"),
+      active: Boolean(summary)
+    },
+    {
+      label: appT("workspace.detail.sourceProject"),
+      description: project.repoFullName || project.repoName || appT("workspace.detail.noSourceRepo"),
+      active: ["source", "operating"].includes(stage)
+    },
+    {
+      label: appT("workspace.detail.operating"),
+      description: stage === "operating" ? appT("market.detail.operatingLiveNote") : appT("workspace.detail.notOperatingYet"),
+      active: stage === "operating"
+    }
+  ];
+  const milestones = Array.isArray(summary?.milestones) && summary.milestones.length
+    ? summary.milestones.map((item) => `<li>${escapeHtml(item)}</li>`).join("")
+    : `<li>${escapeHtml(appT("workspace.detail.noMilestones"))}</li>`;
+  const questions = Array.isArray(summary?.questions) && summary.questions.length
+    ? summary.questions.map((item) => `<li>${escapeHtml(item)}</li>`).join("")
+    : `<li>${escapeHtml(appT("workspace.detail.noOpenQuestions"))}</li>`;
+  return `
+    <div class="workspace-stage-track">
+      ${stageTrack.map((item) => `
+        <div class="workspace-stage-step ${item.active ? "active" : ""}">
+          <div class="summary-row">
+            <strong>${item.label}</strong>
+            <span>${item.active ? escapeHtml(appT("workspace.detail.ready")) : escapeHtml(appT("workspace.detail.pending"))}</span>
+          </div>
+          <p>${escapeHtml(item.description)}</p>
+        </div>
+      `).join("")}
+    </div>
+    <div class="build-directory-detail-grid">
+      <div class="build-directory-detail-block">
+        <div class="summary-row">
+          <strong>${escapeHtml(appT("workspace.detail.currentDirection"))}</strong>
+          <span>${project.stage || "source"}</span>
+        </div>
+        <p>${summary?.restatedRequirement || project.summary || escapeHtml(appT("workspace.detail.noStructuredRequirement"))}</p>
+        <p>${summary?.projectDirection || escapeHtml(appT("workspace.detail.directionWillAppear"))}</p>
+      </div>
+      <div class="build-directory-detail-block">
+        <div class="summary-row">
+          <strong>${escapeHtml(appT("workspace.detail.deliverySignals"))}</strong>
+          <span>${stateLabel}</span>
+        </div>
+        <div class="detail-grid compact">
+          <div class="detail-item"><span>${escapeHtml(appT("workspace.detail.requirement"))}</span><strong>${project.requirementId || escapeHtml(appT("workspace.detail.noLinkedRequirement"))}</strong></div>
+          <div class="detail-item"><span>${escapeHtml(appT("build.detail.stage"))}</span><strong>${project.stage || "source"}</strong></div>
+          <div class="detail-item"><span>${escapeHtml(appT("build.detail.state"))}</span><strong>${stateLabel}</strong></div>
+          <div class="detail-item"><span>${escapeHtml(appT("workspace.detail.latestFoundationRun"))}</span><strong>${project.foundationRuns?.[0]?.action || "none"}</strong></div>
+        </div>
+      </div>
+    </div>
+    <div class="build-directory-detail-grid">
+      <div class="build-directory-detail-block">
+        <div class="summary-row">
+          <strong>${escapeHtml(appT("workspace.detail.milestones"))}</strong>
+          <span>${Array.isArray(summary?.milestones) ? summary.milestones.length : 0}</span>
+        </div>
+        <ul class="content-list">${milestones}</ul>
+      </div>
+      <div class="build-directory-detail-block">
+        <div class="summary-row">
+          <strong>${escapeHtml(appT("workspace.detail.openQuestions"))}</strong>
+          <span>${Array.isArray(summary?.questions) ? summary.questions.length : 0}</span>
+        </div>
+        <ul class="content-list">${questions}</ul>
+      </div>
+    </div>
+  `;
+}
+
+function projectMemberRoleOptions(selected = "builder") {
+  return ["builder", "reviewer", "operator", "maintainer", "observer"].map((role) => `
+    <option value="${role}" ${role === selected ? "selected" : ""}>${role}</option>
+  `).join("");
+}
+
+function renderProjectWorkspaceMembership(project, human) {
+  const root = $("project-workspace-membership");
+  if (!root) return;
+  if (!project || !human) {
+    root.innerHTML = `<div class="empty">${escapeHtml(appT("settings.detail.noActiveProjectSelected"))}</div>`;
+    return;
+  }
+
+  const { isOwner, isParticipant } = currentHumanProjectParticipation(project);
+  const workspaceReadyAgents = new Set(workspaceAgentsForProject(project).map((agent) => agent.agentId));
+  const pendingRequests = project.participationRequests || [];
+  root.innerHTML = `
+    <div class="workspace-membership-grid">
+      <div class="workspace-membership-block">
+        <div class="summary-row">
+          <strong>${escapeHtml(appT("workspace.detail.currentMembers"))}</strong>
+          <span>${project.memberAgentIds?.length || 0}</span>
+        </div>
+        <div class="nested-list">
+          ${(project.memberAgentIds || []).length ? (project.memberAgentIds || []).map((agentId) => `
+            <div class="nested-item">
+              <strong class="detail-code">${agentId}</strong>
+              <span>${escapeHtml(appT("workspace.detail.roleLabel"))}: ${projectMemberRole(project, agentId)}</span>
+              <span>${workspaceReadyAgents.has(agentId) ? escapeHtml(appT("workspace.detail.workspaceReady")) : escapeHtml(appT("workspace.detail.participant"))}</span>
+            </div>
+          `).join("") : `<div class="empty">${escapeHtml(appT("workspace.detail.noMemberAgents"))}</div>`}
+        </div>
+      </div>
+      <div class="workspace-membership-block">
+        <div class="summary-row">
+          <strong>${escapeHtml(appT("workspace.detail.pendingInvites"))}</strong>
+          <span>${project.memberInvites?.length || 0}</span>
+        </div>
+        ${(project.memberInvites || []).length ? `
+          <div class="nested-list">
+            ${(project.memberInvites || []).map((invite) => `
+              <div class="nested-item">
+                <strong class="detail-code">${invite.agentId}</strong>
+                <span>${escapeHtml(appT("workspace.detail.roleLabel"))}: ${invite.role}</span>
+                <span>${escapeHtml(appT("workspace.detail.statusLabel"))}: ${invite.status}</span>
+                <span>${formatTimestamp(invite.createdAt)}</span>
+                ${isOwner && invite.status === "pending" ? `<button type="button" class="topbar-button ghost workspace-membership-accept" data-invite-id="${invite.inviteId}">${escapeHtml(appT("action.acceptInvite"))}</button>` : ""}
+              </div>
+            `).join("")}
+          </div>
+        ` : `<div class="empty">${escapeHtml(appT("workspace.detail.noPendingInvites"))}</div>`}
+      </div>
+      <div class="workspace-membership-block">
+        <div class="summary-row">
+          <strong>${escapeHtml(appT("workspace.detail.participationRequests"))}</strong>
+          <span>${pendingRequests.length}</span>
+        </div>
+        ${pendingRequests.length ? `
+          <div class="nested-list">
+            ${pendingRequests.slice(0, 8).map((requestEntry) => `
+              <div class="nested-item">
+                <strong class="detail-code">${requestEntry.humanId}</strong>
+                <span>${escapeHtml(appT("workspace.detail.statusLabel"))}: ${requestEntry.status}</span>
+                <span>${escapeHtml(appT("workspace.detail.agentsLabel"))}: ${(requestEntry.agentIds || []).length ? requestEntry.agentIds.join(", ") : escapeHtml(appT("workspace.detail.noAgentsLinked"))}</span>
+                <span>${formatTimestamp(requestEntry.createdAt)}</span>
+                ${requestEntry.message ? `<span>${escapeHtml(requestEntry.message)}</span>` : ""}
+                ${isOwner && requestEntry.status === "pending" ? `
+                  <div class="action-row">
+                    <button type="button" class="topbar-button ghost workspace-participation-resolve" data-request-id="${requestEntry.requestId}" data-decision="accepted">${escapeHtml(appT("action.acceptRequest"))}</button>
+                    <button type="button" class="topbar-button ghost workspace-participation-resolve" data-request-id="${requestEntry.requestId}" data-decision="rejected">${escapeHtml(appT("action.rejectRequest"))}</button>
+                  </div>
+                ` : ""}
+              </div>
+            `).join("")}
+          </div>
+        ` : `<div class="empty">${escapeHtml(appT("workspace.detail.noParticipationRequests"))}</div>`}
+      </div>
+      <div class="workspace-membership-block workspace-membership-history">
+        <div class="summary-row">
+          <strong>${escapeHtml(appT("workspace.detail.membershipHistory"))}</strong>
+          <span>${project.memberHistory?.length || 0}</span>
+        </div>
+        ${(project.memberHistory || []).length ? `
+          <div class="nested-list">
+            ${(project.memberHistory || []).slice().reverse().slice(0, 8).map((entry) => `
+              <div class="nested-item">
+                <strong>${membershipHistoryLabel(entry.type)}</strong>
+                <span>${entry.agentId || "-"}</span>
+                <span>${entry.role || "-"}</span>
+                <span>${entry.actorHumanId || "-"}</span>
+                <span>${formatTimestamp(entry.at)}</span>
+              </div>
+            `).join("")}
+          </div>
+        ` : `<div class="empty">${escapeHtml(appT("workspace.detail.noMembershipHistory"))}</div>`}
+      </div>
+      <div class="workspace-membership-block">
+        <div class="summary-row">
+          <strong>${isOwner ? escapeHtml(appT("workspace.detail.ownerControls")) : escapeHtml(appT("workspace.detail.participationRequest"))}</strong>
+          <span>${isOwner ? escapeHtml(appT("workspace.detail.enabled")) : isParticipant ? escapeHtml(appT("workspace.detail.alreadyParticipating")) : escapeHtml(appT("workspace.detail.requestAccess"))}</span>
+        </div>
+        ${isOwner ? `
+          <div class="copy-stack">
+            <form class="workspace-membership-form" id="workspace-membership-invite-form">
+              <label class="creation-field">
+                <span>${escapeHtml(appT("workspace.detail.agentIdToInvite"))}</span>
+                <input name="agentId" placeholder="${escapeHtml(appT("workspace.detail.agentIdToInvitePlaceholder"))}" required />
+              </label>
+              <label class="creation-field">
+                <span>${escapeHtml(appT("workspace.detail.inviteRole"))}</span>
+                <select name="role">${projectMemberRoleOptions()}</select>
+              </label>
+              <button type="submit">${escapeHtml(appT("action.inviteMember"))}</button>
+            </form>
+            <form class="workspace-membership-form" id="workspace-membership-role-form">
+              <label class="creation-field">
+                <span>${escapeHtml(appT("workspace.detail.currentMember"))}</span>
+                <select name="agentId" required>
+                  <option value="">${escapeHtml(appT("workspace.detail.selectMember"))}</option>
+                  ${(project.memberAgentIds || []).map((agentId) => `<option value="${agentId}">${agentId}</option>`).join("")}
+                </select>
+              </label>
+              <label class="creation-field">
+                <span>${escapeHtml(appT("workspace.detail.newRole"))}</span>
+                <select name="role">${projectMemberRoleOptions()}</select>
+              </label>
+              <button type="submit">${escapeHtml(appT("action.changeRole"))}</button>
+            </form>
+            <form class="workspace-membership-form" id="workspace-membership-remove-form">
+              <label class="creation-field">
+                <span>${escapeHtml(appT("workspace.detail.memberToRemove"))}</span>
+                <select name="agentId" required>
+                  <option value="">${escapeHtml(appT("workspace.detail.selectMember"))}</option>
+                  ${(project.memberAgentIds || []).map((agentId) => `<option value="${agentId}">${agentId}</option>`).join("")}
+                </select>
+              </label>
+              <button type="submit" class="topbar-button ghost">${escapeHtml(appT("action.removeMember"))}</button>
+            </form>
+          </div>
+        ` : isParticipant ? `<p class="note">${escapeHtml(appT("workspace.detail.alreadyParticipatingNote"))}</p>` : `
+          <form class="workspace-membership-form" id="workspace-participation-request-form">
+            <label class="creation-field workspace-chat-field-full">
+              <span>${escapeHtml(appT("workspace.detail.joinReason"))}</span>
+              <textarea name="message" placeholder="${escapeHtml(appT("workspace.detail.joinReasonPlaceholder"))}" required></textarea>
+            </label>
+            <button type="submit">${escapeHtml(appT("action.requestParticipation"))}</button>
+          </form>
+        `}
+      </div>
+    </div>
+  `;
+
+  if (!isOwner) {
+    $("workspace-participation-request-form")?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      try {
+        await request("/api/projects/participation/request", "POST", {
+          projectId: project.projectId,
+          humanId: human.humanId,
+          message: form.message.value
+        });
+        setStatus(appT("status.participationSubmitted"), "ok");
+        await refresh();
+      } catch (error) {
+        setStatus(error.message, "error");
+      }
+    });
+    return;
+  }
+
+  $("workspace-membership-invite-form")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    try {
+      await request("/api/projects/members/invite", "POST", {
+        projectId: project.projectId,
+        ownerHumanId: human.humanId,
+        agentId: form.agentId.value,
+        role: form.role.value
+      });
+      setStatus(appT("status.inviteCreated", { agentId: form.agentId.value }), "ok");
+      await refresh();
+    } catch (error) {
+      setStatus(error.message, "error");
+    }
+  });
+
+  $("workspace-membership-role-form")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    try {
+      await request("/api/projects/members/role", "POST", {
+        projectId: project.projectId,
+        ownerHumanId: human.humanId,
+        agentId: form.agentId.value,
+        role: form.role.value
+      });
+      setStatus(appT("status.roleUpdated", { agentId: form.agentId.value }), "ok");
+      await refresh();
+    } catch (error) {
+      setStatus(error.message, "error");
+    }
+  });
+
+  $("workspace-membership-remove-form")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    try {
+      await request("/api/projects/members/remove", "POST", {
+        projectId: project.projectId,
+        ownerHumanId: human.humanId,
+        agentId: form.agentId.value
+      });
+      setStatus(appT("status.removedMember", { agentId: form.agentId.value }), "ok");
+      await refresh();
+    } catch (error) {
+      setStatus(error.message, "error");
+    }
+  });
+
+  root.querySelectorAll(".workspace-membership-accept").forEach((button) => {
+    button.addEventListener("click", async () => {
+      try {
+        await request("/api/projects/members/accept", "POST", {
+          projectId: project.projectId,
+          ownerHumanId: human.humanId,
+          inviteId: button.dataset.inviteId
+        });
+        setStatus(appT("status.inviteAccepted"), "ok");
+        await refresh();
+      } catch (error) {
+        setStatus(error.message, "error");
+      }
+    });
+  });
+
+  root.querySelectorAll(".workspace-participation-resolve").forEach((button) => {
+    button.addEventListener("click", async () => {
+      try {
+        await request("/api/projects/participation/resolve", "POST", {
+          projectId: project.projectId,
+          ownerHumanId: human.humanId,
+          requestId: button.dataset.requestId,
+          decision: button.dataset.decision,
+          note: ""
+        });
+        setStatus(appT("status.participationResolved", { decision: button.dataset.decision || "-" }), "ok");
+        await refresh();
+      } catch (error) {
+        setStatus(error.message, "error");
+      }
+    });
+  });
+}
+
+function renderProjectWorkspace() {
+  const title = $("project-workspace-title");
+  const lede = $("project-workspace-lede");
+  const sidebar = $("project-workspace-sidebar");
+  const overview = $("project-workspace-overview");
+  const progress = $("project-workspace-progress");
+  const bridgeStatus = $("project-workspace-bridge-status");
+  const commandStatus = $("project-workspace-command-status");
+  const thread = $("project-workspace-chat-thread");
+  const membership = $("project-workspace-membership");
+  const agentSelect = $("project-workspace-agent-select");
+  const form = $("project-workspace-chat-form");
+  if (!title || !lede || !sidebar || !overview || !progress || !bridgeStatus || !commandStatus || !thread || !membership || !agentSelect || !form) return;
+
+  const human = currentHuman();
+  const project = activeProject();
+  if (!human || !project) {
+    title.textContent = appT("projectTitle");
+    lede.textContent = appT("projectLede");
+    sidebar.innerHTML = `<div class="empty">${escapeHtml(appT("settings.detail.noActiveProjectSelected"))}</div>`;
+    overview.innerHTML = `<div class="detail-item"><span>${escapeHtml(appT("settings.detail.workspace"))}</span><strong>${escapeHtml(appT("settings.detail.noActiveProject"))}</strong></div>`;
+    progress.innerHTML = `<div class="empty">${escapeHtml(appT("settings.detail.noActiveProjectSelected"))}</div>`;
+    bridgeStatus.innerHTML = `<div class="empty">${escapeHtml(appT("settings.detail.noBridgeContext"))}</div>`;
+    commandStatus.innerHTML = `<div class="empty">${escapeHtml(appT("settings.detail.openProjectCommandDeck"))}</div>`;
+    thread.innerHTML = `<div class="empty">${escapeHtml(appT("settings.detail.noWorkspaceConversation"))}</div>`;
+    membership.innerHTML = `<div class="empty">${escapeHtml(appT("settings.detail.noProjectMembershipState"))}</div>`;
+    agentSelect.innerHTML = `<option value="">${escapeHtml(appT("settings.detail.noAgentAvailable"))}</option>`;
+    agentSelect.disabled = true;
+    const chatInput = $("project-workspace-chat-input");
+    const submitButton = form.querySelector('button[type="submit"]');
+    if (chatInput) {
+      chatInput.disabled = true;
+      chatInput.placeholder = appT("settings.detail.openProjectToSendTask");
+    }
+    if (submitButton) submitButton.disabled = true;
+    return;
+  }
+
+  const agents = workspaceAgentsForProject(project);
+  const messages = workspaceConversationEntries(project);
+  const latestRun = latestProjectFoundationRun(project);
+  const { isOwner } = currentHumanProjectParticipation(project);
+  const accessState = projectWorkspaceAccessState(project);
+  const openParticipationRequests = (project.participationRequests || []).filter((entry) => entry.status === "pending");
+  const openInvites = (project.memberInvites || []).filter((invite) => invite.status === "pending");
+  const latestMessage = latestProjectWorkspaceMessage(project);
+  const latestMembershipEvent = (project.memberHistory || []).length ? project.memberHistory[project.memberHistory.length - 1] : null;
+  const ownMemberAgent = currentHumanAgents().find((agent) => (project.memberAgentIds || []).includes(agent.agentId)) || null;
+  const workspaceRole = isOwner ? appT("workspace.detail.owner") : ownMemberAgent ? projectMemberRole(project, ownMemberAgent.agentId) : appT("workspace.detail.notAssigned");
+  const recruitingLabel = String(project.state || "").toLowerCase() === "paused" ? appT("workspace.detail.closed") : appT("workspace.detail.open");
+  const collaborationState = workspaceCollaborationState(project, agents);
+  const latestActivityInfo = projectLatestActivity(project);
+  const latestActivity = latestActivityInfo.label;
+  const executionFocus = latestActivityInfo.detail;
+  title.textContent = project.title;
+  lede.textContent = project.summary || appT("workspace.detail.singleProjectLede");
+  sidebar.innerHTML = `
+    <div class="workspace-sidebar-block">
+      <div class="summary-row">
+        <strong>${escapeHtml(project.title)}</strong>
+        <div class="tag-row">
+          ${createBadge(projectTypeLabel(project.kind))}
+          ${createBadge(project.stage || "source")}
+          ${createBadge(projectStateLabel(project.state))}
+          ${createBadge(recruitingLabel === appT("workspace.detail.open") ? appT("build.detail.recruiting") : appT("workspace.detail.notRecruiting"))}
+        </div>
+      </div>
+      <div class="detail-grid compact">
+        <div class="detail-item"><span>${escapeHtml(appT("workspace.detail.yourAccess"))}</span><strong>${accessState.label}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("workspace.detail.yourRole"))}</span><strong>${escapeHtml(workspaceRole)}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("workspace.detail.repository"))}</span><strong class="detail-code">${escapeHtml(project.repoName)}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("build.detail.owner"))}</span><strong class="detail-code">${escapeHtml(project.ownerHumanId)}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("workspace.detail.requirement"))}</span><strong class="detail-code">${escapeHtml(project.requirementId || appT("workspace.detail.none"))}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("workspace.detail.primaryAgent"))}</span><strong>${escapeHtml(agents[0]?.label || agents[0]?.agentId || appT("workspace.detail.none"))}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("workspace.detail.members"))}</span><strong>${project.memberAgentIds?.length || 0}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("world.drawer.plugins"))}</span><strong>${project.pluginIds?.length || 0}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("world.drawer.foundationRuns"))}</span><strong>${project.foundationRuns?.length || 0}</strong></div>
+      </div>
+      <p><strong>${escapeHtml(appT("workspace.detail.projectRecord"))}</strong><br />${escapeHtml(project.summary || appT("workspace.detail.noSummaryYet"))}</p>
+      <p class="note">${escapeHtml(accessState.note)}</p>
+      ${project.repoUrl || project.serviceEndpoint ? `
+        <div class="action-row">
+          ${project.repoUrl ? `<a href="${project.repoUrl}" target="_blank" rel="noreferrer">${escapeHtml(appT("action.openGithubRepo"))}</a>` : ""}
+          ${project.serviceEndpoint ? `<a href="${project.serviceEndpoint}" target="_blank" rel="noreferrer">${escapeHtml(appT("action.openService"))}</a>` : ""}
+        </div>
+      ` : ""}
+    </div>
+    <div class="workspace-sidebar-block">
+      <strong>${escapeHtml(appT("workspace.detail.participationAndDelivery"))}</strong>
+      <div class="detail-grid compact">
+        <div class="detail-item"><span>${escapeHtml(appT("build.detail.stage"))}</span><strong>${project.stage || "source"}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("build.detail.state"))}</span><strong>${projectStateLabel(project.state)}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("build.detail.recruiting"))}</span><strong>${recruitingLabel}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("build.detail.openRequests"))}</span><strong>${openParticipationRequests.length}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("workspace.detail.pendingInvites"))}</span><strong>${openInvites.length}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("market.detail.latestRun"))}</span><strong>${latestRun?.action || appT("workspace.detail.none")}</strong></div>
+        <div class="detail-item"><span>${escapeHtml(appT("build.detail.latestActivity"))}</span><strong>${latestActivity}</strong></div>
+      </div>
+      <p><strong>${escapeHtml(appT("workspace.detail.executionFocus"))}</strong><br />${escapeHtml(executionFocus)}</p>
+      ${latestMembershipEvent ? `<p><strong>${escapeHtml(appT("workspace.detail.latestMembershipChange"))}</strong><br />${escapeHtml(`${membershipHistoryLabel(latestMembershipEvent.type)} by ${latestMembershipEvent.actorHumanId || "-"} at ${formatTimestamp(latestMembershipEvent.at)}`)}</p>` : ""}
+    </div>
+    <div class="workspace-sidebar-block">
+      <strong>${escapeHtml(appT("workspace.detail.sourceAndOperatingInputs"))}</strong>
+      <div class="tag-row">
+        ${(project.tags || []).length ? (project.tags || []).map((tag) => `<span class="subtle-tag">${escapeHtml(tag)}</span>`).join("") : `<span class="subtle-tag">${escapeHtml(appT("world.drawer.noTagsYet"))}</span>`}
+      </div>
+      ${project.usageNote ? `<p><strong>${escapeHtml(appT("market.detail.usage"))}</strong><br />${escapeHtml(project.usageNote)}</p>` : ""}
+      ${project.pricingNote ? `<p><strong>${escapeHtml(appT("market.detail.pricing"))}</strong><br />${escapeHtml(project.pricingNote)}</p>` : ""}
+      ${renderProjectFoundationRunSummary(project)}
+      ${renderProjectFoundationRunList(project, 3)}
+    </div>
+  `;
+
+  overview.innerHTML = [
+    { label: appT("workspace.detail.yourAccess"), value: accessState.label },
+    { label: appT("workspace.detail.yourRole"), value: workspaceRole },
+    { label: appT("workspace.detail.primaryAgent"), value: agents[0]?.label || agents[0]?.agentId || appT("workspace.detail.noneAvailable") },
+    { label: appT("workspace.detail.conversationEntries"), value: messages.length },
+    { label: appT("build.detail.openRequests"), value: openParticipationRequests.length },
+    { label: appT("workspace.detail.repository"), value: project.repoFullName || project.repoName, className: "detail-code" },
+    { label: appT("workspace.detail.latestFoundationRun"), value: latestRun?.action || appT("workspace.detail.none") },
+    { label: appT("build.detail.latestActivity"), value: latestActivity }
+  ].map(({ label, value, className = "" }) => `
+    <div class="detail-item workspace-overview-item">
+      <span>${escapeHtml(String(label))}</span>
+      <strong class="${className}">${escapeHtml(String(value))}</strong>
+    </div>
+  `).join("");
+
+  progress.innerHTML = renderProjectProgressPanel(project);
+
+  bridgeStatus.innerHTML = renderWorkspaceBridgeGuide(project, agents);
+  commandStatus.innerHTML = renderWorkspaceCommandDeck(project, agents, messages, collaborationState);
+  bridgeStatus.querySelectorAll(".open-workspace-button").forEach((node) => {
+    node.addEventListener("click", () => openProjectWorkspace(node.dataset.projectOpen));
+  });
+
+  agentSelect.innerHTML = agents.length
+    ? agents.map((agent) => `<option value="${agent.agentId}">${agent.label || agent.agentId}</option>`).join("")
+    : `<option value="">${escapeHtml(appT("workspace.detail.noProjectAgentAvailable"))}</option>`;
+  agentSelect.disabled = !collaborationState.canSend;
+  const chatInput = $("project-workspace-chat-input");
+  const submitButton = form.querySelector('button[type="submit"]');
+  if (chatInput) {
+    chatInput.disabled = !collaborationState.canSend;
+    chatInput.placeholder = collaborationState.placeholder;
+  }
+  if (submitButton) submitButton.disabled = !collaborationState.canSend;
+
+  thread.innerHTML = renderWorkspaceConversationThread(project, human, messages, collaborationState);
+  renderProjectWorkspaceMembership(project, human);
+}
+
+async function sendProjectWorkspacePrompt() {
+  const project = activeProject();
+  const input = $("project-workspace-chat-input");
+  const agentSelect = $("project-workspace-agent-select");
+  const human = currentHuman();
+  if (!project || !input || !agentSelect || !human) return;
+  const prompt = input.value.trim();
+  const agents = workspaceAgentsForProject(project);
+  const collaborationState = workspaceCollaborationState(project, agents);
+  if (!collaborationState.canSend) throw new Error(collaborationState.headline);
+  if (!prompt) throw new Error(appT("workspace.detail.enterMessageFirst"));
+  const agentId = agentSelect.value;
+  if (!agentId) throw new Error(appT("workspace.detail.selectAgentFirst"));
+  if (!window.ELOAgentBridge || typeof window.ELOAgentBridge.sendPrompt !== "function") {
+    throw new Error(appT("workspace.detail.bridgeRequiredHeadline"));
+  }
+
+  const response = await window.ELOAgentBridge.sendPrompt({
+    prompt,
+    context: {
+      mode: "project-workspace",
+      project: {
+        projectId: project.projectId,
+        title: project.title,
+        summary: project.summary,
+        repoName: project.repoName,
+        stage: project.stage,
+        state: project.state
+      },
+      agentId
+    }
+  });
+  await request("/api/projects/workspace/conversation", "POST", {
+    projectId: project.projectId,
+    humanId: human.humanId,
+    entries: [
+      {
+        actorType: "human",
+        actorId: human.humanId,
+        content: prompt,
+        at: Date.now()
+      },
+      {
+        actorType: "agent",
+        actorId: agentId,
+        content: typeof response?.response === "string" ? response.response : JSON.stringify(response?.response ?? response, null, 2),
+        at: Date.now()
+      }
+    ]
+  });
+  input.value = "";
+  await refresh();
+  setStatus(appT("workspace.detail.workspaceResponseReceived", { agentId }), "ok");
+}
+
+
+function populateProjectEditForm(projectId) {
+  const form = $("project-edit-form");
+  if (!form || !state.summary) return;
+  const project = (state.summary.projects || []).find((item) => item.projectId === projectId);
+  if (!project) return;
+  form.projectId.value = project.projectId;
+  form.ownerHumanId.value = project.ownerHumanId;
+  form.kind.value = project.kind || "";
+  form.title.value = project.title || "";
+  form.summary.value = project.summary || "";
+  form.tags.value = (project.tags || []).join(", ");
+  form.rating.value = project.rating || 0;
+  form.heat.value = project.heat || 0;
+  form.stage.value = project.stage || "source";
+  form.state.value = project.state || "initialized";
+  form.pluginIds.value = (project.pluginIds || []).join(", ");
+  form.memberAgentIds.value = (project.memberAgentIds || []).join(", ");
+  form.memberRoles.value = JSON.stringify(project.memberRoles || {}, null, 2);
+  resetMemberRoleEditor("project-edit-form", form.memberRoles.value);
+  form.serviceEndpoint.value = project.serviceEndpoint || "";
+  form.pricingNote.value = project.pricingNote || "";
+  form.usageNote.value = project.usageNote || "";
+  form.scrollIntoView({ behavior: "smooth", block: "start" });
+  setStatus(appT("workspace.detail.loadedIntoMetadataEditor", { title: project.title }), "ok");
+}
+
+function bindProjectEditButtons() {
+  document.querySelectorAll("[data-edit-project]").forEach((node) => {
+    node.addEventListener("click", () => populateProjectEditForm(node.dataset.editProject));
+  });
+}
+
+function renderBuildFilterSummary() {
+  const node = $("build-filter-summary");
+  if (!node) return;
+  const parts = [];
+  if (state.buildFilters.kind) parts.push(`${appT("buildFilterType")}: ${projectTypeLabel(state.buildFilters.kind)}`);
+  if (state.buildFilters.status) parts.push(`${appT("buildFilterState")}: ${projectStateLabel(state.buildFilters.status)}`);
+  if (state.buildFilters.tag.trim()) parts.push(`${appT("buildFilterTags")}: ${state.buildFilters.tag.trim()}`);
+  if (Number(state.buildFilters.minRating || 0) > 0) parts.push(`${appT("buildFilterRating")}: ${state.buildFilters.minRating}`);
+  if (Number(state.buildFilters.minHeat || 0) > 0) parts.push(`${appT("buildFilterHeat")}: ${state.buildFilters.minHeat}`);
+  if (state.buildFilters.query.trim()) parts.push(`${appT("buildFilterSearch")}: ${state.buildFilters.query.trim()}`);
+  node.textContent = parts.length ? `${appT("buildFilterActivePrefix")} -> ${parts.join(" | ")}` : appT("buildFilterNone");
+}
+
+function renderMarketFilterSummary() {
+  const node = $("market-filter-summary");
+  if (!node) return;
+  const parts = [];
+  if (state.marketFilters.kind) parts.push(`${appT("marketFilterType")}: ${projectTypeLabel(state.marketFilters.kind)}`);
+  if (Number(state.marketFilters.minRating || 0) > 0) parts.push(`${appT("marketFilterRating")}: ${state.marketFilters.minRating}`);
+  if (state.marketFilters.query.trim()) parts.push(`${appT("marketFilterSearch")}: ${state.marketFilters.query.trim()}`);
+  if (state.marketFilters.sort) parts.push(`${appT("marketFilterSort")}: ${state.marketFilters.sort}`);
+  node.textContent = parts.length ? `${appT("marketFilterActivePrefix")} -> ${parts.join(" | ")}` : appT("marketFilterNone");
+}
+
+function renderMarketProjects(projects) {
+  const root = $("market-projects-list");
+  if (!root) return;
+  const filtered = applyMarketFiltersToProjects(projects);
+  if (!filtered.length) {
+    root.innerHTML = `<div class="empty">${escapeHtml(appT("marketNoProjects"))}</div>`;
+    return;
+  }
+  root.innerHTML = filtered.map((project) => {
+    const repoLabel = project.repoFullName || project.repoName || appT("market.detail.noSourceRepo");
+    const serviceLabel = project.serviceEndpoint || appT("market.detail.noServiceEndpoint");
+    const safeRepoLabel = escapeHtml(repoLabel);
+    const safeServiceLabel = escapeHtml(serviceLabel);
+    const repoHref = sanitizeExternalHref(project.repoUrl);
+    const serviceHref = sanitizeExternalHref(project.serviceEndpoint);
+    const compactRepoLabel = escapeHtml(formatCollapsedIdentityLabel(repoLabel, { maxLength: 34 }));
+    const compactServiceLabel = escapeHtml(formatCollapsedIdentityLabel(serviceLabel, {
+      stripProtocol: true,
+      maxLength: 40
+    }));
+    const latestRun = latestProjectFoundationRun(project);
+    const accessModel = isOperatingFoundationProject(project) ? appT("market.detail.foundationAccess") : appT("market.detail.projectAccess");
+    const accessNote = project.pricingNote || appT("market.detail.pricingDefault");
+    const usageNote = project.usageNote || (project.serviceEndpoint
+      ? appT("market.detail.usageWithService")
+      : appT("market.detail.usageWithoutService"));
+    const marketSignal = `R ${project.rating || 0} / H ${project.heat || 0}`;
+    const safeLatestRunAction = escapeHtml(latestRun ? formatActionLabel(latestRun.action, appT("build.detail.noRunYet")) : appT("market.detail.projectUpdate"));
+    const safeLatestRunNote = escapeHtml(formatLatestDeliveryNote({ latestRun, fallbackAt: project.updatedAt }));
+    return `
+    <details class="expand-card market-directory-card" data-project-card="${project.projectId}">
+      <summary>
+        <div class="build-card-shell">
+          <div class="build-card-header">
+            <div class="build-card-title-stack">
+              <div class="build-card-heading">
+                <strong class="build-card-title">${escapeHtml(project.title)}</strong>
+                <div class="tag-row build-card-badges">
+                  ${createBadge(projectTypeLabel(project.kind))}
+                  ${createBadge(project.stage || "operating")}
+                  ${isOperatingFoundationProject(project) ? createBadge("Operating Foundation") : ""}
+                </div>
+              </div>
+              <div class="build-card-identity-list">
+                <div class="build-card-identity-item">
+                  <span>${escapeHtml(appT("market.detail.sourceRepo"))}</span>
+                  <strong class="detail-code detail-code-compact" title="${safeRepoLabel}">${compactRepoLabel}</strong>
+                </div>
+                <div class="build-card-identity-item">
+                  <span>${escapeHtml(appT("build.detail.service"))}</span>
+                  <strong class="detail-code detail-code-compact" title="${safeServiceLabel}">${compactServiceLabel}</strong>
+                </div>
+              </div>
+            </div>
+            <div class="build-card-status">
+              <span class="directory-signal operating">${escapeHtml(appT("market.detail.operating"))}</span>
+              <span class="directory-signal ${project.serviceEndpoint ? "recruiting" : "building"}">${project.serviceEndpoint ? escapeHtml(appT("market.detail.endpointLive")) : escapeHtml(appT("market.detail.endpointPending"))}</span>
+            </div>
+          </div>
+          <p class="build-card-summary">${escapeHtml(project.summary || appT("build.detail.noSummary"))}</p>
+          <div class="build-card-signal-grid">
+            <div class="build-card-signal">
+              <span>${escapeHtml(appT("market.detail.operating"))}</span>
+              <strong>${project.serviceEndpoint ? escapeHtml(appT("market.detail.endpointLive")) : escapeHtml(appT("market.detail.endpointPending"))}</strong>
+              <p>${escapeHtml(project.serviceEndpoint ? appT("market.detail.operatingLiveNote") : appT("market.detail.operatingPendingNote"))}</p>
+            </div>
+            <div class="build-card-signal">
+              <span>${escapeHtml(appT("market.detail.access"))}</span>
+              <strong>${accessModel}</strong>
+              <p>${escapeHtml(clampDirectionalCopy(accessNote))}</p>
+            </div>
+            <div class="build-card-signal">
+              <span>${escapeHtml(appT("market.detail.usageEntry"))}</span>
+              <strong>${project.serviceEndpoint ? escapeHtml(appT("market.detail.serviceAndProject")) : escapeHtml(appT("market.detail.projectOnly"))}</strong>
+              <p>${escapeHtml(clampDirectionalCopy(usageNote))}</p>
+            </div>
+          </div>
+          <div class="build-card-meta">
+            <div class="build-meta-item build-meta-item-activity">
+              <span>${escapeHtml(appT("build.detail.latestDelivery"))}</span>
+              <strong>${safeLatestRunAction}</strong>
+              <p>${safeLatestRunNote}</p>
+            </div>
+            <div class="build-meta-item">
+              <span>${escapeHtml(appT("build.detail.signal"))}</span>
+              <strong>${marketSignal}</strong>
+            </div>
+          </div>
+          ${renderDirectoryTags(project.tags, 2)}
+        </div>
+      </summary>
+      <div class="expand-body">
+        <div class="build-directory-detail-grid">
+          <div class="build-directory-detail-block">
+            <div class="summary-row">
+              <strong>${escapeHtml(appT("market.detail.operatingSnapshot"))}</strong>
+              <span>${escapeHtml(project.repoName || appT("market.detail.sourceProject"))}</span>
+            </div>
+            <div class="detail-grid compact">
+              <div class="detail-item detail-item-wide"><span>${escapeHtml(appT("market.detail.sourceProject"))}</span><strong class="detail-code">${safeRepoLabel}</strong></div>
+              <div class="detail-item detail-item-wide"><span>${escapeHtml(appT("build.detail.serviceEndpoint"))}</span><strong class="detail-code">${safeServiceLabel}</strong></div>
+              <div class="detail-item"><span>${escapeHtml(appT("build.detail.heat"))}</span><strong>${project.heat || 0}</strong></div>
+              <div class="detail-item"><span>${escapeHtml(appT("build.detail.rating"))}</span><strong>${project.rating || 0}</strong></div>
+              <div class="detail-item"><span>${escapeHtml(appT("market.detail.latestRun"))}</span><strong>${escapeHtml(latestRun?.action || "none")}</strong></div>
+              <div class="detail-item"><span>${escapeHtml(appT("build.detail.latestRunAt"))}</span><strong>${latestRun ? formatTimestamp(latestRun.generatedAt) : "-"}</strong></div>
+            </div>
+          </div>
+          <div class="build-directory-detail-block">
+            <div class="summary-row">
+              <strong>${escapeHtml(appT("market.detail.accessModel"))}</strong>
+              <span>${accessModel}</span>
+            </div>
+            ${renderBoundedNoteList([
+              { label: appT("market.detail.pricing"), value: project.pricingNote || "ELO protocol plugin" },
+              { label: appT("market.detail.usage"), value: usageNote },
+              { label: appT("build.detail.workspaceEntry"), value: appT("market.detail.workspaceEntryNote") }
+            ])}
+          </div>
+        </div>
+        <div class="build-directory-actions">
+          <div class="directory-action-group directory-action-group-primary">
+            <div class="directory-action-copy">
+              <span class="directory-action-label">${escapeHtml(appT("market.detail.workspaceEntryTitle"))}</span>
+              <p>${escapeHtml(appT("market.detail.workspaceEntryNote"))}</p>
+            </div>
+            <div class="directory-action-primary">
+              <button type="button" class="topbar-button secondary open-workspace-button" data-project-open="${project.projectId}">${escapeHtml(appT("action.openProjectWorkspace"))}</button>
+            </div>
+          </div>
+          <div class="directory-action-group">
+            <div class="directory-action-copy">
+              <span class="directory-action-label">${escapeHtml(appT("market.detail.usageSurfaces"))}</span>
+              <p>${escapeHtml(appT("market.detail.usageSurfacesNote"))}</p>
+            </div>
+            <div class="directory-action-secondary">
+              ${renderDirectoryExternalLinks(
+                [
+                  {
+                    label: appT("action.liveService"),
+                    href: serviceHref,
+                    missingMessage: appT("market.detail.liveServiceMissing")
+                  },
+                  {
+                    label: appT("action.sourceRepo"),
+                    href: repoHref,
+                    missingMessage: appT("market.detail.sourceRepoMissing")
+                  }
+                ],
+                appT("market.detail.linksMissing")
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </details>
+  `;
+  }).join("");
+
+  root.querySelectorAll(".open-workspace-button").forEach((node) => {
+    node.addEventListener("click", () => openProjectWorkspace(node.dataset.projectOpen));
+  });
+}
+
+function renderSettingsShell() {
+  const human = currentHuman();
+  const accessPanel = $("settings-access-panel");
+  const shell = $("settings-shell");
+  if (!accessPanel || !shell) return;
+  const hasSession = Boolean(state.sessionHumanId);
+  let accessMode = "hidden";
+
+  if (!state.authResolved) {
+    accessMode = "hidden";
+    shell.hidden = true;
+  } else if (!hasSession) {
+    accessMode = "guest";
+    shell.hidden = true;
+  } else if (!human) {
+    accessMode = "syncing";
+    shell.hidden = true;
+  } else {
+    const authMethods = new Set(human.authMethods || []);
+    const isGitHubOnly = authMethods.has("github") && !authMethods.has("password");
+    accessMode = !human.emailVerified && !isGitHubOnly ? "verify" : "hidden";
+    shell.hidden = false;
+  }
+
+  if (accessMode === "guest") {
+    accessPanel.hidden = false;
+    accessPanel.innerHTML = `
+      <h2>${escapeHtml(appT("settingsGuestTitle"))}</h2>
+      <p>${escapeHtml(appT("settingsGuestBody"))}</p>
+      <button type="button" data-route-target="join">${escapeHtml(appT("settingsAccessCta"))}</button>
+    `;
+  } else if (accessMode === "syncing") {
+    accessPanel.hidden = false;
+    accessPanel.innerHTML = `
+      <h2>${escapeHtml(appT("settingsSyncTitle"))}</h2>
+      <p>${escapeHtml(appT("settingsSyncBody"))}</p>
+    `;
+  } else if (accessMode === "verify") {
+    accessPanel.hidden = false;
+    accessPanel.innerHTML = `
+      <h2>${escapeHtml(appT("settingsVerifyTitle"))}</h2>
+      <p>${escapeHtml(appT("settingsVerifyBody"))}</p>
+      <button type="button" id="settings-access-verify">${escapeHtml(appT("settingsVerifyCta"))}</button>
+    `;
+    $("settings-access-verify")?.addEventListener("click", async () => {
+      try {
+        const result = await request("/api/auth/email/send-verification", "POST", { humanId: human.humanId });
+        setStatus(`Verification email sent to ${result.email}`, "ok");
+        await refresh();
+      } catch (error) {
+        setStatus(error.message, "error");
+      }
+    });
+  } else {
+    accessPanel.hidden = true;
+    accessPanel.innerHTML = "";
+  }
+
+  accessPanel.querySelectorAll("[data-route-target]").forEach((node) => {
+    node.addEventListener("click", () => goToRoute(node.dataset.routeTarget));
+  });
+  document.querySelectorAll("[data-settings-panel]").forEach((node) => {
+    node.hidden = node.dataset.settingsPanel !== state.activeSettingsSection;
+  });
+  document.querySelectorAll("[data-settings-section]").forEach((node) => {
+    node.classList.toggle("active", node.dataset.settingsSection === state.activeSettingsSection);
+  });
+  const summaryPanel = document.querySelector(".settings-summary-panel");
+  if (summaryPanel) {
+    summaryPanel.hidden = state.activeSettingsSection !== "profile";
+  }
 }
 
 function formDataToObject(form) {
   const fd = new FormData(form);
   const obj = Object.fromEntries(fd.entries());
-  if (obj.capabilities) obj.capabilities = obj.capabilities.split(",").map((x) => x.trim()).filter(Boolean);
-  if (obj.pluginIds) obj.pluginIds = obj.pluginIds.split(",").map((x) => x.trim()).filter(Boolean);
+  if (obj.capabilities) obj.capabilities = obj.capabilities.split(",").map((item) => item.trim()).filter(Boolean);
+  if (obj.pluginIds) obj.pluginIds = obj.pluginIds.split(",").map((item) => item.trim()).filter(Boolean);
+  if (obj.memberAgentIds) obj.memberAgentIds = obj.memberAgentIds.split(",").map((item) => item.trim()).filter(Boolean);
+  if (Object.hasOwn(obj, "memberRoles")) obj.memberRoles = normalizeMemberRolesInput(obj.memberRoles);
   return obj;
 }
 
-$("human-form").addEventListener("submit", async (event) => {
-  event.preventDefault();
-  await request("/api/humans/register", "POST", formDataToObject(event.currentTarget));
-  event.currentTarget.reset();
+async function signInWithValue(identifier, password) {
+  const result = await request("/api/auth/login", "POST", {
+    humanIdOrEmail: identifier,
+    password
+  });
+  saveSession(result.humanId);
+  await bindPendingInstallerAuthSession();
+  state.activeSettingsSection = SETTINGS_DEFAULT_SECTION;
+  setStatus(`Signed in as ${result.humanId}`, "ok");
   await refresh();
+  goToRoute("settings");
+  return true;
+}
+
+async function handleSubmit(event, path, successMessage, routeAfter = null, afterSuccess = null) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const payload = formDataToObject(form);
+  try {
+    const result = await request(path, "POST", payload);
+    if (typeof form.reset === "function") form.reset();
+    if (afterSuccess) afterSuccess(result);
+    setStatus(successMessage(result), "ok");
+    await refresh();
+    if (routeAfter) goToRoute(routeAfter);
+  } catch (error) {
+    setStatus(error.message, "error");
+  }
+}
+
+async function handleOnboarderSubmit(event) {
+  event.preventDefault();
+  try {
+    const result = await request("/api/onboarder/bundle", "POST", formDataToObject(event.currentTarget));
+    const output = $("onboarder-output");
+    if (output) output.textContent = JSON.stringify(result, null, 2);
+    setStatus(`Onboarding bundle ready for ${result.identity.agentId}`, "ok");
+  } catch (error) {
+    setStatus(error.message, "error");
+  }
+}
+
+async function loadAuthConfig() {
+  try {
+    state.authConfig = await request("/api/auth/config");
+  } catch {
+    state.authConfig = { githubEnabled: false };
+  }
+  const button = $("github-auth-button");
+  const note = $("github-auth-note");
+  if (button) {
+    button.disabled = !state.authConfig.githubEnabled;
+    button.textContent = state.authConfig.githubEnabled ? "Continue with GitHub" : "GitHub Auth Not Configured";
+  }
+  if (note && !state.authConfig.githubEnabled) {
+    note.textContent = "GitHub OAuth is not configured on this deployment yet.";
+  }
+}
+
+async function refresh() {
+  state.summary = await request("/api/world/summary");
+  try {
+    state.onboarderPublicOffer = await request("/api/onboarder/public-offer");
+  } catch (error) {
+    state.onboarderPublicOffer = null;
+    console.warn("Failed to load onboarder public offer", error);
+  }
+  try {
+    state.onboarderBillingReadiness = await request("/api/onboarder/billing-readiness");
+  } catch (error) {
+    state.onboarderBillingReadiness = null;
+    console.warn("Failed to load onboarder billing readiness", error);
+  }
+  if (state.sessionHumanId) {
+    try {
+      state.onboarderCatalog = await request("/api/onboarder/catalog");
+      state.onboarderPurchases = await request("/api/onboarder/purchases");
+    } catch (error) {
+      state.onboarderCatalog = null;
+      state.onboarderPurchases = { purchases: [], entitlements: [] };
+      console.warn("Failed to load onboarder commerce data", error);
+    }
+    if (state.pendingOnboarderCheckout?.status === "success" && state.pendingOnboarderCheckout.purchaseId && state.pendingOnboarderCheckout.checkoutSessionId) {
+      try {
+        const result = await request("/api/onboarder/checkout-confirm", "POST", {
+          purchaseId: state.pendingOnboarderCheckout.purchaseId,
+          checkoutSessionId: state.pendingOnboarderCheckout.checkoutSessionId
+        });
+        setStatus(`Onboarder purchase confirmed. Entitlement ${result.entitlementId} is ready.`, "ok");
+        state.onboarderPurchases = await request("/api/onboarder/purchases");
+      } catch (error) {
+        setStatus(error.message, "error");
+      } finally {
+        state.pendingOnboarderCheckout = null;
+      }
+    }
+  } else {
+    state.onboarderCatalog = null;
+    state.onboarderPurchases = { purchases: [], entitlements: [] };
+  }
+  if (state.starterRequirementId) {
+    state.latestStarterRequirement = (state.summary.requirements || []).find((item) => item.requirementId === state.starterRequirementId) || state.latestStarterRequirement;
+  }
+  state.authResolved = true;
+  await bindPendingInstallerAuthSession();
+  renderAll();
+}
+
+async function bindPendingInstallerAuthSession() {
+  if (!state.pendingInstallerAuthSessionId || !state.sessionHumanId) return;
+  try {
+    await request("/api/onboarder/installer/auth/bind", "POST", {
+      installerAuthSessionId: state.pendingInstallerAuthSessionId
+    });
+    setStatus("Installer authorization linked to your active EOW session.", "ok");
+  } catch (error) {
+    console.warn("installer auth bind failed", error);
+  } finally {
+    state.pendingInstallerAuthSessionId = "";
+  }
+}
+
+function renderAll() {
+  if (!state.summary) return;
+  applyAppLocaleToStaticText();
+  renderTopbarActions();
+  renderSummary(state.summary);
+  renderBuildFilterSummary();
+  renderMarketFilterSummary();
+  bindProjectEditButtons();
+  renderMemberRoleAgentOptions();
+  renderSettingsShell();
+  renderProjectWorkspace();
+  showRoute(currentRoute());
+}
+
+document.querySelectorAll(".member-role-add-button").forEach((node) => {
+  node.addEventListener("click", () => addMemberRoleRow(node.dataset.roleTarget));
 });
 
-$("agent-form").addEventListener("submit", async (event) => {
-  event.preventDefault();
-  await request("/api/agents/register", "POST", formDataToObject(event.currentTarget));
-  event.currentTarget.reset();
-  await refresh();
+document.querySelectorAll(".member-role-sync-button").forEach((node) => {
+  node.addEventListener("click", () => {
+    syncMemberRolesFromCurrentAgents(node.dataset.roleTarget);
+    setStatus("Member roles prefilled from your registered agents.", "ok");
+  });
 });
 
-$("plugin-form").addEventListener("submit", async (event) => {
-  event.preventDefault();
-  await request("/api/plugins/register", "POST", formDataToObject(event.currentTarget));
-  event.currentTarget.reset();
-  await refresh();
+document.querySelectorAll(".member-role-select-add-button").forEach((node) => {
+  node.addEventListener("click", () => {
+    addSelectedAgentToRoleEditor(node.dataset.roleTarget);
+    setStatus("Selected agent added to member roles.", "ok");
+  });
 });
 
-$("project-form").addEventListener("submit", async (event) => {
-  event.preventDefault();
-  await request("/api/projects/create", "POST", formDataToObject(event.currentTarget));
-  event.currentTarget.reset();
-  await refresh();
+document.querySelectorAll(".member-role-multi-add-button").forEach((node) => {
+  node.addEventListener("click", () => {
+    addMultipleAgentsToRoleEditor(node.dataset.roleTarget);
+    setStatus("Selected agents added to member roles.", "ok");
+  });
 });
 
-refresh();
+$("human-form")?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const password = form.password.value;
+  const passwordConfirm = form.passwordConfirm.value;
+  if (password !== passwordConfirm) {
+    setStatus("Password confirmation does not match.", "error");
+    return;
+  }
+  await handleSubmit(event, "/api/humans/register", (result) => `Human created: ${result.humanId}`, "settings", (result) => saveSession(result.humanId));
+});
+$("agent-form")?.addEventListener("submit", (event) => handleSubmit(event, "/api/agents/register", (result) => `Agent created: ${result.agentId}`, "settings"));
+$("requirement-form")?.addEventListener("submit", (event) => handleSubmit(event, "/api/requirements/create", (result) => `Requirement created: ${result.requirementId}`, "build"));
+$("project-starter-form")?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const human = currentHuman();
+  if (!human) {
+    setStatus("Sign in first.", "error");
+    return;
+  }
+  if (!form.primaryAgentId.value) {
+    setStatus("Select your main agent first.", "error");
+    return;
+  }
+  try {
+    const payload = {
+      title: form.title.value,
+      summary: [
+        `Project starter created inside New Project.`,
+        `Primary agent: ${form.primaryAgentId.value}`,
+        ``,
+        form.idea.value.trim(),
+        ``,
+        `Next step: continue requirement refinement and source project creation inside New Project.`
+      ].join("\n"),
+      desiredKind: form.desiredKind.value || "app",
+      tags: [form.tags.value, "starter"].filter(Boolean).join(", "),
+      source: "project-starter",
+      primaryAgentId: form.primaryAgentId.value,
+      createdByType: "human",
+      createdById: human.humanId,
+      ownerHumanId: human.humanId,
+      reviewerHumanId: human.humanId
+    };
+    const result = await request("/api/requirements/create", "POST", payload);
+    state.latestStarterRequirement = {
+      ...result,
+      primaryAgentId: form.primaryAgentId.value
+    };
+    state.starterRequirementId = result.requirementId;
+    if (typeof form.reset === "function") form.reset();
+    renderSettingsData();
+    setStatus(`Starter requirement created: ${result.requirementId}`, "ok");
+    await refresh();
+  } catch (error) {
+    setStatus(error.message, "error");
+  }
+});
+$("agent-status-form")?.addEventListener("submit", (event) => handleSubmit(event, "/api/agents/status", (result) => `Agent updated: ${result.agentId}`, "settings"));
+$("plugin-form")?.addEventListener("submit", (event) => handleSubmit(event, "/api/plugins/register", (result) => `Plugin created: ${result.pluginId}`, "build"));
+$("project-form")?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  try {
+    const result = await request("/api/projects/create", "POST", formDataToObject(form));
+    if (typeof form.reset === "function") form.reset();
+    state.activeProjectId = result.projectId;
+    setStatus(`Project created: ${result.projectId} -> ${result.repoFullName}`, "ok");
+    await refresh();
+    goToRoute("project");
+  } catch (error) {
+    setStatus(error.message, "error");
+  }
+});
+$("project-edit-form")?.addEventListener("submit", (event) => handleSubmit(event, "/api/projects/update", (result) => `Project updated: ${result.projectId}`, "build"));
+$("project-requirement-select")?.addEventListener("change", (event) => {
+  const requirementId = event.currentTarget.value;
+  const requirement = (state.summary?.requirements || []).find((item) => item.requirementId === requirementId);
+  if (requirement) {
+    loadRequirementIntoProjectForm(requirement);
+    setStatus(`Requirement ${requirement.requirementId} preloaded into the project form.`, "ok");
+  } else {
+    renderProjectRequirementPreview(null);
+  }
+});
+
+$("preset-onboarder-button")?.addEventListener("click", () => {
+  const form = $("project-form");
+  if (!form) return;
+  const current = currentHuman();
+  if (form.ownerHumanId && current) form.ownerHumanId.value = current.humanId;
+  for (const [key, value] of Object.entries(ONBOARDER_PRESET)) {
+    if (form[key]) form[key].value = value;
+  }
+  if (form.serviceEndpoint) form.serviceEndpoint.value = `${window.location.origin}/services/elo-agent-onboarder`;
+  setStatus("elo-agent-onboarder preset applied.", "ok");
+});
+
+$("project-workspace-check-bridge")?.addEventListener("click", async () => {
+  try {
+    await inspectStarterBridge();
+    renderProjectWorkspace();
+    const config = state.starterBridgeStatus?.config || {};
+    setStatus(
+      state.starterBridgeStatus?.configured
+        ? `Browser bridge ready for agent ${config.agentId || "unknown"}`
+        : "Browser bridge detected but not fully configured.",
+      state.starterBridgeStatus?.configured ? "ok" : "error"
+    );
+  } catch (error) {
+    setStatus(error.message, "error");
+  }
+});
+
+$("project-workspace-chat-form")?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  try {
+    await sendProjectWorkspacePrompt();
+  } catch (error) {
+    setStatus(error.message, "error");
+  }
+});
+$("onboarder-form")?.addEventListener("submit", handleOnboarderSubmit);
+$("signed-agent-guide-form")?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const human = currentHuman();
+  const output = $("signed-agent-output");
+  const actions = $("signed-agent-actions");
+  if (!human) {
+    setStatus("Sign in first.", "error");
+    return;
+  }
+  if (!human.agentAuthKey) {
+    setStatus("Issue an agent auth key first.", "error");
+    return;
+  }
+  const form = event.currentTarget;
+  const formData = formDataToObject(form);
+  const body = {
+    humanId: human.humanId,
+    ...formData
+  };
+  try {
+    const result = await request("/api/agents/register-signing-payload", "POST", body);
+    const guide = buildSignedAgentGuide({
+      human,
+      authKey: human.agentAuthKey,
+      formData: body,
+      payload: result.payload
+    });
+    const script = buildSignedAgentScript({
+      human,
+      authKey: human.agentAuthKey,
+      payload: result.payload
+    });
+    const bundle = buildSignedAgentBundle({
+      human,
+      authKey: human.agentAuthKey,
+      formData: body,
+      payload: result.payload,
+      guide,
+      script
+    });
+    const agentReadyPrompt = buildAgentReadyPrompt({
+      human,
+      authKeyBundle: state.latestAuthKeyBundle || human.agentAuthKey,
+      signedGuide: { payload: result.payload, script }
+    });
+    state.latestSignedAgentGuide = {
+      humanId: human.humanId,
+      agentId: formData.agentId,
+      guide,
+      script,
+      payload: result.payload,
+      bundle,
+      agentReadyPrompt
+    };
+    if (output) output.textContent = guide;
+    if (actions) {
+      actions.innerHTML = `
+        <button type="button" class="topbar-button secondary" id="download-signed-guide-button">Download Registration Guide</button>
+        <button type="button" class="topbar-button ghost" id="copy-agent-ready-prompt-button">Copy Agent-Ready Prompt</button>
+        <button type="button" class="topbar-button ghost" id="download-agent-ready-prompt-button">Download Agent-Ready Prompt</button>
+        <button type="button" class="topbar-button ghost" id="download-signed-payload-button">Download Payload JSON</button>
+        <button type="button" class="topbar-button ghost" id="download-signed-script-button">Download Shell Script</button>
+        <button type="button" class="topbar-button ghost" id="download-signed-bundle-button">Download Bundle JSON</button>
+      `;
+      $("download-signed-guide-button")?.addEventListener("click", () => {
+        if (!state.latestSignedAgentGuide) return;
+        downloadTextFile(`${state.latestSignedAgentGuide.agentId}.registration-guide.md`, state.latestSignedAgentGuide.guide, "text/markdown;charset=utf-8");
+      });
+      $("copy-agent-ready-prompt-button")?.addEventListener("click", () => {
+        if (!state.latestSignedAgentGuide) return;
+        copyText(state.latestSignedAgentGuide.agentReadyPrompt, "Agent-ready prompt copied.");
+      });
+      $("download-agent-ready-prompt-button")?.addEventListener("click", () => {
+        if (!state.latestSignedAgentGuide) return;
+        downloadTextFile(`${state.latestSignedAgentGuide.agentId}.agent-ready.md`, state.latestSignedAgentGuide.agentReadyPrompt, "text/markdown;charset=utf-8");
+      });
+      $("download-signed-payload-button")?.addEventListener("click", () => {
+        if (!state.latestSignedAgentGuide) return;
+        const payload = JSON.parse(state.latestSignedAgentGuide.payload);
+        downloadTextFile(`${state.latestSignedAgentGuide.agentId}.payload.json`, JSON.stringify(payload, null, 2), "application/json;charset=utf-8");
+      });
+      $("download-signed-script-button")?.addEventListener("click", () => {
+        if (!state.latestSignedAgentGuide) return;
+        downloadTextFile(`${state.latestSignedAgentGuide.agentId}.register.sh`, state.latestSignedAgentGuide.script, "text/x-shellscript;charset=utf-8");
+      });
+      $("download-signed-bundle-button")?.addEventListener("click", () => {
+        if (!state.latestSignedAgentGuide) return;
+        downloadTextFile(`${state.latestSignedAgentGuide.agentId}.bundle.json`, JSON.stringify(state.latestSignedAgentGuide.bundle, null, 2), "application/json;charset=utf-8");
+      });
+    }
+    setStatus(`Signed registration payload prepared for ${formData.agentId}`, "ok");
+  } catch (error) {
+    setStatus(error.message, "error");
+  }
+});
+$("signin-form")?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const value = String(new FormData(form).get("humanIdOrEmail") || "");
+  const password = String(new FormData(form).get("password") || "");
+  try {
+    await signInWithValue(value, password);
+    form.reset();
+  } catch (error) {
+    setStatus(error.message, "error");
+  }
+});
+
+$("forgot-password-button")?.addEventListener("click", () => {
+  const form = $("forgot-password-form");
+  if (!form) return;
+  form.hidden = !form.hidden;
+});
+
+$("forgot-password-form")?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  try {
+    const result = await request("/api/auth/password/reset/request", "POST", {
+      humanIdOrEmail: form.humanIdOrEmail.value
+    });
+    if (typeof form.reset === "function") form.reset();
+    form.hidden = true;
+    setStatus(`Password reset email sent to ${result.email}`, "ok");
+  } catch (error) {
+    setStatus(error.message, "error");
+  }
+});
+
+document.querySelectorAll("[data-route-target]").forEach((node) => {
+  node.addEventListener("click", () => goToRoute(node.dataset.routeTarget));
+});
+
+document.querySelectorAll("[data-route-link]").forEach((node) => {
+  node.addEventListener("click", (event) => {
+    event.preventDefault();
+    goToRoute(node.dataset.routeLink);
+  });
+});
+
+$("app-locale-select")?.addEventListener("change", (event) => {
+  setAppLocale(event.currentTarget.value, { persist: true, syncUrl: true });
+  renderAll();
+});
+
+document.querySelectorAll("[data-settings-section]").forEach((node) => {
+  node.addEventListener("click", (event) => {
+    event.preventDefault();
+    const section = String(node.dataset.settingsSection || "").toLowerCase();
+    goToRoute("settings", { settingsSection: section });
+  });
+});
+
+$("build-filter-kind")?.addEventListener("change", (event) => {
+  state.buildFilters.kind = event.currentTarget.value.trim().toLowerCase();
+  renderAll();
+});
+
+$("build-filter-state")?.addEventListener("change", (event) => {
+  state.buildFilters.status = event.currentTarget.value.trim().toLowerCase();
+  renderAll();
+});
+
+$("build-filter-tag")?.addEventListener("input", (event) => {
+  state.buildFilters.tag = event.currentTarget.value;
+  renderAll();
+});
+
+$("build-filter-min-rating")?.addEventListener("input", (event) => {
+  state.buildFilters.minRating = Number(event.currentTarget.value || 0);
+  renderAll();
+});
+
+$("build-filter-min-heat")?.addEventListener("input", (event) => {
+  state.buildFilters.minHeat = Number(event.currentTarget.value || 0);
+  renderAll();
+});
+
+$("build-filter-query")?.addEventListener("input", (event) => {
+  state.buildFilters.query = event.currentTarget.value;
+  renderAll();
+});
+
+$("market-filter-kind")?.addEventListener("change", (event) => {
+  state.marketFilters.kind = event.currentTarget.value.trim().toLowerCase();
+  renderAll();
+});
+
+$("market-filter-min-rating")?.addEventListener("input", (event) => {
+  state.marketFilters.minRating = Number(event.currentTarget.value || 0);
+  renderAll();
+});
+
+$("market-filter-query")?.addEventListener("input", (event) => {
+  state.marketFilters.query = event.currentTarget.value;
+  renderAll();
+});
+
+$("market-sort")?.addEventListener("change", (event) => {
+  state.marketFilters.sort = event.currentTarget.value;
+  renderAll();
+});
+
+$("settings-project-filter-kind")?.addEventListener("change", (event) => {
+  state.settingsProjectFilters.kind = event.currentTarget.value.trim().toLowerCase();
+  renderSettingsData();
+});
+
+$("settings-project-filter-state")?.addEventListener("change", (event) => {
+  state.settingsProjectFilters.state = event.currentTarget.value.trim().toLowerCase();
+  renderSettingsData();
+});
+
+$("settings-project-filter-tag")?.addEventListener("input", (event) => {
+  state.settingsProjectFilters.tag = event.currentTarget.value.trim();
+  renderSettingsData();
+});
+
+$("github-auth-button")?.addEventListener("click", () => {
+  const installerParam = state.pendingInstallerAuthSessionId
+    ? `?installerAuthSessionId=${encodeURIComponent(state.pendingInstallerAuthSessionId)}`
+    : "";
+  window.location.href = `/auth/github/start${installerParam}`;
+});
+
+$("security-password-reset-form")?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const human = currentHuman();
+  if (!human) {
+    setStatus("Sign in first.", "error");
+    return;
+  }
+  try {
+    const result = await request("/api/auth/password/reset/request", "POST", {
+      humanIdOrEmail: human.humanId
+    });
+    setStatus(`Password reset email sent to ${result.email}`, "ok");
+  } catch (error) {
+    setStatus(error.message, "error");
+  }
+});
+
+window.addEventListener("popstate", () => showRoute(currentRoute()));
+window.addEventListener("hashchange", () => showRoute(currentRoute()));
+setAppLocale(state.locale, { persist: true, syncUrl: true });
+showRoute(currentRoute());
+loadAuthConfig().then(() => refresh()).catch((error) => setStatus(error.message, "error"));

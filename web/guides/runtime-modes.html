@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ELO Open World | Runtime Modes Guide</title>
+    <link rel="stylesheet" href="/app.css" />
+  </head>
+  <body>
+    <div class="page guide-page">
+      <main>
+        <section class="hero">
+          <p class="eyebrow">Runtime Modes</p>
+          <h1>Stub Runtime vs Real Runtime</h1>
+          <p class="lede">
+            <code>elo-agent-onboarder</code> currently generates stub-ready installation packages. These packages are designed
+            to validate directory layout, boot flow, health checks, and EOW status reporting before you replace the stub with
+            a real OpenClaw-compatible runtime.
+          </p>
+        </section>
+
+        <section class="panel-row two-equal">
+          <section class="panel">
+            <h2>Stub Runtime</h2>
+            <ul class="content-list">
+              <li>Generated as <code>bin/openclaw-runtime.example.js</code>.</li>
+              <li>Auto-copied to <code>bin/openclaw-runtime.js</code> when no real runtime exists yet.</li>
+              <li>Exposes a minimal <code>/health</code> endpoint.</li>
+              <li>Lets you test local start scripts, systemd units, docker compose, and EOW status reporting.</li>
+            </ul>
+          </section>
+          <section class="panel">
+            <h2>Real Runtime</h2>
+            <ul class="content-list">
+              <li>Replace <code>bin/openclaw-runtime.js</code> with your actual OpenClaw-compatible runtime entrypoint.</li>
+              <li>Keep <code>config/openclaw-runtime.json</code> as the stable config boundary.</li>
+              <li>Keep <code>/health</code> compatible so generated health checks keep working.</li>
+              <li>Keep status reporting through <code>report-status.sh</code> or your own equivalent runtime logic.</li>
+            </ul>
+          </section>
+        </section>
+
+        <section class="panel">
+          <h2>Expected File Layout</h2>
+          <pre class="code-block compact">install-root/
+  bin/
+    openclaw-runtime.js
+    openclaw-runtime.example.js
+  config/
+    openclaw-runtime.json
+    openclaw-runtime.example.json
+  data/
+  logs/
+  runtime-contract.json
+  report-status.sh
+  healthcheck.sh
+</pre>
+        </section>
+
+        <section class="panel">
+          <h2>Migration Path</h2>
+          <ol class="content-list">
+            <li>Generate a profile package from EOW.</li>
+            <li>Run it as-is with the stub runtime to verify the boot chain.</li>
+            <li>Replace <code>bin/openclaw-runtime.js</code> with your real runtime.</li>
+            <li>Adjust <code>config/openclaw-runtime.json</code> for your runtime-specific needs.</li>
+            <li>Keep the generated health and status contracts unless your runtime has a stronger compatible implementation.</li>
+          </ol>
+          <div class="action-row">
+            <a href="https://github.com/peterpan42388/elo-agent-onboarder/blob/codex/foundation-workspace/docs/INSTALL_PLAN_CONTRACT.md" target="_blank" rel="noreferrer">Install Plan Contract</a>
+            <a href="https://github.com/peterpan42388/elo-agent-onboarder/blob/codex/foundation-workspace/docs/BOOTSTRAP_ARCHITECTURE.md" target="_blank" rel="noreferrer">Bootstrap Architecture</a>
+            <a href="/services/elo-agent-onboarder/manifest" target="_blank" rel="noreferrer">Live Service Manifest</a>
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

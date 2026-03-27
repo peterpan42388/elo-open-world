@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EOW OAuth Consent</title>
+    <link rel="stylesheet" href="/app.css" />
+    <style>
+      .oauth-consent-wrap {
+        max-width: 860px;
+        margin: 0 auto;
+        padding: 1.8rem 0 2.8rem;
+      }
+      .oauth-consent-panel {
+        border: 0;
+        border-top: 1px solid rgba(153, 188, 234, 0.24);
+        border-bottom: 1px solid rgba(153, 188, 234, 0.24);
+        border-radius: 0;
+        background: transparent;
+        padding: 1.3rem 0;
+      }
+      .oauth-consent-actions {
+        display: flex;
+        gap: 0.7rem;
+        margin-top: 1rem;
+      }
+      .oauth-consent-status {
+        margin-top: 0.8rem;
+        color: rgba(255, 255, 255, 0.8);
+      }
+      .oauth-locale {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .oauth-locale label {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .oauth-locale select {
+        min-width: 126px;
+      }
+      @media (max-width: 980px) {
+        .oauth-locale {
+          width: 100%;
+        }
+        .oauth-locale select {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body class="elo-cool-v2">
+    <div class="page app-shell">
+      <header class="topbar">
+        <a class="brand" href="/">ELO Open World</a>
+        <div class="oauth-locale">
+          <label for="oauth-consent-lang" data-i18n="langLabel">Language</label>
+          <select id="oauth-consent-lang" aria-label="Language">
+            <option value="en">English</option>
+            <option value="zh">中文</option>
+            <option value="es">Español</option>
+            <option value="ja">日本語</option>
+          </select>
+        </div>
+        <div class="topbar-actions"><a class="topbar-button secondary" href="/human-auth" data-i18n="back">Back</a></div>
+      </header>
+      <main class="oauth-consent-wrap">
+        <section class="oauth-consent-panel">
+          <h2 data-i18n="title">Authorize Local App</h2>
+          <p data-i18n="lede">This app is requesting permission to access your EOW identity for onboarding actions.</p>
+          <p class="note" id="consent-user">Checking login status...</p>
+          <p class="note" id="consent-scope"></p>
+          <div class="oauth-consent-actions">
+            <button type="button" id="authorize-btn" data-i18n="authorize">Authorize</button>
+            <button type="button" class="topbar-button secondary" id="cancel-btn" data-i18n="cancel">Cancel</button>
+          </div>
+          <p class="oauth-consent-status" id="consent-status"></p>
+        </section>
+      </main>
+    </div>
+    <script>
+      const I18N = {
+        en: {
+          langLabel: "Language",
+          back: "Back",
+          title: "Authorize Local App",
+          lede: "This app is requesting permission to access your EOW identity for onboarding actions.",
+          authorize: "Authorize",
+          cancel: "Cancel",
+          invalid: "Invalid authorization request. Please restart from the app.",
+          clientScope: "Client",
+          scope: "Scope",
+          checking: "Checking login status...",
+          signedInAs: "Signed in as",
+          notSignedIn: "You are not signed in. Redirecting to login...",
+          authorizing: "Authorizing...",
+          cancelled: "Authorization cancelled."
+        },
+        zh: {
+          langLabel: "语言",
+          back: "返回",
+          title: "授权本地应用",
+          lede: "该应用正在请求访问你的 EOW 身份，用于安装与接入流程。",
+          authorize: "授权",
+          cancel: "取消",
+          invalid: "授权请求无效，请从应用重新发起。",
+          clientScope: "客户端",
+          scope: "权限",
+          checking: "正在检查登录状态...",
+          signedInAs: "当前登录为",
+          notSignedIn: "你尚未登录，正在跳转登录页...",
+          authorizing: "正在授权...",
+          cancelled: "已取消授权。"
+        },
+        es: {
+          langLabel: "Idioma",
+          back: "Volver",
+          title: "Autorizar app local",
+          lede: "Esta app solicita acceso a tu identidad EOW para acciones de onboarding.",
+          authorize: "Autorizar",
+          cancel: "Cancelar",
+          invalid: "Solicitud de autorización inválida. Reinicia desde la app.",
+          clientScope: "Cliente",
+          scope: "Scope",
+          checking: "Verificando sesión...",
+          signedInAs: "Sesión iniciada como",
+          notSignedIn: "No has iniciado sesión. Redirigiendo...",
+          authorizing: "Autorizando...",
+          cancelled: "Autorización cancelada."
+        },
+        ja: {
+          langLabel: "言語",
+          back: "戻る",
+          title: "ローカルアプリを認可",
+          lede: "このアプリはオンボーディングのために EOW ID へのアクセスを要求しています。",
+          authorize: "認可",
+          cancel: "キャンセル",
+          invalid: "認可リクエストが無効です。アプリから再開してください。",
+          clientScope: "クライアント",
+          scope: "スコープ",
+          checking: "ログイン状態を確認中...",
+          signedInAs: "サインイン中",
+          notSignedIn: "サインインしていません。ログインへ移動します...",
+          authorizing: "認可中...",
+          cancelled: "認可をキャンセルしました。"
+        }
+      };
+
+      const LOCALE_KEY = "elo-open-world.locale";
+      const SUPPORTED = ["en", "zh", "es", "ja"];
+
+      function normalizeLocale(value) {
+        const raw = String(value || "").toLowerCase();
+        if (raw.startsWith("zh")) return "zh";
+        if (raw.startsWith("es")) return "es";
+        if (raw.startsWith("ja")) return "ja";
+        if (raw.startsWith("en")) return "en";
+        return "";
+      }
+
+      function t(key) {
+        return I18N[currentLocale]?.[key] || I18N.en[key] || key;
+      }
+
+      function applyLocale() {
+        document.documentElement.lang = currentLocale === "zh" ? "zh-CN" : currentLocale;
+        document.querySelectorAll("[data-i18n]").forEach((node) => {
+          const key = node.getAttribute("data-i18n");
+          if (!key) return;
+          node.textContent = t(key);
+        });
+        const select = document.getElementById("oauth-consent-lang");
+        if (select) select.value = currentLocale;
+      }
+
+      function syncLocale() {
+        localStorage.setItem(LOCALE_KEY, currentLocale);
+        const url = new URL(window.location.href);
+        if (url.searchParams.get("lang") !== currentLocale) {
+          url.searchParams.set("lang", currentLocale);
+          history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+        }
+      }
+
+      const urlParams = new URLSearchParams(window.location.search);
+      let currentLocale = (() => {
+        const query = normalizeLocale(urlParams.get("lang"));
+        if (SUPPORTED.includes(query)) return query;
+        const stored = normalizeLocale(localStorage.getItem(LOCALE_KEY));
+        if (SUPPORTED.includes(stored)) return stored;
+        const browser = normalizeLocale(navigator.language || "en");
+        return SUPPORTED.includes(browser) ? browser : "en";
+      })();
+
+      applyLocale();
+      syncLocale();
+
+      document.getElementById("oauth-consent-lang")?.addEventListener("change", (event) => {
+        currentLocale = normalizeLocale(event.currentTarget.value) || "en";
+        applyLocale();
+        syncLocale();
+      });
+
+      const params = new URLSearchParams(window.location.search);
+      const returnTo = params.get("returnTo") || "";
+      const userNode = document.getElementById("consent-user");
+      const scopeNode = document.getElementById("consent-scope");
+      const statusNode = document.getElementById("consent-status");
+      userNode.textContent = t("checking");
+
+      function parseAuthorizeMeta(path) {
+        try {
+          const decoded = decodeURIComponent(path);
+          const parsed = new URL(decoded, window.location.origin);
+          if (parsed.pathname !== "/oauth/authorize") return null;
+          return {
+            href: parsed.pathname + parsed.search,
+            clientId: parsed.searchParams.get("client_id") || "-",
+            scope: parsed.searchParams.get("scope") || "-"
+          };
+        } catch {
+          return null;
+        }
+      }
+
+      const authorizeMeta = parseAuthorizeMeta(returnTo);
+      if (!authorizeMeta) {
+        statusNode.textContent = t("invalid");
+        document.getElementById("authorize-btn").disabled = true;
+      } else {
+        scopeNode.textContent = `${t("clientScope")}: ${authorizeMeta.clientId} | ${t("scope")}: ${authorizeMeta.scope}`;
+      }
+
+      async function checkHuman() {
+        try {
+          const response = await fetch("/api/auth/me");
+          const payload = await response.json();
+          if (!response.ok || payload.error) throw new Error(payload.error || "Not signed in");
+          userNode.textContent = `${t("signedInAs")} ${payload.human.humanId}`;
+          return true;
+        } catch {
+          userNode.textContent = t("notSignedIn");
+          setTimeout(() => {
+            const loginUrl = new URL("/human-auth", window.location.origin);
+            if (authorizeMeta?.href) loginUrl.searchParams.set("returnTo", authorizeMeta.href);
+            loginUrl.searchParams.set("lang", currentLocale);
+            window.location.href = loginUrl.toString();
+          }, 500);
+          return false;
+        }
+      }
+
+      document.getElementById("authorize-btn")?.addEventListener("click", async () => {
+        if (!authorizeMeta) return;
+        statusNode.textContent = t("authorizing");
+        window.location.href = authorizeMeta.href;
+      });
+
+      document.getElementById("cancel-btn")?.addEventListener("click", () => {
+        statusNode.textContent = t("cancelled");
+        const loginUrl = new URL("/human-auth", window.location.origin);
+        loginUrl.searchParams.set("lang", currentLocale);
+        window.location.href = loginUrl.toString();
+      });
+
+      checkHuman();
+    </script>
+  </body>
+</html>
