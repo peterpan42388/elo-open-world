@@ -3020,3 +3020,319 @@ pre,
   margin-bottom: 4px;
   flex-wrap: wrap;
 }
+
+/* elo炫酷风 v2: global de-card shell */
+body.elo-cool-v2 {
+  --v2-bg-0: #03030a;
+  --v2-bg-1: #090d1e;
+  --v2-bg-2: #161334;
+  --v2-bg-3: #1f0f3a;
+  --v2-surface: rgba(15, 18, 34, 0.48);
+  --v2-surface-strong: rgba(16, 20, 38, 0.74);
+  --v2-line: rgba(153, 188, 234, 0.18);
+  --v2-line-strong: rgba(176, 120, 255, 0.38);
+  --v2-text: #f6f6ff;
+  --v2-muted: rgba(224, 233, 255, 0.72);
+  --v2-accent: #c285ff;
+  --v2-accent-2: #57caff;
+  --v2-button: linear-gradient(120deg, #af62ff 0%, #7288ff 46%, #4dd9d2 100%);
+  color: var(--v2-text);
+  background:
+    radial-gradient(circle at 6% -12%, rgba(198, 116, 255, 0.3), transparent 44%),
+    radial-gradient(circle at 93% -5%, rgba(86, 170, 255, 0.27), transparent 43%),
+    radial-gradient(circle at 48% 94%, rgba(248, 93, 199, 0.18), transparent 50%),
+    linear-gradient(140deg, var(--v2-bg-0) 0%, var(--v2-bg-1) 38%, var(--v2-bg-2) 70%, var(--v2-bg-3) 100%);
+}
+
+body.elo-cool-v2 .page {
+  width: min(1360px, calc(100vw - 32px));
+  padding: 14px 0 72px;
+}
+
+body.elo-cool-v2 .topbar {
+  padding: 12px 16px;
+  border: 1px solid var(--v2-line);
+  border-radius: 999px;
+  background: rgba(8, 11, 24, 0.68);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 24px 52px rgba(3, 5, 18, 0.4);
+  top: 10px;
+}
+
+body.elo-cool-v2 .brand {
+  color: #f8f3ff;
+  letter-spacing: 0.06em;
+}
+
+body.elo-cool-v2 .nav a {
+  color: rgba(236, 244, 255, 0.78);
+}
+
+body.elo-cool-v2 .nav a.active,
+body.elo-cool-v2 .nav a:hover {
+  color: #f8f2ff;
+  background: rgba(186, 120, 255, 0.18);
+  border-color: rgba(186, 120, 255, 0.32);
+}
+
+body.elo-cool-v2 .topbar-button,
+body.elo-cool-v2 button[type="submit"],
+body.elo-cool-v2 button[type="button"] {
+  border-radius: 999px;
+}
+
+body.elo-cool-v2 .topbar-button {
+  background: var(--v2-button);
+  color: #0b1023;
+  font-weight: 700;
+}
+
+body.elo-cool-v2 .topbar-button.secondary {
+  background: rgba(172, 123, 255, 0.16);
+  color: #eedbff;
+  border: 1px solid rgba(191, 150, 255, 0.36);
+}
+
+body.elo-cool-v2 .topbar-button.ghost {
+  background: rgba(11, 14, 30, 0.36);
+  color: var(--v2-text);
+  border-color: var(--v2-line);
+}
+
+body.elo-cool-v2 .route {
+  display: grid;
+  gap: 28px;
+  min-width: 0;
+}
+
+body.elo-cool-v2 .hero,
+body.elo-cool-v2 .section-header.page-hero {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  padding: 44px 0 24px;
+  border-top: 1px solid var(--v2-line-strong);
+  border-bottom: 1px solid var(--v2-line);
+}
+
+body.elo-cool-v2 .hero h1,
+body.elo-cool-v2 .section-header h2 {
+  color: #fbf7ff;
+  letter-spacing: -0.02em;
+}
+
+body.elo-cool-v2 .lede,
+body.elo-cool-v2 .section-header p,
+body.elo-cool-v2 .panel-header p,
+body.elo-cool-v2 .note {
+  color: var(--v2-muted);
+}
+
+body.elo-cool-v2 .eyebrow {
+  color: #dfb8ff;
+}
+
+body.elo-cool-v2 .panel,
+body.elo-cool-v2 .metric,
+body.elo-cool-v2 .focus-band,
+body.elo-cool-v2 .content-band,
+body.elo-cool-v2 .utility-rail {
+  background: var(--v2-surface);
+  border: 0;
+  border-top: 1px solid var(--v2-line);
+  border-bottom: 1px solid var(--v2-line);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+body.elo-cool-v2 .panel {
+  padding: 20px 0;
+}
+
+body.elo-cool-v2 .panel-header {
+  padding: 0;
+}
+
+body.elo-cool-v2 .grid {
+  gap: 0;
+  margin: 0;
+  border-top: 1px solid var(--v2-line);
+}
+
+body.elo-cool-v2 .metric {
+  padding: 16px 12px;
+  border-bottom: 1px solid var(--v2-line);
+}
+
+body.elo-cool-v2 .metric .value {
+  font-size: clamp(26px, 4.2vw, 40px);
+}
+
+body.elo-cool-v2 .quickstart-panel,
+body.elo-cool-v2 .infrastructure,
+body.elo-cool-v2 .world-graph-panel,
+body.elo-cool-v2 .world-insights-panel {
+  padding: 24px 0;
+}
+
+body.elo-cool-v2 .guide-grid {
+  display: grid;
+  gap: 0;
+  border-top: 1px solid var(--v2-line);
+}
+
+body.elo-cool-v2 .guide-card {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 14px 0 16px 14px;
+  border-bottom: 1px solid var(--v2-line);
+  border-left: 2px solid rgba(180, 136, 255, 0.22);
+}
+
+body.elo-cool-v2 .guide-card p {
+  color: var(--v2-muted);
+}
+
+body.elo-cool-v2 .action-row {
+  gap: 10px;
+}
+
+body.elo-cool-v2 .focus-layout {
+  grid-template-columns: minmax(220px, 260px) minmax(0, 1fr);
+  gap: 26px;
+}
+
+body.elo-cool-v2 .utility-rail,
+body.elo-cool-v2 .content-band,
+body.elo-cool-v2 .focus-band {
+  padding: 14px 0;
+}
+
+body.elo-cool-v2 .utility-rail {
+  position: sticky;
+  top: 96px;
+  align-self: start;
+  background: rgba(10, 14, 30, 0.62);
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+body.elo-cool-v2 .focus-section {
+  border-top: 1px solid var(--v2-line);
+  padding-top: 14px;
+}
+
+body.elo-cool-v2 .list-row-mode .expand-card,
+body.elo-cool-v2 .docs-link-row {
+  border: 0;
+  border-bottom: 1px solid var(--v2-line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+body.elo-cool-v2 .list-row-mode .expand-card {
+  margin: 0;
+  padding: 12px 0;
+}
+
+body.elo-cool-v2 .list-row-mode .expand-body {
+  padding: 12px 0 2px;
+}
+
+body.elo-cool-v2 .docs-link-row {
+  padding: 12px 0 12px 10px;
+  border-left: 2px solid rgba(120, 198, 255, 0.2);
+}
+
+body.elo-cool-v2 .docs-link-row:hover {
+  border-color: transparent;
+  border-left-color: rgba(172, 121, 255, 0.52);
+  transform: none;
+  background: rgba(19, 25, 49, 0.42);
+}
+
+body.elo-cool-v2 .settings-shell {
+  grid-template-columns: minmax(190px, 230px) minmax(0, 1fr);
+  gap: 32px;
+}
+
+body.elo-cool-v2 .settings-sidebar {
+  border: 0;
+  border-right: 1px solid var(--v2-line);
+  border-radius: 0;
+  padding: 8px 14px 12px 0;
+  background: transparent;
+  position: sticky;
+  top: 96px;
+}
+
+body.elo-cool-v2 .settings-link {
+  border-radius: 999px;
+  margin: 0;
+  background: transparent;
+}
+
+body.elo-cool-v2 .settings-link.active {
+  background: rgba(172, 121, 255, 0.18);
+  border-color: rgba(172, 121, 255, 0.34);
+}
+
+body.elo-cool-v2 .settings-content {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  gap: 30px;
+}
+
+body.elo-cool-v2 .settings-content .panel,
+body.elo-cool-v2 .settings-section .panel {
+  border-left: 0;
+  border-right: 0;
+  border-radius: 0;
+  padding: 18px 0;
+}
+
+body.elo-cool-v2 .creation-shell,
+body.elo-cool-v2 .workspace-shell {
+  gap: 28px;
+}
+
+body.elo-cool-v2 input,
+body.elo-cool-v2 select,
+body.elo-cool-v2 textarea {
+  border: 1px solid rgba(170, 189, 236, 0.28);
+  background: rgba(11, 15, 33, 0.68);
+  color: #f2f5ff;
+}
+
+body.elo-cool-v2 input::placeholder,
+body.elo-cool-v2 textarea::placeholder {
+  color: rgba(210, 224, 255, 0.48);
+}
+
+body.elo-cool-v2 .status-line {
+  border-radius: 999px;
+  border: 1px solid var(--v2-line);
+  background: rgba(12, 17, 35, 0.82);
+}
+
+@media (max-width: 1080px) {
+  body.elo-cool-v2 .focus-layout,
+  body.elo-cool-v2 .settings-shell,
+  body.elo-cool-v2 .creation-shell,
+  body.elo-cool-v2 .workspace-shell {
+    grid-template-columns: 1fr;
+  }
+
+  body.elo-cool-v2 .settings-sidebar,
+  body.elo-cool-v2 .utility-rail,
+  body.elo-cool-v2 .creation-rail {
+    position: static;
+    border-right: 0;
+    padding-right: 0;
+  }
+}

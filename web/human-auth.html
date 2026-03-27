@@ -7,20 +7,23 @@
     <link rel="stylesheet" href="/app.css" />
     <style>
       .human-auth-page {
-        max-width: 980px;
+        max-width: 1100px;
         margin: 0 auto;
-        padding: 1.25rem 1rem 3rem;
+        padding: 1.6rem 0 3rem;
       }
       .human-auth-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 1rem;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 0;
+        border-top: 1px solid rgba(153, 188, 234, 0.2);
       }
       .human-auth-card {
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 14px;
-        background: rgba(11, 17, 31, 0.66);
-        padding: 1rem;
+        border: 0;
+        border-bottom: 1px solid rgba(153, 188, 234, 0.2);
+        border-left: 2px solid rgba(186, 124, 255, 0.24);
+        border-radius: 0;
+        background: transparent;
+        padding: 1rem 0 1.1rem 1rem;
       }
       .human-auth-card h3 {
         margin-top: 0;
@@ -61,7 +64,7 @@
       }
     </style>
   </head>
-  <body>
+  <body class="elo-cool-v2">
     <div class="page app-shell">
       <header class="topbar">
         <a class="brand" href="/">ELO Open World</a>

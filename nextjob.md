@@ -98,6 +98,23 @@ After every execution cycle, update this file with:
 - any new blockers
 
 ## Last Completed
+- Completed `EOW elo炫酷风 v2` global shell baseline rollout (de-card visual migration):
+  - enabled global theme entry on main surfaces:
+    - `web/index.html` body now uses `elo-cool-v2`
+    - `web/onboarder.html` body now uses `elo-cool-v2 onboarder-v2`
+    - `web/human-auth.html` and `web/oauth-consent.html` now inherit `elo-cool-v2`
+  - added global v2 de-card style layer in `web/app.css`:
+    - de-emphasized legacy panel/card shell into section bands
+    - refreshed topbar/button/input palette to unified neon-dark gradient language
+    - moved Build/Market/Docs/Settings list surfaces toward row-band composition
+  - rebuilt standalone `/onboarder` visual shell in `web/onboarder.css`:
+    - full-screen hero + section-band rhythm
+    - reduced glass-card wall styling in favor of line-based section hierarchy
+    - kept existing CTA behaviors and package rendering contracts unchanged
+  - local validation passed:
+    - `node --check web/app.js`
+    - `node --check web/onboarder.js`
+    - `npm test` (43/43 passing)
 - Completed `EOW Phase 2.1` dynamic detail-layer i18n pass:
   - added dynamic i18n namespace layer in `web/app.js` for Build/Market/Settings/Workspace/World drawer copy
   - upgraded `appT()` to support parameter interpolation and missing-key aggregation logs
