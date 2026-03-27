@@ -98,6 +98,13 @@ After every execution cycle, update this file with:
 - any new blockers
 
 ## Last Completed
+- Completed `EOW elo炫酷风 v2` polish pass (spacing + softer boundaries + nav/world copy cleanup):
+  - restored horizontal gutter and centered alignment rhythm across route sections in `web/app.css`
+  - reduced visual boundary intensity by lowering default line contrast and nested border emphasis
+  - removed duplicate left-nav `Get OpenClaw` entry from `web/index.html` (right-side install CTA remains)
+  - replaced `worldLede` messaging in `en/zh/es/ja` to remove the sentence about registration-form mixing while keeping project-graph focus
+  - aligned `/onboarder` spacing and boundary weight with the same softened style language in `web/onboarder.css`
+  - validation passed: `node --check web/app.js`, `node --check web/onboarder.js`, `npm test`
 - Completed `EOW elo炫酷风 v2` global shell baseline rollout (de-card visual migration):
   - enabled global theme entry on main surfaces:
     - `web/index.html` body now uses `elo-cool-v2`

@@ -3027,10 +3027,10 @@ body.elo-cool-v2 {
   --v2-bg-1: #090d1e;
   --v2-bg-2: #161334;
   --v2-bg-3: #1f0f3a;
-  --v2-surface: rgba(15, 18, 34, 0.48);
-  --v2-surface-strong: rgba(16, 20, 38, 0.74);
-  --v2-line: rgba(153, 188, 234, 0.18);
-  --v2-line-strong: rgba(176, 120, 255, 0.38);
+  --v2-surface: rgba(15, 18, 34, 0.34);
+  --v2-surface-strong: rgba(16, 20, 38, 0.62);
+  --v2-line: rgba(153, 188, 234, 0.1);
+  --v2-line-strong: rgba(176, 120, 255, 0.24);
   --v2-text: #f6f6ff;
   --v2-muted: rgba(224, 233, 255, 0.72);
   --v2-accent: #c285ff;
@@ -3045,7 +3045,7 @@ body.elo-cool-v2 {
 }
 
 body.elo-cool-v2 .page {
-  width: min(1360px, calc(100vw - 32px));
+  width: min(1320px, calc(100vw - clamp(20px, 4vw, 88px)));
   padding: 14px 0 72px;
 }
 
@@ -3101,8 +3101,13 @@ body.elo-cool-v2 .topbar-button.ghost {
 
 body.elo-cool-v2 .route {
   display: grid;
-  gap: 28px;
+  gap: 24px;
   min-width: 0;
+}
+
+body.elo-cool-v2 main > .route > * {
+  padding-left: clamp(14px, 2.4vw, 34px);
+  padding-right: clamp(14px, 2.4vw, 34px);
 }
 
 body.elo-cool-v2 .hero,
@@ -3111,7 +3116,7 @@ body.elo-cool-v2 .section-header.page-hero {
   border-radius: 0;
   box-shadow: none;
   background: transparent;
-  padding: 44px 0 24px;
+  padding: clamp(30px, 5vw, 48px) clamp(14px, 2.4vw, 34px) 24px;
   border-top: 1px solid var(--v2-line-strong);
   border-bottom: 1px solid var(--v2-line);
 }
@@ -3147,7 +3152,7 @@ body.elo-cool-v2 .utility-rail {
 }
 
 body.elo-cool-v2 .panel {
-  padding: 20px 0;
+  padding: 18px clamp(8px, 1.5vw, 14px);
 }
 
 body.elo-cool-v2 .panel-header {
@@ -3173,7 +3178,7 @@ body.elo-cool-v2 .quickstart-panel,
 body.elo-cool-v2 .infrastructure,
 body.elo-cool-v2 .world-graph-panel,
 body.elo-cool-v2 .world-insights-panel {
-  padding: 24px 0;
+  padding: 20px clamp(8px, 1.5vw, 14px);
 }
 
 body.elo-cool-v2 .guide-grid {
@@ -3187,9 +3192,9 @@ body.elo-cool-v2 .guide-card {
   border: 0;
   border-radius: 0;
   box-shadow: none;
-  padding: 14px 0 16px 14px;
+  padding: 14px 0 16px 12px;
   border-bottom: 1px solid var(--v2-line);
-  border-left: 2px solid rgba(180, 136, 255, 0.22);
+  border-left: 1px solid rgba(180, 136, 255, 0.18);
 }
 
 body.elo-cool-v2 .guide-card p {
@@ -3208,7 +3213,7 @@ body.elo-cool-v2 .focus-layout {
 body.elo-cool-v2 .utility-rail,
 body.elo-cool-v2 .content-band,
 body.elo-cool-v2 .focus-band {
-  padding: 14px 0;
+  padding: 14px clamp(8px, 1.5vw, 14px);
 }
 
 body.elo-cool-v2 .utility-rail {
@@ -3216,8 +3221,8 @@ body.elo-cool-v2 .utility-rail {
   top: 96px;
   align-self: start;
   background: rgba(10, 14, 30, 0.62);
-  padding-left: 12px;
-  padding-right: 12px;
+  padding-left: clamp(10px, 1.7vw, 14px);
+  padding-right: clamp(10px, 1.7vw, 14px);
 }
 
 body.elo-cool-v2 .focus-section {
@@ -3245,7 +3250,7 @@ body.elo-cool-v2 .list-row-mode .expand-body {
 
 body.elo-cool-v2 .docs-link-row {
   padding: 12px 0 12px 10px;
-  border-left: 2px solid rgba(120, 198, 255, 0.2);
+  border-left: 1px solid rgba(120, 198, 255, 0.16);
 }
 
 body.elo-cool-v2 .docs-link-row:hover {
@@ -3262,7 +3267,7 @@ body.elo-cool-v2 .settings-shell {
 
 body.elo-cool-v2 .settings-sidebar {
   border: 0;
-  border-right: 1px solid var(--v2-line);
+  border-right: 1px solid rgba(153, 188, 234, 0.12);
   border-radius: 0;
   padding: 8px 14px 12px 0;
   background: transparent;
@@ -3293,7 +3298,7 @@ body.elo-cool-v2 .settings-section .panel {
   border-left: 0;
   border-right: 0;
   border-radius: 0;
-  padding: 18px 0;
+  padding: 16px 0;
 }
 
 body.elo-cool-v2 .creation-shell,

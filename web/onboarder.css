@@ -4,8 +4,8 @@
   --v2-bg-1: #090d1f;
   --v2-bg-2: #151333;
   --v2-bg-3: #241047;
-  --v2-line: rgba(156, 190, 234, 0.2);
-  --v2-line-strong: rgba(186, 124, 255, 0.4);
+  --v2-line: rgba(156, 190, 234, 0.1);
+  --v2-line-strong: rgba(186, 124, 255, 0.24);
   --v2-text: #f9f7ff;
   --v2-muted: rgba(223, 232, 255, 0.74);
   --v2-accent: #c486ff;
@@ -88,7 +88,7 @@ body.elo-cool-v2.onboarder-v2 {
   position: sticky;
   top: 10px;
   z-index: 9;
-  width: min(1320px, calc(100vw - 30px));
+  width: min(1320px, calc(100vw - clamp(20px, 4vw, 88px)));
   margin: 12px auto 0;
   padding: 12px 16px;
   border: 1px solid var(--v2-line);
@@ -153,7 +153,7 @@ body.elo-cool-v2.onboarder-v2 {
 .onb-main {
   position: relative;
   z-index: 1;
-  width: min(1320px, calc(100vw - 30px));
+  width: min(1320px, calc(100vw - clamp(20px, 4vw, 88px)));
   margin: 20px auto 44px;
   display: grid;
   gap: 0;
@@ -166,7 +166,7 @@ body.elo-cool-v2.onboarder-v2 {
   justify-items: center;
   text-align: center;
   gap: 14px;
-  padding: 42px 0 38px;
+  padding: 42px clamp(14px, 2.4vw, 34px) 38px;
   border-top: 1px solid var(--v2-line-strong);
   border-bottom: 1px solid var(--v2-line);
   background: transparent;
@@ -282,7 +282,7 @@ body.elo-cool-v2.onboarder-v2 {
 .section {
   display: grid;
   gap: 16px;
-  padding: 30px 0;
+  padding: 30px clamp(14px, 2.4vw, 34px);
   border-top: 1px solid var(--v2-line);
 }
 
@@ -327,7 +327,7 @@ body.elo-cool-v2.onboarder-v2 {
   background: transparent;
   border: 0;
   border-bottom: 1px solid var(--v2-line);
-  border-left: 2px solid rgba(186, 124, 255, 0.26);
+  border-left: 1px solid rgba(186, 124, 255, 0.18);
   border-radius: 0;
   padding: 14px 0 16px 14px;
   box-shadow: none;
@@ -469,9 +469,9 @@ body.elo-cool-v2.onboarder-v2 {
 .footer-cta {
   position: relative;
   z-index: 1;
-  width: min(1320px, calc(100vw - 30px));
+  width: min(1320px, calc(100vw - clamp(20px, 4vw, 88px)));
   margin: 0 auto 42px;
-  padding: 34px 0 30px;
+  padding: 34px clamp(14px, 2.4vw, 34px) 30px;
   border-top: 1px solid var(--v2-line-strong);
   border-bottom: 1px solid var(--v2-line);
   text-align: center;
